@@ -304,3 +304,4 @@ rara-v0/
 - Level editor / community levels
 - Overarching story connecting all rooms (who keeps capturing this detective?)
 - Co-op mode (two detectives in connected rooms, must communicate)
+- Chair tipping as a restraint state transition — struggling too hard or physics collisions tip the chair, moving player from "chair" to "floor" restraint mid-level
