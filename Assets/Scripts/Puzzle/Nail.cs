@@ -20,6 +20,9 @@ public class Nail : InteractableBase
 	void EscapeRope()
 	{
 		Debug.Log("ESCAPED! Rope cut on the nail.");
-		// For now, just log it. Win condition handling comes later.
+		if (LevelManager.Instance != null)
+		{
+			LevelManager.Instance.CompleteLevel();
+		}
 	}
 }
