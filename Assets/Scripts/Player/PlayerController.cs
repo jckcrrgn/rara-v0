@@ -10,6 +10,14 @@ public class PlayerController : MonoBehaviour
 	[SerializeField] private float interactionCheckRadius = 1.5f;
 	[SerializeField] private LayerMask interactableLayer = ~0;
 
+	[Header("Bonds")]
+	[SerializeField] private int bondStrength = 25; // How much progress needed to escape
+	[SerializeField] private int struggleProgress = 0;
+	[SerializeField] private int bareHandsStruggleAmount = 1;
+
+	[Header("Held Item")]
+	[SerializeField] private Pickupable heldItem = null;
+
 	private Rigidbody rb;
 	private bool isGrounded;
 
@@ -20,20 +28,22 @@ public class PlayerController : MonoBehaviour
 
 	void Update()
 	{
-		// Rotate with A/D
 		float rotateInput = Input.GetAxis("Horizontal");
 		transform.Rotate(0f, rotateInput * rotationSpeed * Time.deltaTime, 0f);
 
-		// Hop forward only on fresh W press AND when grounded
 		if (Input.GetKeyDown(KeyCode.W) && isGrounded)
 		{
 			Hop();
 		}
 
-		// Struggle verb (Spacebar for now)
 		if (Input.GetKeyDown(KeyCode.Space))
 		{
 			TryStruggle();
+		}
+
+		if (Input.GetKeyDown(KeyCode.E))
+		{
+			TryPickUp();
 		}
 	}
 
@@ -45,20 +55,87 @@ public class PlayerController : MonoBehaviour
 
 	void TryStruggle()
 	{
-		// Find any interactables within range
+		// Calculate struggle power: bare hands + held item bonus + nearby nail bonus
+		int struggleAmount = bareHandsStruggleAmount;
+
+		if (heldItem != null)
+		{
+			struggleAmount += heldItem.StruggleModifier;
+		}
+
+		// Check for nearby struggle-boosting interactables (like a nail)
+		InteractableBase nearby = FindNearestInteractable();
+		if (nearby != null && !(nearby is Pickupable))
+		{
+			struggleAmount += nearby.StruggleModifier;
+			nearby.OnStruggle(this);
+		}
+
+		struggleProgress += struggleAmount;
+		Debug.Log($"Struggle: +{struggleAmount} (total {struggleProgress}/{bondStrength})");
+
+		if (struggleProgress >= bondStrength)
+		{
+			EscapeBonds();
+		}
+	}
+
+	void TryPickUp()
+	{
+		if (heldItem != null)
+		{
+			Debug.Log($"Already holding {heldItem.ItemName}.");
+			return;
+		}
+
+		InteractableBase nearby = FindNearestInteractable();
+		if (nearby is Pickupable pickupable)
+		{
+			pickupable.OnPickUp(this);
+		}
+		else
+		{
+			Debug.Log("Nothing to pick up here.");
+		}
+	}
+
+	public void HoldItem(Pickupable item)
+	{
+		heldItem = item;
+		Debug.Log($"Picked up {item.ItemName}.");
+	}
+
+	InteractableBase FindNearestInteractable()
+	{
 		Collider[] hits = Physics.OverlapSphere(transform.position, interactionCheckRadius, interactableLayer);
+
+		InteractableBase nearest = null;
+		float nearestDist = float.MaxValue;
 
 		foreach (Collider hit in hits)
 		{
 			InteractableBase interactable = hit.GetComponent<InteractableBase>();
-			if (interactable != null)
+			if (interactable == null) continue;
+			if (!interactable.gameObject.activeInHierarchy) continue;
+
+			float dist = Vector3.Distance(transform.position, hit.transform.position);
+			if (dist < nearestDist)
 			{
-				interactable.OnStruggle(this);
-				return; // Only struggle against the first valid interactable found
+				nearest = interactable;
+				nearestDist = dist;
 			}
 		}
 
-		Debug.Log("Nothing to struggle against here.");
+		return nearest;
+	}
+
+	void EscapeBonds()
+	{
+		Debug.Log("ESCAPED THE BONDS!");
+		if (LevelManager.Instance != null)
+		{
+			LevelManager.Instance.CompleteLevel();
+		}
 	}
 
 	void OnCollisionStay(Collision collision)

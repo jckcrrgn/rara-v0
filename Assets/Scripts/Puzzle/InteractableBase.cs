@@ -1,8 +1,6 @@
 using UnityEngine;
 
 // Base class for any object the player can interact with.
-// Specific interactables (Nail, Phone, Lever, etc.) inherit from this
-// and override OnStruggle, OnPickUp, or OnCallOut as needed.
 public abstract class InteractableBase : MonoBehaviour
 {
 	[Header("Interaction Settings")]
@@ -10,11 +8,12 @@ public abstract class InteractableBase : MonoBehaviour
 
 	public float InteractionRange => interactionRange;
 
-	// Each verb has a virtual method. Subclasses override the ones they care about.
+	// How much this object boosts a Struggle action when used/held.
+	// 0 = no struggle bonus, just a regular interactable.
+	public virtual int StruggleModifier => 0;
+
 	public virtual void OnStruggle(PlayerController player) { }
 	public virtual void OnPickUp(PlayerController player) { }
 	public virtual void OnCallOut(PlayerController player) { }
-
-	// Called every frame the player is within range. Useful for highlighting.
 	public virtual void OnPlayerInRange(PlayerController player) { }
 }

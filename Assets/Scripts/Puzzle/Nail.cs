@@ -2,27 +2,13 @@ using UnityEngine;
 
 public class Nail : InteractableBase
 {
-	[Header("Nail Settings")]
-	[SerializeField] private int strugglesRequired = 5;
-	[SerializeField] private int strugglesUsed = 0;
+	// Nails give a moderate struggle boost when struggled against
+	public override int StruggleModifier => 5;
 
 	public override void OnStruggle(PlayerController player)
 	{
-		strugglesUsed++;
-		Debug.Log($"Struggle against nail: {strugglesUsed}/{strugglesRequired}");
-
-		if (strugglesUsed >= strugglesRequired)
-		{
-			EscapeRope();
-		}
-	}
-
-	void EscapeRope()
-	{
-		Debug.Log("ESCAPED! Rope cut on the nail.");
-		if (LevelManager.Instance != null)
-		{
-			LevelManager.Instance.CompleteLevel();
-		}
+		// The nail itself doesn't track progress anymore.
+		// The player's bonds track total struggle progress.
+		Debug.Log("Struggling against the nail.");
 	}
 }
