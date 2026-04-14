@@ -105,6 +105,11 @@ public class PlayerController : MonoBehaviour
 		Debug.Log($"Picked up {item.ItemName}.");
 	}
 
+	public Pickupable GetHeldItem()
+	{
+		return heldItem;
+	}
+
 	InteractableBase FindNearestInteractable()
 	{
 		Collider[] hits = Physics.OverlapSphere(transform.position, interactionCheckRadius, interactableLayer);
