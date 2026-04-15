@@ -14,6 +14,9 @@ public class PlayerController : MonoBehaviour
 	[SerializeField] private int bondStrength = 25; // How much progress needed to escape
 	[SerializeField] private int struggleProgress = 0;
 	[SerializeField] private int bareHandsStruggleAmount = 1;
+	public int StruggleProgress => struggleProgress;
+	public int BondStrength => bondStrength;
+	public System.Action OnStruggleProgressChanged;
 
 	[Header("Held Item")]
 	[SerializeField] private Pickupable heldItem = null;
@@ -72,6 +75,7 @@ public class PlayerController : MonoBehaviour
 		}
 
 		struggleProgress += struggleAmount;
+		OnStruggleProgressChanged?.Invoke();
 		Debug.Log($"Struggle: +{struggleAmount} (total {struggleProgress}/{bondStrength})");
 
 		if (struggleProgress >= bondStrength)
