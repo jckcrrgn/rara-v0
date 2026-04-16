@@ -1,7 +1,7 @@
 # Rara v0 — Game Design Document
 
 ## One-Line Pitch
-A quirky third-person low-poly escape game where a captured detective uses Struggle, Move, Pick Up, and Call Out to break free from increasingly absurd restraint scenarios.
+A quirky third-person low-poly escape game where a captured detective uses Struggle, Move, and Pick Up to break free from increasingly absurd restraint scenarios.
 
 ## Core Info
 | | |
@@ -27,14 +27,16 @@ The game starts grounded and noir. By the end, you're defusing a bomb in a volca
 
 ## Core Mechanics
 
-### The Four Verbs
-Every puzzle is solved using four actions in creative combinations:
+### The Three Verbs
+Every puzzle is solved using three actions in creative combinations:
 
 **Struggle** — Strain against your restraints.
+- Universal verb: always works against bonds, just at different rates
 - Loosens bindings over time (may take multiple uses)
 - Can knock over nearby objects
 - Makes noise (which can be good or bad)
 - May break something you're attached to
+- Effectiveness modified by held tools (bare hands = slow, sharp object = fast)
 
 **Move** — Scoot, hop, roll, or drag yourself while bound.
 - Movement is restricted based on how you're restrained (chair = hop/scoot, floor = roll/crawl, hanging = swing)
@@ -44,19 +46,13 @@ Every puzzle is solved using four actions in creative combinations:
 **Pick Up** — Grab an object within reach.
 - Hands tied in front: limited grab range
 - Hands tied behind: grab things behind you, use mouth or feet for things in front
-- Objects can be tools (sharp edge to cut rope, key, phone) or puzzle elements (place object on pressure plate, throw to hit a switch)
-
-**Call Out** — Yell, whistle, or make noise.
-- Attract a guard (to lure them into position or steal their keys)
-- Trigger a sound-activated mechanism
-- Get a response from someone in another room
-- Scare an animal into moving
-- Can backfire — alert enemies, start a timer
+- Objects modify Struggle effectiveness (sharp edge speeds up bond-breaking) or serve as puzzle elements (place object on pressure plate, throw to hit a switch)
+- Core loop: Move to find tools → Pick Up → Struggle with tool to escape faster
 
 ### Interaction Model
 - **WASD / Left Stick** — Move (contextual: hop, scoot, roll, swing based on restraint type)
 - **E / Face Button** — Context-sensitive interact (defaults to nearest valid action)
-- **1–4 / D-Pad** — Select verb directly (Struggle, Move, Pick Up, Call Out)
+- **1–3 / D-Pad** — Select verb directly (Struggle, Move, Pick Up)
 - **R / Button** — Reset room to starting state
 - **No inventory system** — you use objects in place or carry one thing at a time
 - **No combat** — this is a brain game
@@ -68,7 +64,7 @@ Every puzzle is solved using four actions in creative combinations:
 - **Hanging** — suspended by wrists. Can swing, kick, use momentum.
 - **Duct tape / zip ties** — can be weakened by Struggle over time, unlike rope or cuffs.
 
-Each restraint type changes how the four verbs behave, giving levels distinct feel without adding new mechanics.
+Each restraint type changes how the three verbs behave, giving levels distinct feel without adding new mechanics.
 
 ---
 
@@ -95,9 +91,9 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 
 - **L1 — The Back Room:** Tied to a wooden chair. Room has a nail sticking out of the wall. Struggle to loosen chair, Move to the wall, Struggle against the nail to cut rope. (Tutorial: Struggle + Move)
 - **L2 — The Storage Unit:** Chair again. A shelf nearby has a box cutter on the edge. Move to the shelf, bump it to knock the cutter down, Pick Up, cut free. (Tutorial: Move + Pick Up)
-- **L3 — The Office:** Chair, hands behind back. Phone on the desk. Move to desk, Pick Up phone with mouth, Call Out to dial for help. Door unlocks remotely. (Tutorial: Pick Up + Call Out)
+- **L3 — The Office:** Chair, hands behind back. Desk nearby has a drawer slightly ajar with scissors inside. Move to desk, bump it to jostle the drawer open, Pick Up scissors, Struggle with scissors to cut through rope fast. (Tutorial: Pick Up as Struggle modifier — tools make escape faster)
 - **L4 — The Van:** Duct-taped on the floor of a van. Struggle to weaken tape. Roll to the van's back door. Kick it open. (New restraint type, teaches that Struggle weakens some bindings over time)
-- **L5 — The Basement:** Cuffed to a radiator pipe. Reach radius is limited. Must use objects within range creatively. First real multi-step puzzle combining all four verbs.
+- **L5 — The Basement:** Cuffed to a radiator pipe. Reach radius is limited. Must use objects within range creatively. First real multi-step puzzle combining all three verbs.
 
 ### Act 2 — Thriller (Levels 6–10)
 **Setting:** Escalating. A hotel room, a shipping container, a penthouse, a warehouse with catwalks.
@@ -106,7 +102,7 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 **Detective mood:** Nervous, improvising. "Okay. Okay okay okay. Think."
 
 - Puzzles require 4–6 steps
-- Introduce guards as interactive elements (Call Out to lure them, time your escape around their patrols)
+- Introduce guards as environmental obstacles (time your escape around their patrols, avoid detection)
 - One level where you're restrained in a new way mid-level (freed from chair but room locks down)
 - At least one "aha moment" where a verb does something unexpected
 
@@ -129,7 +125,7 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 - Clean low-poly geometry, flat-shaded materials, no complex textures
 - Each room has a distinct color accent (Act 1: muted greens/browns, Act 2: blues/grays, Act 3: reds/oranges/neon)
 - Lighting tells the story: dim and moody early, harsh fluorescent mid, dramatic colored lighting late
-- Interactive objects are visually distinct — slight glow, brighter color, or subtle animation (a drawer slightly ajar, a light flickering on a phone)
+- Interactive objects are visually distinct — slight glow, brighter color, or subtle animation (a drawer slightly ajar, a blade catching the light, a rope fraying)
 
 ### Character
 - Low-poly, ~500–1000 tris. Big head, simple face with eyebrows that emote
@@ -152,7 +148,6 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 - Struggle: rope creaking, chain rattling, tape stretching, wood straining
 - Move: chair legs scraping, body dragging, hopping thuds
 - Pick Up: object grab, metallic clink, sliding
-- Call Out: muffled yell, whistle, phone dial tones
 - Success: rope snap, cuff click open, satisfying "free" sound
 - Failure: guard alert sound, buzzer, ominous door opening
 - Timer: ticking, beeping (escalates as time runs out)
@@ -175,12 +170,12 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 ### Key Scripts
 - `PlayerController` — Movement per restraint type, verb selection, interaction raycasting
 - `RestraintSystem` — Defines movement rules and verb behaviors per restraint type (chair, floor, cuffed, hanging, tape)
-- `VerbSystem` — Handles the four core actions, context sensitivity, cooldowns
+- `VerbSystem` — Handles the three core actions, context sensitivity, cooldowns
 - `PuzzleManager` — Per-level puzzle state, step tracking, win condition
-- `InteractableBase` — Base class for all interactive objects (sharp edge, phone, switch, door, guard)
+- `InteractableBase` — Base class for all interactive objects (sharp edge, key, switch, door, tool)
 - `GuardAI` — Simple patrol/check-in behavior for Act 2–3 (waypoints, timer-based)
 - `TimerSystem` — Manages soft and hard timers, triggers failure state
-- `MutterSystem` — Triggers character lines based on context (idle, hint, success, failure, verb use)
+- `MutterSystem` — Triggers character lines based on context (idle, hint, success, failure)
 - `LevelManager` — Scene loading, level progression, completion tracking
 - `AudioManager` — Singleton for SFX and music, per-act music switching
 - `UIManager` — Verb HUD, mutter text display, menus, timer display
@@ -253,14 +248,14 @@ rara-v0/
 ### Weeks 1–2 (Days 1–14): Foundation
 - [ ] Repo setup, Unity project, folder structure
 - [ ] PlayerController: chair-based movement (hop, scoot, tip)
-- [ ] Verb system: four verbs selectable, context-sensitive interact
+- [ ] Verb system: three verbs selectable, context-sensitive interact
 - [ ] One interactable object (rope on nail — cut free with Struggle)
 - [ ] Level 1 fully playable with placeholder art (Unity primitives)
 - [ ] Basic mutter system (text popup near character)
 
 ### Weeks 3–4 (Days 15–28): Core Systems
 - [ ] Second restraint type (floor) with different movement
-- [ ] Pick Up and Call Out verbs functional
+- [ ] Pick Up verb functional (tool-modified Struggle)
 - [ ] Levels 1–5 playable (Act 1 complete)
 - [ ] Level progression (complete room → load next)
 - [ ] Core SFX (struggle, move, pick up, success, failure)
