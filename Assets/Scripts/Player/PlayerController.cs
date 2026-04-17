@@ -10,13 +10,8 @@ public class PlayerController : MonoBehaviour
 	[SerializeField] private float interactionCheckRadius = 1.5f;
 	[SerializeField] private LayerMask interactableLayer = ~0;
 
-	[Header("Bonds")]
-	[SerializeField] private int bondStrength = 25; // How much progress needed to escape
-	[SerializeField] private int struggleProgress = 0;
-	[SerializeField] private int bareHandsStruggleAmount = 1;
-	public int StruggleProgress => struggleProgress;
-	public int BondStrength => bondStrength;
-	public System.Action OnStruggleProgressChanged;
+	[Header("Bond")]
+	[SerializeField] private Bond bond;
 
 	[Header("Held Item")]
 	[SerializeField] private Pickupable heldItem = null;
@@ -24,9 +19,20 @@ public class PlayerController : MonoBehaviour
 	private Rigidbody rb;
 	private bool isGrounded;
 
+	// Public accessors kept for BondMeterUI compatibility
+	public int StruggleProgress => bond != null ? bond.StruggleProgress : 0;
+	public int BondStrength => bond != null ? bond.BondStrength : 1;
+	public System.Action OnStruggleProgressChanged;
+
 	void Start()
 	{
 		rb = GetComponent<Rigidbody>();
+
+		if (bond != null)
+		{
+			bond.OnProgressChanged += () => OnStruggleProgressChanged?.Invoke();
+			bond.OnBroken += EscapeBonds;
+		}
 	}
 
 	void Update()
@@ -58,15 +64,19 @@ public class PlayerController : MonoBehaviour
 
 	void TryStruggle()
 	{
-		// Calculate struggle power: bare hands + held item bonus + nearby nail bonus
-		int struggleAmount = bareHandsStruggleAmount;
+		if (bond == null)
+		{
+			Debug.LogWarning("No Bond assigned to player.");
+			return;
+		}
+
+		int struggleAmount = bond.BareHandsStruggleAmount;
 
 		if (heldItem != null)
 		{
 			struggleAmount += heldItem.StruggleModifier;
 		}
 
-		// Check for nearby struggle-boosting interactables (like a nail)
 		InteractableBase nearby = FindNearestInteractable();
 		if (nearby != null && !(nearby is Pickupable))
 		{
@@ -74,14 +84,7 @@ public class PlayerController : MonoBehaviour
 			nearby.OnStruggle(this);
 		}
 
-		struggleProgress += struggleAmount;
-		OnStruggleProgressChanged?.Invoke();
-		Debug.Log($"Struggle: +{struggleAmount} (total {struggleProgress}/{bondStrength})");
-
-		if (struggleProgress >= bondStrength)
-		{
-			EscapeBonds();
-		}
+		bond.ApplyStruggle(struggleAmount);
 	}
 
 	void TryPickUp()
