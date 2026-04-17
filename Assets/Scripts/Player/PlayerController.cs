@@ -70,15 +70,20 @@ public class PlayerController : MonoBehaviour
 			return;
 		}
 
-		int struggleAmount = bond.BareHandsStruggleAmount;
+		// Start with bare hands
+		ToolType activeTool = ToolType.BareHands;
 
+		// Held item upgrades our effective tool
 		if (heldItem != null)
 		{
-			struggleAmount += heldItem.StruggleModifier;
+			activeTool = heldItem.ToolType;
 		}
 
+		int struggleAmount = bond.GetStruggleProgress(activeTool);
+
+		// Environmental modifier (nail) — for now, hardcode compatibility with rope only
 		InteractableBase nearby = FindNearestInteractable();
-		if (nearby != null && !(nearby is Pickupable))
+		if (nearby != null && !(nearby is Pickupable) && bond.BondType == BondType.Rope)
 		{
 			struggleAmount += nearby.StruggleModifier;
 			nearby.OnStruggle(this);

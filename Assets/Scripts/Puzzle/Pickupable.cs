@@ -8,6 +8,9 @@ public class Pickupable : InteractableBase
 
 	public string ItemName => itemName;
 
+	// Default tool type is BareHands (i.e. no upgrade). Subclasses override.
+	public virtual ToolType ToolType => ToolType.BareHands;
+
 	public override void OnPickUp(PlayerController player)
 	{
 		player.HoldItem(this);

@@ -14,6 +14,5 @@ public abstract class InteractableBase : MonoBehaviour
 
 	public virtual void OnStruggle(PlayerController player) { }
 	public virtual void OnPickUp(PlayerController player) { }
-	public virtual void OnCallOut(PlayerController player) { }
 	public virtual void OnPlayerInRange(PlayerController player) { }
 }
