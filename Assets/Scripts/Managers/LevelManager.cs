@@ -33,10 +33,14 @@ public class LevelManager : MonoBehaviour
 
 	void Update()
 	{
-		// Press R anytime to restart the current level
 		if (Input.GetKeyDown(KeyCode.R))
 		{
 			RestartLevel();
+		}
+
+		if (isLevelComplete && Input.GetKeyDown(KeyCode.N))
+		{
+			LoadNextLevel();
 		}
 	}
 
@@ -61,7 +65,19 @@ public class LevelManager : MonoBehaviour
 
 	public void RestartLevel()
 	{
-		// Reloads the currently active scene, resetting everything
 		SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+	}
+
+	public void LoadNextLevel()
+	{
+		int nextIndex = SceneManager.GetActiveScene().buildIndex + 1;
+		if (nextIndex < SceneManager.sceneCountInBuildSettings)
+		{
+			SceneManager.LoadScene(nextIndex);
+		}
+		else
+		{
+			Debug.Log("No more levels. You escaped. (Returning to menu not yet implemented.)");
+		}
 	}
 }
