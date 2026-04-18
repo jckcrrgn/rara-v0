@@ -59,7 +59,12 @@ public class Bond : MonoBehaviour
 	public void ApplyStruggle(int amount)
 	{
 		if (IsBroken) return;
-		if (amount <= 0) return;
+
+		if (amount <= 0)
+		{
+			Debug.Log($"Bond ({bondType}): struggle had no effect. Need a better tool.");
+			return;
+		}
 
 		struggleProgress += amount;
 		OnProgressChanged?.Invoke();

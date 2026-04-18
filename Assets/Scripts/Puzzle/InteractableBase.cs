@@ -8,10 +8,6 @@ public abstract class InteractableBase : MonoBehaviour
 
 	public float InteractionRange => interactionRange;
 
-	// How much this object boosts a Struggle action when used/held.
-	// 0 = no struggle bonus, just a regular interactable.
-	public virtual int StruggleModifier => 0;
-
 	public virtual void OnStruggle(PlayerController player) { }
 	public virtual void OnPickUp(PlayerController player) { }
 	public virtual void OnPlayerInRange(PlayerController player) { }
