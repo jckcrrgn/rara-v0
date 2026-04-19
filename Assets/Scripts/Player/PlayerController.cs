@@ -16,6 +16,11 @@ public class PlayerController : MonoBehaviour
 	[Header("Held Item")]
 	[SerializeField] private Pickupable heldItem = null;
 
+	[Header("Feedback")]
+	[SerializeField] private Transform visualRoot; // assign to child holding the mesh
+	[SerializeField] private float shakeDuration = 0.2f;
+	[SerializeField] private float shakeMagnitude = 0.08f;
+
 	private Rigidbody rb;
 	private bool isGrounded;
 
@@ -74,7 +79,7 @@ public class PlayerController : MonoBehaviour
 		ToolType activeTool = heldItem != null ? heldItem.ToolType : ToolType.BareHands;
 		int struggleAmount = bond.GetStruggleProgress(activeTool);
 
-		// Check for an environmental tool nearby — stacks on top of held tool
+		// Check for an environmental tool nearby -- stacks on top of held tool
 		InteractableBase nearby = FindNearestInteractable();
 		if (nearby is EnvironmentalTool envTool)
 		{
@@ -82,7 +87,26 @@ public class PlayerController : MonoBehaviour
 			envTool.OnStruggle(this);
 		}
 
+		if (struggleAmount <= 0)
+		{
+			StartCoroutine(ShakeVisual());
+		}
+
 		bond.ApplyStruggle(struggleAmount);
+	}
+
+	System.Collections.IEnumerator ShakeVisual()
+	{
+		if (visualRoot == null) yield break;
+		Vector3 origin = visualRoot.localPosition;
+		float elapsed = 0f;
+		while (elapsed < shakeDuration)
+		{
+			visualRoot.localPosition = origin + (Vector3)Random.insideUnitCircle * shakeMagnitude;
+			elapsed += Time.deltaTime;
+			yield return null;
+		}
+		visualRoot.localPosition = origin;
 	}
 
 	void TryPickUp()

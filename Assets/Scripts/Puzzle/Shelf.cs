@@ -3,7 +3,7 @@ using UnityEngine;
 public class Shelf : MonoBehaviour
 {
 	[SerializeField] private Rigidbody boxCutterRigidbody;
-	[SerializeField] private Vector3 fallImpulse = new Vector3(0f, 1f, -4f);
+	[SerializeField] private Vector3 fallImpulse = new Vector3(0f, 1f, -2f);
 
 	private bool hasTriggered = false;
 

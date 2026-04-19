@@ -1,5 +1,5 @@
 // TODO: TEMPORARY SCAFFOLDING. Delete when character model + bond geometry exist.
-// Replace with diegetic feedback — bonds visually fraying/loosening on the player.
+// Replace with diegetic feedback -- bonds visually fraying/loosening on the player.
 // See ideas.md "Diegetic struggle feedback (Day 15)".
 
 using UnityEngine;
@@ -26,6 +26,13 @@ public class BondMeterUI : MonoBehaviour
 	void Start()
 	{
 		cam = Camera.main;
+
+		if (player == null)
+			player = FindFirstObjectByType<PlayerController>();
+
+		if (target == null && player != null)
+			target = player.transform;
+
 		if (player != null)
 			player.OnStruggleProgressChanged += HandleProgressChanged;
 		if (fillImage != null)
@@ -41,6 +48,7 @@ public class BondMeterUI : MonoBehaviour
 
 	void LateUpdate()
 	{
+		if (cam == null) cam = Camera.main;
 		if (target != null && cam != null)
 		{
 			Vector3 worldPos = target.position + worldOffset;
