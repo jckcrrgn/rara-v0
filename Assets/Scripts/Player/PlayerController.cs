@@ -21,6 +21,10 @@ public class PlayerController : MonoBehaviour
 	[SerializeField] private float shakeDuration = 0.2f;
 	[SerializeField] private float shakeMagnitude = 0.08f;
 
+	[Header("SFX")]
+	[SerializeField] private AudioClip struggleSuccessClip;
+	[SerializeField] private AudioClip struggleFailClip;
+
 	private Rigidbody rb;
 	private bool isGrounded;
 
@@ -90,23 +94,77 @@ public class PlayerController : MonoBehaviour
 		if (struggleAmount <= 0)
 		{
 			StartCoroutine(ShakeVisual());
+			if (AudioManager.Instance != null && struggleFailClip != null)
+				AudioManager.Instance.PlaySFX(struggleFailClip);
+		}
+		else
+		{
+			if (AudioManager.Instance != null && struggleSuccessClip != null)
+				AudioManager.Instance.PlaySFX(struggleSuccessClip);
 		}
 
 		bond.ApplyStruggle(struggleAmount);
 	}
 
+	//System.Collections.IEnumerator ShakeVisual()
+	//{
+	//	if (visualRoot == null) yield break;
+	//	Vector3 origin = visualRoot.localPosition;
+	//	float elapsed = 0f;
+	//	while (elapsed < shakeDuration)
+	//	{
+	//		visualRoot.localPosition = origin + (Vector3)Random.insideUnitCircle * shakeMagnitude;
+	//		elapsed += Time.deltaTime;
+	//		yield return null;
+	//	}
+	//	visualRoot.localPosition = origin;
+	//}
+
 	System.Collections.IEnumerator ShakeVisual()
 	{
 		if (visualRoot == null) yield break;
-		Vector3 origin = visualRoot.localPosition;
+		Quaternion origin = visualRoot.localRotation;
+
+		// Pick a direction (left or right twist) and magnitude in degrees
+		float direction = Random.value < 0.5f ? -1f : 1f;
+		float windupAngle = shakeMagnitude * direction;      // e.g. +8°
+		float snapbackAngle = -shakeMagnitude * direction * 1.2f; // overshoot past origin
+
+		float windupTime = shakeDuration * 0.6f;   // slower windup
+		float snapbackTime = shakeDuration * 0.4f; // faster snapback + settle
+
+		// Windup: ease-in twist toward windupAngle
 		float elapsed = 0f;
-		while (elapsed < shakeDuration)
+		while (elapsed < windupTime)
 		{
-			visualRoot.localPosition = origin + (Vector3)Random.insideUnitCircle * shakeMagnitude;
+			float t = elapsed / windupTime;
+			float eased = t * t; // ease-in
+			float angle = Mathf.Lerp(0f, windupAngle, eased);
+			visualRoot.localRotation = origin * Quaternion.Euler(0f, angle, 0f);
 			elapsed += Time.deltaTime;
 			yield return null;
 		}
-		visualRoot.localPosition = origin;
+
+		// Snapback: rapid swing past origin, then settle to 0
+		elapsed = 0f;
+		while (elapsed < snapbackTime)
+		{
+			float t = elapsed / snapbackTime;
+			float eased = 1f - (1f - t) * (1f - t); // ease-out
+													// Swing from windupAngle past 0 to snapbackAngle, then the settle handles the rest
+			float angle = Mathf.Lerp(windupAngle, snapbackAngle, eased);
+			// Blend toward 0 in the final third so it settles cleanly
+			if (t > 0.66f)
+			{
+				float settleT = (t - 0.66f) / 0.34f;
+				angle = Mathf.Lerp(angle, 0f, settleT);
+			}
+			visualRoot.localRotation = origin * Quaternion.Euler(0f, angle, 0f);
+			elapsed += Time.deltaTime;
+			yield return null;
+		}
+
+		visualRoot.localRotation = origin;
 	}
 
 	void TryPickUp()

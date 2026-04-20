@@ -1602,7 +1602,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   boxCutterRigidbody: {fileID: 1903321899}
-  fallImpulse: {x: 0, y: 1, z: -2}
+  fallImpulse: {x: 0, y: 0.1, z: -0.2}
 --- !u!65 &1224011552
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -2041,8 +2041,8 @@ MonoBehaviour:
   bond: {fileID: 1716394335}
   heldItem: {fileID: 0}
   visualRoot: {fileID: 175633174}
-  shakeDuration: 0.2
-  shakeMagnitude: 0.08
+  shakeDuration: 0.3
+  shakeMagnitude: 15
 --- !u!65 &1716394338
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -2324,7 +2324,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1903321897}
   serializedVersion: 4
-  m_Mass: 1
+  m_Mass: 0.1
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
