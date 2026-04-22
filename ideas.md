@@ -6,6 +6,17 @@ Scratch pad for ideas, observations, and things to try later.
 - Struggle as universal verb (Day 5): Struggle always works against bonds, just at different rates. Pick Up modifies struggle effectiveness via tools (nails, box cutters, etc.). Late-game difficulty comes from stronger bonds requiring stronger tools, plus timers preventing slow bare-hands escape. This is the core mechanic identity.
 - Settings -> Keybinds
 - Diegetic struggle feedback (Day 7): Bond progress should be communicated by the bonds themselves visually degrading — tight rope/zip-tie → frayed → loose → falls away. No HUD bars, no numbers. Immersion is the aim. Currently approximated with a worldspace bond meter above the player as scaffolding; delete and replace once the character model + bond geometry exist. The meter is temporary by design — do not polish.
+- - Hands-behind as pickup range modifier (Day 13, future iteration):
+  For v0, hands-behind is narrative only (mutter + anim). Post-v0, explore
+  hands-behind as a real mechanical variant where pickup range is limited
+  to a cone behind the player. Creates new solve patterns:
+    - Back up into a table to reach a cutter on its surface
+    - Tip the chair backward (see chair-tipping note) to land on a floor
+      cutter, bringing it into the behind-hands pickup zone
+    - Shelf-bump logic might need a "bump with back" variant
+  Ties together three dormant ideas: chair-tipping transitions, hands-behind,
+  and Pick Up range as a puzzle dimension. Worth prototyping in a post-v0
+  level pack or sequel.
 
 ## Feedback Patterns
 - Twist shake (Day 12): Rejection feedback reads best as slow windup + snap-past-origin + settle, rotation rather than position. Pattern is reusable for other "wrong tool / wrong action" moments.

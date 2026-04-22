@@ -33,7 +33,7 @@ public class AudioManager : MonoBehaviour
 		}
 	}
 
-	public void PlaySFX(AudioClip clip, float volume = 1f)
+	public void PlaySFX(AudioClip clip, float volume = 1f, float pitch = 1f)
 	{
 		if (clip == null) return;
 
@@ -42,6 +42,7 @@ public class AudioManager : MonoBehaviour
 
 		src.clip = clip;
 		src.volume = volume;
+		src.pitch = pitch;
 		src.Play();
 	}
 }

@@ -95,30 +95,16 @@ public class PlayerController : MonoBehaviour
 		{
 			StartCoroutine(ShakeVisual());
 			if (AudioManager.Instance != null && struggleFailClip != null)
-				AudioManager.Instance.PlaySFX(struggleFailClip);
+				AudioManager.Instance.PlaySFX(struggleFailClip, 1f, Random.Range(0.95f, 1.05f));
 		}
 		else
 		{
 			if (AudioManager.Instance != null && struggleSuccessClip != null)
-				AudioManager.Instance.PlaySFX(struggleSuccessClip);
+				AudioManager.Instance.PlaySFX(struggleSuccessClip, 1f, Random.Range(0.92f, 1.08f));
 		}
 
 		bond.ApplyStruggle(struggleAmount);
 	}
-
-	//System.Collections.IEnumerator ShakeVisual()
-	//{
-	//	if (visualRoot == null) yield break;
-	//	Vector3 origin = visualRoot.localPosition;
-	//	float elapsed = 0f;
-	//	while (elapsed < shakeDuration)
-	//	{
-	//		visualRoot.localPosition = origin + (Vector3)Random.insideUnitCircle * shakeMagnitude;
-	//		elapsed += Time.deltaTime;
-	//		yield return null;
-	//	}
-	//	visualRoot.localPosition = origin;
-	//}
 
 	System.Collections.IEnumerator ShakeVisual()
 	{
@@ -127,7 +113,7 @@ public class PlayerController : MonoBehaviour
 
 		// Pick a direction (left or right twist) and magnitude in degrees
 		float direction = Random.value < 0.5f ? -1f : 1f;
-		float windupAngle = shakeMagnitude * direction;      // e.g. +8°
+		float windupAngle = shakeMagnitude * direction;
 		float snapbackAngle = -shakeMagnitude * direction * 1.2f; // overshoot past origin
 
 		float windupTime = shakeDuration * 0.6f;   // slower windup
@@ -151,9 +137,7 @@ public class PlayerController : MonoBehaviour
 		{
 			float t = elapsed / snapbackTime;
 			float eased = 1f - (1f - t) * (1f - t); // ease-out
-													// Swing from windupAngle past 0 to snapbackAngle, then the settle handles the rest
 			float angle = Mathf.Lerp(windupAngle, snapbackAngle, eased);
-			// Blend toward 0 in the final third so it settles cleanly
 			if (t > 0.66f)
 			{
 				float settleT = (t - 0.66f) / 0.34f;
