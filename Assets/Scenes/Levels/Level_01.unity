@@ -166,7 +166,7 @@ GameObject:
   - component: {fileID: 130438634}
   - component: {fileID: 130438633}
   - component: {fileID: 130438632}
-  - component: {fileID: 130438631}
+  - component: {fileID: 130438636}
   m_Layer: 0
   m_Name: BoxCutter
   m_TagString: Untagged
@@ -174,20 +174,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &130438631
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 130438630}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 441265d27c4368c4f9370d6eb26073a4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  interactionRange: 1.5
-  itemName: Box Cutter
 --- !u!65 &130438632
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -277,6 +263,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &130438636
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 130438630}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a5b06718ce3a9184fb51e76b8c91160c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  interactionRange: 1.5
+  itemName: Box Cutter
 --- !u!1 &147198844
 GameObject:
   m_ObjectHideFlags: 0
