@@ -24,6 +24,7 @@ public class PlayerController : MonoBehaviour
 	[Header("SFX")]
 	[SerializeField] private AudioClip struggleSuccessClip;
 	[SerializeField] private AudioClip struggleFailClip;
+	[SerializeField] private AudioClip bondBreakClip;
 
 	private Rigidbody rb;
 	private bool isGrounded;
@@ -208,6 +209,9 @@ public class PlayerController : MonoBehaviour
 	void EscapeBonds()
 	{
 		Debug.Log("ESCAPED THE BONDS!");
+		if (AudioManager.Instance != null && bondBreakClip != null)
+			AudioManager.Instance.PlaySFX(bondBreakClip, 1f, 1f);
+
 		if (LevelManager.Instance != null)
 		{
 			LevelManager.Instance.CompleteLevel();

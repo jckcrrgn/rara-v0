@@ -188,6 +188,7 @@ GameObject:
   - component: {fileID: 136458787}
   - component: {fileID: 136458786}
   - component: {fileID: 136458785}
+  - component: {fileID: 136458789}
   m_Layer: 0
   m_Name: Desk
   m_TagString: Untagged
@@ -285,6 +286,37 @@ Transform:
   - {fileID: 138109619}
   m_Father: {fileID: 775448206}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &136458789
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 136458784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c31cd4f8182c8f4890ac5c0931a85c7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  minBumpForce: 1.5
+  requirePlayer: 1
+  retriggerable: 0
+  bumpClip: {fileID: 0}
+  OnBumped:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 138109623}
+        m_TargetAssemblyTypeName: Drawer, Assembly-CSharp
+        m_MethodName: Open
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &138109618
 GameObject:
   m_ObjectHideFlags: 0
@@ -297,6 +329,7 @@ GameObject:
   - component: {fileID: 138109622}
   - component: {fileID: 138109621}
   - component: {fileID: 138109620}
+  - component: {fileID: 138109623}
   m_Layer: 0
   m_Name: Drawer
   m_TagString: Untagged
@@ -394,6 +427,23 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 138109618}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &138109623
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 138109618}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aabb8db439a5bd643992db9a53212656, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  slideDistance: -0.35
+  slideDuration: 0.4
+  contents:
+  - {fileID: 2084871817}
+  openClip: {fileID: 0}
 --- !u!1001 &193760202
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1161,13 +1211,14 @@ GameObject:
   - component: {fileID: 2084871821}
   - component: {fileID: 2084871820}
   - component: {fileID: 2084871819}
+  - component: {fileID: 2084871822}
   m_Layer: 0
   m_Name: Scissors_Placeholder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2084871818
 Transform:
   m_ObjectHideFlags: 0
@@ -1257,6 +1308,20 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2084871817}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2084871822
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2084871817}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a5b06718ce3a9184fb51e76b8c91160c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  interactionRange: 1.5
+  itemName: Scissors
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

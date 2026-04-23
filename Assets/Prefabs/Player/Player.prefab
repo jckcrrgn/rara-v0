@@ -136,6 +136,7 @@ MonoBehaviour:
   shakeMagnitude: 0.08
   struggleSuccessClip: {fileID: 8300000, guid: d7e95b08ddc82b8469204d874282cce1, type: 3}
   struggleFailClip: {fileID: 8300000, guid: a0aefa6ef75a6de4d944e5850b8d260f, type: 3}
+  bondBreakClip: {fileID: 8300000, guid: ad405c0621a104c479c672b588ded4c9, type: 3}
 --- !u!54 &7730701606267843005
 Rigidbody:
   m_ObjectHideFlags: 0
