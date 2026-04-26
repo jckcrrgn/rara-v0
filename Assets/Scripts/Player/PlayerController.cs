@@ -41,6 +41,7 @@ public class PlayerController : MonoBehaviour
 	public int StruggleProgress => bond != null ? bond.StruggleProgress : 0;
 	public int BondStrength => bond != null ? bond.BondStrength : 1;
 	public System.Action OnStruggleProgressChanged;
+	public System.Action OnPlayerFreed;
 
 	void Start()
 	{
@@ -112,8 +113,19 @@ public class PlayerController : MonoBehaviour
 		ToolType activeTool = heldItem != null ? heldItem.ToolType : ToolType.BareHands;
 		int struggleAmount = bond.GetStruggleProgress(activeTool);
 
-		// Check for an environmental tool nearby -- stacks on top of held tool
 		InteractableBase nearby = FindNearestInteractable();
+
+		// Post-break: Struggle redirects from the (broken) bond to a windup target.
+		// First concrete case is KickableDoor on L4. Future: L15 guard.
+		if (bond.IsBroken && nearby is KickableDoor door)
+		{
+			// Windup runs on its own track: no bond progress, no restraint modifier,
+			// no struggle SFX (door plays its own windup clip).
+			door.OnWindup(this);
+			return;
+		}
+
+		// Pre-break: tools nearby modify struggle effectiveness against the bond.
 		if (nearby is EnvironmentalTool envTool)
 		{
 			struggleAmount += bond.GetStruggleProgress(envTool.ToolType);
@@ -238,16 +250,20 @@ public class PlayerController : MonoBehaviour
 		return nearest;
 	}
 
+	/// <summary>
+	/// Fires when the player breaks free of their bonds. Per-level
+	/// win-condition scripts (e.g. BondBreakWinCondition) listen for this.
+	/// PlayerController itself is no longer responsible for level completion.
+	/// </summary>
+	
+
 	void EscapeBonds()
 	{
-		Debug.Log("ESCAPED THE BONDS!");
+		Debug.Log("FREE OF BONDS!");
 		if (AudioManager.Instance != null && bondBreakClip != null)
 			AudioManager.Instance.PlaySFX(bondBreakClip, 1f, 1f);
 
-		if (LevelManager.Instance != null)
-		{
-			LevelManager.Instance.CompleteLevel();
-		}
+		OnPlayerFreed?.Invoke();
 	}
 
 	// NEW: Public method so restraints (or other systems) can swap which restraint is active.
