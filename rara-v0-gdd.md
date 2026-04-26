@@ -39,9 +39,11 @@ Every puzzle is solved using three actions in creative combinations:
 - Effectiveness modified by held tools (bare hands = slow, sharp object = fast)
 
 **Move** — Scoot, hop, roll, or drag yourself while bound.
-- Movement is restricted based on how you're restrained (chair = hop/scoot, floor = roll/crawl, hanging = swing)
+- Movement is restricted based on how you're restrained (chair = hop/scoot, floor = inch *or* roll, hanging = swing)
+- Some restraints offer multiple movement modes with different tradeoffs. Floor restraint: **inch** (tap W) is forward, slow, quiet, precise; **roll** (Shift+A or Shift+D) is lateral-only, fast, noisy, needs open space. Player chooses based on the situation — open hallway vs. tight gap between furniture, guard nearby vs. alone.
 - Positioning matters — you need to be near things to interact with them
 - Moving into objects can knock them over or push them
+- Movement noise is a stealth lever in Act 2+: rolling alerts guards, inching doesn't.
 
 **Pick Up** — Grab an object within reach.
 - Hands tied in front: limited grab range
@@ -49,9 +51,19 @@ Every puzzle is solved using three actions in creative combinations:
 - Objects modify Struggle effectiveness (sharp edge speeds up bond-breaking) or serve as puzzle elements (place object on pressure plate, throw to hit a switch)
 - Core loop: Move to find tools → Pick Up → Struggle with tool to escape faster
 
-### Interaction Model
-- **WASD / Left Stick** — Move (contextual: hop, scoot, roll, swing based on restraint type)
+### Feign (State, not a Verb)
+The detective can voluntarily re-enter a "looks bound" state after freeing themselves. This is not a fourth verb — it's a *state* the player toggles, and the existing verbs behave differently inside it.
+
+- **Toggle**: F (or context prompt when a guard is approaching)
+- **In Feign state**: Move is disabled (you're holding still). Struggle becomes a windup — building force for a single decisive action (kick a door open, kick a guard, snap a final restraint). Pick Up disabled.
+- **Visual tell**: Detective slumps into bound posture, restraints visually re-applied (loose, but reads as bound from a distance).
+- **Purpose**: Lets the player weaponize stillness. Plants the seed in Act 2 (avoid detection by feigning), pays off in the finale (turn the tables on the gloating guard).
+
+This keeps the three-verb identity intact while adding strategic depth.
+- **WASD / Left Stick** — Move (contextual: hop, scoot, inch, swing based on restraint type)
+- **Shift+A / Shift+D** — Roll left / right (floor restraint only; lateral-only, fast, noisy)
 - **E / Face Button** — Context-sensitive interact (defaults to nearest valid action)
+- **F / Button** — Toggle Feign state (only available when free of bonds; see Feign section above)
 - **1–3 / D-Pad** — Select verb directly (Struggle, Move, Pick Up)
 - **R / Button** — Reset room to starting state
 - **No inventory system** — you use objects in place or carry one thing at a time
@@ -92,7 +104,7 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 - **L1 — The Back Room:** Tied to a wooden chair. Room has a nail sticking out of the wall. Struggle to loosen chair, Move to the wall, Struggle against the nail to cut rope. (Tutorial: Struggle + Move)
 - **L2 — The Storage Unit:** Chair again. A shelf nearby has a box cutter on the edge. Move to the shelf, bump it to knock the cutter down, Pick Up, cut free. (Tutorial: Move + Pick Up)
 - **L3 — The Office:** Chair, hands behind back. Desk nearby has a drawer slightly ajar with scissors inside. Move to desk, bump it to jostle the drawer open, Pick Up scissors, Struggle with scissors to cut through rope fast. (Tutorial: Pick Up as Struggle modifier — tools make escape faster)
-- **L4 — The Van:** Duct-taped on the floor of a van. Struggle to weaken tape. Roll to the van's back door. Kick it open. (New restraint type, teaches that Struggle weakens some bindings over time)
+- **L4 — The Van:** Duct-taped on the floor of a van. Struggle to weaken tape. Inch (precision) or Roll (faster but limited space in van) to the back door. Once free of tape, brace against the floor and Struggle-windup to kick the door open. (Introduces floor restraint, dual floor traversal modes, and the Struggle-as-windup pattern that the finale will reuse.)
 - **L5 — The Basement:** Cuffed to a radiator pipe. Reach radius is limited. Must use objects within range creatively. First real multi-step puzzle combining all three verbs.
 
 ### Act 2 — Thriller (Levels 6–10)
@@ -104,6 +116,7 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 - Puzzles require 4–6 steps
 - Introduce guards as environmental obstacles (time your escape around their patrols, avoid detection)
 - One level where you're restrained in a new way mid-level (freed from chair but room locks down)
+- **Introduce Feign** in one Act 2 level: player frees themselves, hears a guard approaching, must Feign to avoid detection. Guard passes, scene continues. No kick yet — this is just planting the seed for the finale.
 - At least one "aha moment" where a verb does something unexpected
 
 ### Act 3 — Absurd (Levels 11–15)
@@ -115,7 +128,7 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 - Puzzles require 6–10 steps
 - Multiple valid solutions for some rooms (rewards creative thinking)
 - Environmental hazards force prioritization (escape the restraint AND deal with the room)
-- **Level 15 — The Finale:** The most complex room. Multiple phases. Uses every restraint type and verb in sequence. Satisfying payoff when you finally walk out the door.
+- **Level 15 — The Finale: Turn the Tables.** The most complex room. Multiple phases. Uses every restraint type and verb in sequence. The detective escapes a final, layered restraint — and just as the last bond falls, footsteps approach. Phase shift: the player must **Feign** before the guard enters, holding still while he saunters in to gloat over his apparently helpless captive. Struggle (windup) charges a decisive kick. When the guard is in range, release: the detective kicks him, incapacitates him, takes his keys, and walks out the door. Satisfying payoff that recontextualizes every verb the player has learned — Move becomes stillness, Struggle becomes the strike, Pick Up becomes the keys.
 
 ---
 

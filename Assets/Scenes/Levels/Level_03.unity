@@ -1638,7 +1638,7 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4709457099200860874, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
   m_PrefabInstance: {fileID: 8205259987904620297}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1333935377
+--- !u!114 &1333935383
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1647,12 +1647,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 662646245}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bf0d88cbb6366b049a5ae83afafac561, type: 3}
+  m_Script: {fileID: 11500000, guid: 30d31eb59dcc7a04a81f60271a18406d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  crawlSpeed: 1.5
-  rotationSpeed: 80
-  struggleBonus: 1.2
+  hopForce: 3
+  rotationSpeed: 100
 --- !u!1 &1445175850
 GameObject:
   m_ObjectHideFlags: 0
@@ -2894,10 +2893,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 0}
-      propertyPath: m_Enabled
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 2795448765098500059, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       propertyPath: m_Name
       value: Player
@@ -2948,7 +2943,7 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 2795448765098500059, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1333935377}
+      addedObject: {fileID: 1333935383}
   m_SourcePrefab: {fileID: 100100000, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
 --- !u!1001 &9189937284300119568
 PrefabInstance:
