@@ -20,15 +20,20 @@ public class CuffedRestraint : RestraintBase
 	[Tooltip("The point the player is cuffed to (e.g., the pipe). Must be assigned.")]
 	[SerializeField] private Transform anchor;
 	[Tooltip("Distance from anchor to player body. Roughly arm-length.")]
-	[SerializeField] private float tetherRadius = 0.45f;
+	[SerializeField] private float tetherRadius = 0.8f;
 
-	[Header("Rotation")]
-	[Tooltip("Degrees per second the player rotates around the anchor with A/D.")]
-	[SerializeField] private float orbitSpeed = 60f;
+	[Header("Step Orbit")]
+	[Tooltip("Degrees per step. Negative for A (CCW), positive for D (CW) — applied via input sign.")]
+	[SerializeField] private float orbitStepAngle = 15f;
+	[Tooltip("How long each step takes, in seconds. Lower = snappier shuffle.")]
+	[SerializeField] private float orbitStepDuration = 0.8f;
+	[Tooltip("Cooldown between steps, in seconds. Prevents instant re-trigger when holding A/D.")]
+	[SerializeField] private float orbitStepCooldown = 0.3f;
+
 
 	[Header("Drag Verb")]
 	[Tooltip("Forward cone reach distance for the Drag verb.")]
-	[SerializeField] private float dragRange = 2.5f;
+	[SerializeField] private float dragRange = 2f;
 	[Tooltip("Half-angle of the forward cone, in degrees. 30 = 60-degree total cone.")]
 	[SerializeField] private float dragConeHalfAngle = 30f;
 	[Tooltip("Maximum mass (kg) of an object the player can drag with her foot.")]
@@ -47,6 +52,8 @@ public class CuffedRestraint : RestraintBase
 	// --- Internal state ---
 	private float currentAngle; // angle around anchor in degrees
 	private bool isDragging = false;
+	private bool isStepping = false;
+	private float nextStepAllowedTime = 0f;
 
 	public override void OnEnter(PlayerController player)
 	{
@@ -82,14 +89,13 @@ public class CuffedRestraint : RestraintBase
 		}
 	}
 
-	public override void OnExit()
+	public override void OnExit(PlayerController player)
 	{
-		// Restore default rigidbody constraints (freeze rotation X/Z only, like a
-		// standing character). The next restraint's OnEnter can override if needed.
-		// Note: we don't have a reference to the player here per the base class signature.
-		// If this becomes a problem, we can extend RestraintBase.OnExit to take a player.
-		// For now, restraints that need to clean up rb constraints can do so in their
-		// own OnEnter when becoming the new active restraint.
+		// Restore physics. Whatever restraint comes next can re-freeze if it needs to.
+		if (player != null && player.Rb != null)
+		{
+			player.Rb.isKinematic = false;
+		}
 	}
 
 	public override void HandleMovementInput(PlayerController player)
@@ -100,12 +106,13 @@ public class CuffedRestraint : RestraintBase
 			return;
 		}
 
-		// A/D: orbit around the anchor.
-		float rotateInput = Input.GetAxis("Horizontal");
-		if (Mathf.Abs(rotateInput) > 0.001f)
+		// A/D: step around the anchor in discrete chunks.
+		// GetAxisRaw so holding the key gives clean -1/0/+1 with no smoothing ramp.
+		float rotateInput = Input.GetAxisRaw("Horizontal");
+		if (Mathf.Abs(rotateInput) > 0.001f && !isStepping && Time.time >= nextStepAllowedTime)
 		{
-			currentAngle += rotateInput * orbitSpeed * Time.deltaTime;
-			ApplyOrbitPosition(player);
+			float stepDelta = Mathf.Sign(rotateInput) * orbitStepAngle;
+			player.StartCoroutine(OrbitStepRoutine(player, stepDelta));
 		}
 
 		// T: drag a small object on the floor toward the player.
@@ -232,6 +239,36 @@ public class CuffedRestraint : RestraintBase
 		}
 
 		isDragging = false;
+	}
+
+	/// <summary>
+	/// Rotate around the anchor by stepDelta degrees over orbitStepDuration seconds.
+	/// Uses ease-in-out so the step has a "shuffle" feel — deliberate start, deliberate stop.
+	/// </summary>
+	private IEnumerator OrbitStepRoutine(PlayerController player, float stepDelta)
+	{
+		isStepping = true;
+
+		float startAngle = currentAngle;
+		float endAngle = currentAngle + stepDelta;
+		float elapsed = 0f;
+
+		while (elapsed < orbitStepDuration)
+		{
+			float t = elapsed / orbitStepDuration;
+			// Ease-in-out: smoothstep. Slow start, slow end, faster middle.
+			float eased = t * t * (3f - 2f * t);
+			currentAngle = Mathf.Lerp(startAngle, endAngle, eased);
+			ApplyOrbitPosition(player);
+			elapsed += Time.deltaTime;
+			yield return null;
+		}
+
+		currentAngle = endAngle;
+		ApplyOrbitPosition(player);
+
+		isStepping = false;
+		nextStepAllowedTime = Time.time + orbitStepCooldown;
 	}
 
 	public override float GetStruggleModifier()

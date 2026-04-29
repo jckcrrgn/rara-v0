@@ -28,4 +28,9 @@ public class ChairRestraint : RestraintBase
 		Vector3 hopDirection = player.transform.forward + Vector3.up;
 		player.Rb.AddForce(hopDirection * hopForce, ForceMode.Impulse);
 	}
+
+	public override void OnExit(PlayerController player)
+	{
+		// No cleanup needed — chair's OnEnter handles its own setup.
+	}
 }

@@ -2128,9 +2128,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   anchor: {fileID: 2015840577}
-  tetherRadius: 0.45
-  orbitSpeed: 60
-  dragRange: 2.5
+  tetherRadius: 0.8
+  orbitStepAngle: 15
+  orbitStepDuration: 0.8
+  orbitStepCooldown: 0.3
+  dragRange: 2
   dragConeHalfAngle: 30
   dragMassThreshold: 5
   dragDuration: 0.5
@@ -2467,7 +2469,7 @@ Transform:
   m_GameObject: {fileID: 1868780118}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.33, y: 0.025, z: -1.57}
+  m_LocalPosition: {x: -0.33, y: 0.025, z: -2.07}
   m_LocalScale: {x: 0.1, y: 0.05, z: 0.3}
   m_ConstrainProportionsScale: 0
   m_Children: []

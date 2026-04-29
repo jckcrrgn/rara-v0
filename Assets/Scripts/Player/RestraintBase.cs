@@ -46,5 +46,5 @@ public abstract class RestraintBase : MonoBehaviour
 	/// Called when this restraint is being swapped out for another.
 	/// Use for cleanup: reset rigidbody settings, stop coroutines, etc.
 	/// </summary>
-	public virtual void OnExit() { }
+	public abstract void OnExit(PlayerController player);
 }

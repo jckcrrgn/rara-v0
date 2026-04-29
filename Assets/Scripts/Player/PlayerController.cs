@@ -270,7 +270,7 @@ public class PlayerController : MonoBehaviour
 	// Useful later for the "freed mid-level, now floor-restrained" scenario from the GDD.
 	public void SetRestraint(RestraintBase newRestraint)
 	{
-		if (currentRestraint != null) currentRestraint.OnExit();
+		if (currentRestraint != null) currentRestraint.OnExit(this);
 		currentRestraint = newRestraint;
 		if (currentRestraint != null) currentRestraint.OnEnter(this);
 	}

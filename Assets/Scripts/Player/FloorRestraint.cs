@@ -112,4 +112,9 @@ public class FloorRestraint : RestraintBase
 	{
 		return struggleBonus;
 	}
+
+	public override void OnExit(PlayerController player)
+	{
+		// No cleanup needed — steeringYaw/twistOffset reset on next OnEnter.
+	}
 }
