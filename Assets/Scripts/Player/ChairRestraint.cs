@@ -29,6 +29,11 @@ public class ChairRestraint : RestraintBase
 		player.Rb.AddForce(hopDirection * hopForce, ForceMode.Impulse);
 	}
 
+	public override float GetKickModifier()
+	{
+		return 0f; // Chair anchors the legs — no kick verb in v0.
+	}
+
 	public override void OnExit(PlayerController player)
 	{
 		// No cleanup needed — chair's OnEnter handles its own setup.

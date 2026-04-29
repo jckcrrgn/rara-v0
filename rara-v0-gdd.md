@@ -1,7 +1,7 @@
 # Rara v0 — Game Design Document
 
 ## One-Line Pitch
-A quirky third-person low-poly escape game where a captured detective uses Struggle, Move, and Pick Up to break free from increasingly absurd restraint scenarios.
+A quirky third-person low-poly escape game where a captured detective uses Struggle, Move, Pick Up, and Kick to break free from increasingly absurd restraint scenarios.
 
 ## Core Info
 | | |
@@ -27,56 +27,72 @@ The game starts grounded and noir. By the end, you're defusing a bomb in a volca
 
 ## Core Mechanics
 
-### The Three Verbs
-Every puzzle is solved using three actions in creative combinations:
+### The Four Verbs
+Every puzzle is solved using four actions in creative combinations. Each verb has a **strength axis** — a property that modulates its effectiveness based on what the player has access to:
 
-**Struggle** — Strain against your restraints.
+| Verb | Strength axis | Source |
+|------|---------------|--------|
+| **Struggle** | Tool held | Pickupable items (BareHands, BoxCutter, Nails…) and environmental tools |
+| **Move** | Movement mode | Restraint type (chair=hop, floor=inch/roll, hanging=swing) |
+| **Pick Up** | Reach / range | Restraint type (hands-front=in front of you, hands-behind=behind you, future variants) |
+| **Kick** | Leg state | Restraint type (free=full force, floor-bound=reduced, hogtied=disabled) |
+
+This is a deliberate design pattern: **restraints modulate verbs**. New restraint types are interesting because each one changes how the four verbs behave. No new verbs needed for new puzzle situations — just new restraint configurations.
+
+#### Struggle — Strain against your restraints
 - Universal verb: always works against bonds, just at different rates
 - Loosens bindings over time (may take multiple uses)
 - Can knock over nearby objects
 - Makes noise (which can be good or bad)
-- May break something you're attached to
 - Effectiveness modified by held tools (bare hands = slow, sharp object = fast)
+- Effectiveness modified by restraint type (floor-bound uses whole body, slight bonus)
 
-**Move** — Scoot, hop, roll, or drag yourself while bound.
-- Movement is restricted based on how you're restrained (chair = hop/scoot, floor = inch *or* roll, hanging = swing)
-- Some restraints offer multiple movement modes with different tradeoffs. Floor restraint: **inch** (tap W) is forward, slow, quiet, precise; **roll** (Shift+A or Shift+D) is lateral-only, fast, noisy, needs open space. Player chooses based on the situation — open hallway vs. tight gap between furniture, guard nearby vs. alone.
-- Positioning matters — you need to be near things to interact with them
+#### Move — Scoot, hop, roll, or drag yourself while bound
+- Movement mode is restricted by how you're restrained (chair = hop/scoot, floor = inch *or* roll, hanging = swing)
+- Some restraints offer multiple movement modes with different tradeoffs. Floor restraint: **inch** (tap W) is forward, slow, quiet, precise; **roll** (Shift+A or Shift+D) is lateral-only, fast, noisy, needs open space. Player chooses based on the situation.
+- Positioning matters — you need to be near things to interact with them, and for some verbs (Kick) you need to be *oriented* correctly, not just close
 - Moving into objects can knock them over or push them
 - Movement noise is a stealth lever in Act 2+: rolling alerts guards, inching doesn't.
 
-**Pick Up** — Grab an object within reach.
-- Hands tied in front: limited grab range
-- Hands tied behind: grab things behind you, use mouth or feet for things in front
-- Objects modify Struggle effectiveness (sharp edge speeds up bond-breaking) or serve as puzzle elements (place object on pressure plate, throw to hit a switch)
+#### Pick Up — Grab an object within reach
+- Hands tied in front: limited grab range in front of you
+- Hands tied behind: grab things behind you (post-v0 mechanical variant)
+- Objects modify Struggle effectiveness (sharp edge speeds up bond-breaking) or serve as puzzle elements
 - Core loop: Move to find tools → Pick Up → Struggle with tool to escape faster
 
+#### Kick — Strike outward with the legs
+- Force scales with leg state. Free legs deliver full force. Floor-bound legs deliver reduced force (~half) — kicking is still possible but takes more reps. Hogtied legs deliver none — the verb is suppressed.
+- Used against **Kickables**: doors that burst open, shelves that topple to drop a tool, guards that go down (finale).
+- **Position-gated** for some Kickables (e.g. the van door). The player must be near the target *and* oriented correctly (back-to-the-door for kicks). Out-of-position kicks land as a "thud" — diegetic feedback that nothing happened.
+- Kicking anything that isn't a Kickable just thuds. The detective can kick the wall of a van out of frustration. It does nothing useful. It feels right.
+
 ### Feign (State, not a Verb)
-The detective can voluntarily re-enter a "looks bound" state after freeing themselves. This is not a fourth verb — it's a *state* the player toggles, and the existing verbs behave differently inside it.
+The detective can voluntarily re-enter a "looks bound" state after freeing themselves. This is not a fifth verb — it's a *state* the player toggles, modifying how the existing verbs behave.
 
-- **Toggle**: F (or context prompt when a guard is approaching)
-- **In Feign state**: Move is disabled (you're holding still). Struggle becomes a windup — building force for a single decisive action (kick a door open, kick a guard, snap a final restraint). Pick Up disabled.
+- **Toggle**: F (or context prompt when a guard is approaching). Note: F is also Kick when not feigning. Context-sensitive — feign is only available post-escape, kick is the verb otherwise.
+- **In Feign state**: Move is disabled (you're holding still). Struggle and Pick Up are disabled. **Kick is the only available verb** — the detective is coiled, waiting for the right moment to strike.
 - **Visual tell**: Detective slumps into bound posture, restraints visually re-applied (loose, but reads as bound from a distance).
-- **Purpose**: Lets the player weaponize stillness. Plants the seed in Act 2 (avoid detection by feigning), pays off in the finale (turn the tables on the gloating guard).
+- **Purpose**: Lets the player weaponize stillness. Plants the seed in Act 2 (avoid detection by feigning), pays off in the finale (turn the tables on the gloating guard with a single decisive kick).
 
-This keeps the three-verb identity intact while adding strategic depth.
+### Controls
 - **WASD / Left Stick** — Move (contextual: hop, scoot, inch, swing based on restraint type)
 - **Shift+A / Shift+D** — Roll left / right (floor restraint only; lateral-only, fast, noisy)
-- **E / Face Button** — Context-sensitive interact (defaults to nearest valid action)
-- **F / Button** — Toggle Feign state (only available when free of bonds; see Feign section above)
-- **1–3 / D-Pad** — Select verb directly (Struggle, Move, Pick Up)
-- **R / Button** — Reset room to starting state
+- **Space** — Struggle
+- **E** — Pick Up (interact with nearest pickupable)
+- **F** — Kick (default) / Feign toggle (when free of bonds and context-appropriate)
+- **R** — Reset room to starting state
 - **No inventory system** — you use objects in place or carry one thing at a time
-- **No combat** — this is a brain game
+- **No combat** — Kick is structural, not a combat verb; this is still a brain game
 
 ### Restraint Types (Vary Per Level)
-- **Chair** — tied to a wooden/metal chair. Can hop, scoot, tip over. Classic.
-- **Floor** — hands bound, lying down. Can roll, crawl, use feet.
-- **Cuffed to fixture** — handcuffed to a pipe, radiator, railing. Limited radius of movement.
-- **Hanging** — suspended by wrists. Can swing, kick, use momentum.
+- **Chair** — tied to a wooden/metal chair. Can hop, scoot, tip over. Classic. Kick disabled (legs anchored to chair).
+- **Floor** — hands bound, lying down. Can inch or roll. Reduced-force kick available.
+- **Cuffed to fixture** — handcuffed to a pipe, radiator, railing. Limited radius of movement. Free legs — full kick.
+- **Hanging** — suspended by wrists. Can swing, kick, use momentum. Full kick force at the right swing point.
+- **Hogtied** *(post-v0)* — wrists and ankles bound together. No kick. Movement reduced to wriggle.
 - **Duct tape / zip ties** — can be weakened by Struggle over time, unlike rope or cuffs.
 
-Each restraint type changes how the three verbs behave, giving levels distinct feel without adding new mechanics.
+Each restraint type changes how the four verbs behave, giving levels distinct feel without adding new mechanics.
 
 ---
 
@@ -104,8 +120,8 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 - **L1 — The Back Room:** Tied to a wooden chair. Room has a nail sticking out of the wall. Struggle to loosen chair, Move to the wall, Struggle against the nail to cut rope. (Tutorial: Struggle + Move)
 - **L2 — The Storage Unit:** Chair again. A shelf nearby has a box cutter on the edge. Move to the shelf, bump it to knock the cutter down, Pick Up, cut free. (Tutorial: Move + Pick Up)
 - **L3 — The Office:** Chair, hands behind back. Desk nearby has a drawer slightly ajar with scissors inside. Move to desk, bump it to jostle the drawer open, Pick Up scissors, Struggle with scissors to cut through rope fast. (Tutorial: Pick Up as Struggle modifier — tools make escape faster)
-- **L4 — The Van:** Duct-taped on the floor of a van. Struggle to weaken tape. Inch (precision) or Roll (faster but limited space in van) to the back door. Once free of tape, brace against the floor and Struggle-windup to kick the door open. (Introduces floor restraint, dual floor traversal modes, and the Struggle-as-windup pattern that the finale will reuse.)
-- **L5 — The Basement:** Cuffed to a radiator pipe. Reach radius is limited. Must use objects within range creatively. First real multi-step puzzle combining all three verbs.
+- **L4 — The Van:** Duct-taped on the floor of a van. Bonds are unbreakable bare-handed (no tools in scene). The only escape is to kick the back doors open. Inch/roll to the door, orient yourself with your back to it, and Kick — repeatedly. Floor-bound kicks are reduced force, so this takes ~6 reps. Each kick lands as a thud against the door; the sixth bursts it open. (Tutorial: Kick verb. Tutorial: positioning matters — kicking out of position just thuds against the wall.)
+- **L5 — The Basement:** Cuffed to a radiator pipe. Reach radius is limited. Must use objects within range creatively. First real multi-step puzzle combining Struggle, Move, and Pick Up.
 
 ### Act 2 — Thriller (Levels 6–10)
 **Setting:** Escalating. A hotel room, a shipping container, a penthouse, a warehouse with catwalks.
@@ -116,7 +132,8 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 - Puzzles require 4–6 steps
 - Introduce guards as environmental obstacles (time your escape around their patrols, avoid detection)
 - One level where you're restrained in a new way mid-level (freed from chair but room locks down)
-- **Introduce Feign** in one Act 2 level: player frees themselves, hears a guard approaching, must Feign to avoid detection. Guard passes, scene continues. No kick yet — this is just planting the seed for the finale.
+- **Introduce Feign** in one Act 2 level: player frees themselves, hears a guard approaching, must Feign to avoid detection. Guard passes, scene continues. Plants the seed for the finale — Feign and Kick are introduced separately in Act 1 and Act 2 so the finale's combination of them lands.
+- **At least one Kick puzzle that isn't a door:** e.g. floor-restrained, the only tool is on a high shelf. Kick the shelf to knock it down, then Pick Up. Demonstrates that Kick is a verb with general utility, not a one-trick L4 mechanic.
 - At least one "aha moment" where a verb does something unexpected
 
 ### Act 3 — Absurd (Levels 11–15)
@@ -128,7 +145,7 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 - Puzzles require 6–10 steps
 - Multiple valid solutions for some rooms (rewards creative thinking)
 - Environmental hazards force prioritization (escape the restraint AND deal with the room)
-- **Level 15 — The Finale: Turn the Tables.** The most complex room. Multiple phases. Uses every restraint type and verb in sequence. The detective escapes a final, layered restraint — and just as the last bond falls, footsteps approach. Phase shift: the player must **Feign** before the guard enters, holding still while he saunters in to gloat over his apparently helpless captive. Struggle (windup) charges a decisive kick. When the guard is in range, release: the detective kicks him, incapacitates him, takes his keys, and walks out the door. Satisfying payoff that recontextualizes every verb the player has learned — Move becomes stillness, Struggle becomes the strike, Pick Up becomes the keys.
+- **Level 15 — The Finale: Turn the Tables.** The most complex room. Multiple phases. Uses every restraint type and verb in sequence. The detective escapes a final, layered restraint — and just as the last bond falls, footsteps approach. Phase shift: the player must **Feign** before the guard enters, holding still while he saunters in to gloat over his apparently helpless captive. With Feign active, only Kick is available — and only when the guard is in range. Time the kick: too early, he's out of range and it thuds harmlessly; correctly timed, the detective kicks him, takes his keys (Pick Up), and walks out the door. Satisfying payoff that recontextualizes every verb the player has learned — Move becomes stillness, Struggle becomes patience, Pick Up becomes the keys, Kick becomes the strike.
 
 ---
 
@@ -144,6 +161,7 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 - Low-poly, ~500–1000 tris. Big head, simple face with eyebrows that emote
 - Trench coat / rumpled suit reads as "detective" instantly
 - Needs idle animations per restraint type (squirming in chair, struggling on floor, swinging while hanging)
+- Needs a kick animation per kick-capable restraint (free-leg side kick, floor-bound mule kick, hanging swing-kick)
 - Satisfying "freed" animation when you escape
 
 ### UI
@@ -161,6 +179,7 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 - Struggle: rope creaking, chain rattling, tape stretching, wood straining
 - Move: chair legs scraping, body dragging, hopping thuds
 - Pick Up: object grab, metallic clink, sliding
+- Kick: per-target thuds (door=hollow boom, wall=dull thud, shelf=rattling clatter, guard=meaty hit)
 - Success: rope snap, cuff click open, satisfying "free" sound
 - Failure: guard alert sound, buzzer, ominous door opening
 - Timer: ticking, beeping (escalates as time runs out)
@@ -181,17 +200,19 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 - `Credits` — Simple scroll
 
 ### Key Scripts
-- `PlayerController` — Movement per restraint type, verb selection, interaction raycasting
-- `RestraintSystem` — Defines movement rules and verb behaviors per restraint type (chair, floor, cuffed, hanging, tape)
-- `VerbSystem` — Handles the three core actions, context sensitivity, cooldowns
-- `PuzzleManager` — Per-level puzzle state, step tracking, win condition
-- `InteractableBase` — Base class for all interactive objects (sharp edge, key, switch, door, tool)
-- `GuardAI` — Simple patrol/check-in behavior for Act 2–3 (waypoints, timer-based)
-- `TimerSystem` — Manages soft and hard timers, triggers failure state
-- `MutterSystem` — Triggers character lines based on context (idle, hint, success, failure)
-- `LevelManager` — Scene loading, level progression, completion tracking
-- `AudioManager` — Singleton for SFX and music, per-act music switching
-- `UIManager` — Verb HUD, mutter text display, menus, timer display
+- `PlayerController` — Input routing, verb dispatch (Struggle, Pick Up, Kick), interaction raycasting. Movement is delegated to the active restraint.
+- `RestraintBase` — Abstract base for restraints. Defines movement input handling, struggle/kick modifiers, struggle gating. Concrete: `ChairRestraint`, `FloorRestraint`, `CuffedRestraint`, `HangingRestraint`, future `HogtiedRestraint`.
+- `Bond` — Per-restraint binding state. Handles struggle progress, breaking, tool effectiveness.
+- `InteractableBase` — Base for all interactive objects.
+- `Pickupable` — Items the Pick Up verb consumes. Carry tool type.
+- `Kickable` — Abstract base for things the Kick verb targets. Concrete: `KickableDoor` (L4), `KickableShelf` (Act 2 puzzle), `KickableGuard` (finale).
+- `EnvironmentalTool` — Stationary tools that modify Struggle (the wall nail, the radiator edge).
+- `GuardAI` — Patrol/check-in behavior for Act 2–3.
+- `TimerSystem` — Soft and hard timers, failure state.
+- `MutterSystem` — Triggers character lines based on context (idle, hint, success, failure).
+- `LevelManager` — Scene loading, progression, completion.
+- `AudioManager` — SFX and music singleton.
+- `UIManager` — Verb HUD, mutter text, menus, timer display.
 
 ### Data
 - Level completion and best times stored in PlayerPrefs
@@ -208,12 +229,19 @@ rara-v0/
 │   ├── Scripts/
 │   │   ├── Player/
 │   │   │   ├── PlayerController.cs
-│   │   │   └── RestraintSystem.cs
+│   │   │   ├── RestraintBase.cs
+│   │   │   ├── ChairRestraint.cs
+│   │   │   ├── FloorRestraint.cs
+│   │   │   └── ...
 │   │   ├── Verbs/
-│   │   │   └── VerbSystem.cs
+│   │   │   ├── Bond.cs
+│   │   │   ├── Pickupable.cs
+│   │   │   └── Kickable.cs
 │   │   ├── Puzzle/
-│   │   │   ├── PuzzleManager.cs
-│   │   │   └── InteractableBase.cs
+│   │   │   ├── InteractableBase.cs
+│   │   │   ├── KickableDoor.cs
+│   │   │   ├── KickableShelf.cs
+│   │   │   └── EnvironmentalTool.cs
 │   │   ├── AI/
 │   │   │   └── GuardAI.cs
 │   │   ├── Systems/
@@ -225,26 +253,10 @@ rara-v0/
 │   │   │   └── UIManager.cs
 │   │   └── UI/
 │   ├── Prefabs/
-│   │   ├── Player/
-│   │   ├── Interactables/
-│   │   ├── Guards/
-│   │   └── UI/
 │   ├── Scenes/
-│   │   ├── MainMenu.unity
-│   │   ├── Levels/
-│   │   └── Credits.unity
 │   ├── Art/
-│   │   ├── Models/
-│   │   ├── Materials/
-│   │   ├── Animations/
-│   │   └── Textures/
 │   ├── Audio/
-│   │   ├── Music/
-│   │   └── SFX/
 │   ├── ScriptableObjects/
-│   │   ├── Restraints/
-│   │   ├── MutterLines/
-│   │   └── PuzzleData/
 │   └── Resources/
 ├── Packages/
 ├── ProjectSettings/
@@ -259,26 +271,27 @@ rara-v0/
 ## Milestone Schedule (~60 days)
 
 ### Weeks 1–2 (Days 1–14): Foundation
-- [ ] Repo setup, Unity project, folder structure
-- [ ] PlayerController: chair-based movement (hop, scoot, tip)
-- [ ] Verb system: three verbs selectable, context-sensitive interact
-- [ ] One interactable object (rope on nail — cut free with Struggle)
-- [ ] Level 1 fully playable with placeholder art (Unity primitives)
-- [ ] Basic mutter system (text popup near character)
+- [x] Repo setup, Unity project, folder structure
+- [x] PlayerController: chair-based movement (hop, scoot, tip)
+- [x] Verb system: Struggle, Pick Up, with context-sensitive interact
+- [x] One interactable object (rope on nail — cut free with Struggle)
+- [x] Level 1 fully playable with placeholder art (Unity primitives)
+- [x] Basic mutter system (text popup near character) — partial (worldspace bond meter scaffolding)
 
 ### Weeks 3–4 (Days 15–28): Core Systems
-- [ ] Second restraint type (floor) with different movement
-- [ ] Pick Up verb functional (tool-modified Struggle)
+- [x] Second restraint type (floor) with different movement
+- [x] Pick Up verb functional (tool-modified Struggle)
+- [x] Kick verb introduced (L4 implementation)
 - [ ] Levels 1–5 playable (Act 1 complete)
 - [ ] Level progression (complete room → load next)
-- [ ] Core SFX (struggle, move, pick up, success, failure)
+- [ ] Core SFX (struggle, move, pick up, kick, success, failure)
 - [ ] Placeholder character model (can be Unity primitive humanoid or free asset)
 
 ### Weeks 5–6 (Days 29–42): Content + Polish
 - [ ] Third restraint type (cuffed to fixture)
 - [ ] Guard AI for Act 2 (simple patrol, alert state)
 - [ ] Soft timer system
-- [ ] Levels 6–10 designed and playable (Act 2 complete)
+- [ ] Levels 6–10 designed and playable (Act 2 complete) — includes a non-door Kickable puzzle
 - [ ] Visual polish: materials, lighting, color per room
 - [ ] Level select screen
 - [ ] Playtest #1
@@ -313,3 +326,7 @@ rara-v0/
 - Overarching story connecting all rooms (who keeps capturing this detective?)
 - Co-op mode (two detectives in connected rooms, must communicate)
 - Chair tipping as a restraint state transition — struggling too hard or physics collisions tip the chair, moving player from "chair" to "floor" restraint mid-level
+- Body-Part Bonds — bonds scoped per limb (wrists, ankles, elbows) instead of package-deal restraints. Would let "legs free" emerge naturally from bond state instead of being a per-restraint configuration.
+- Hands-behind as Pick Up range modifier — pickup cone limited to behind the player; combos with chair-tipping for emergent puzzle solutions.
+- Stealth-between-escapes — guard AI segments where capture transitions to a new escape state instead of game over. Probably v1.0 or sequel.
+- Double-cuffed escape — wrists AND elbows cuffed; freeing wrists from a pole still leaves elbows bound.

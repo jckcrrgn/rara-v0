@@ -2,75 +2,92 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// A door the player kicks open by winding up Struggle while bound-free
-/// and adjacent to it. First concrete use of the Struggle-as-windup pattern
-/// that L15 (kick-the-guard) will reuse with a different target.
+/// A door the player kicks open. First concrete Kickable.
 ///
-/// Usage on L4:
+/// L4 setup:
 ///   - Place at the back of the van.
-///   - Set requiredWindup to ~3 (three Struggle taps once bonds are broken).
-///   - Assign leftPivot and rightPivot for double-door swing.
-///   - Doors swing open + the level completes via LevelManager.
+///   - Set requiredForce ~3 (three free-leg kicks, or six floor-bound kicks).
+///   - Assign leftPivot, rightPivot for double-door swing.
+///   - Assign kickZone — an empty Transform sitting at the door's interior face.
+///     The player must be inside kickZoneRadius AND have their back pointed at
+///     the door for the kick to register. Otherwise it's a wall-thud.
 ///
-/// Pre-bond-break behavior: Struggle on this door does nothing
-/// (you're still tied up — kicking is for free legs). The bond must be broken first.
+/// Why position-gated: per L4 redesign, bonds on this level are unbreakable
+/// bare-hands. The puzzle is "tape your way close enough, orient correctly,
+/// kick." This separates the verb cleanly from Struggle.
 /// </summary>
-public class KickableDoor : InteractableBase
+public class KickableDoor : Kickable
 {
-	[Header("Windup")]
-	[Tooltip("How many Struggle taps to kick the door open after bonds are broken.")]
-	[SerializeField] private int requiredWindup = 3;
+	[Header("Position Gate")]
+	[Tooltip("Empty Transform marking the spot the player must reach to kick. " +
+		"Sit it at the door's interior face, roughly at floor level.")]
+	[SerializeField] private Transform kickZone;
+	[Tooltip("How close the player must be to kickZone (world-space distance).")]
+	[SerializeField] private float kickZoneRadius = 1.0f;
+	[Tooltip("Dot threshold for player's back-vector vs. direction-to-door. " +
+		"0.7 = ~45° cone. Higher is stricter.")]
+	[Range(0f, 1f)]
+	[SerializeField] private float backwardDotThreshold = 0.7f;
 
 	[Header("Door Animation")]
-	[Tooltip("Pivot for the LEFT door panel. Sits at the left edge of the doorway.")]
 	[SerializeField] private Transform leftPivot;
-	[Tooltip("Pivot for the RIGHT door panel. Sits at the right edge of the doorway.")]
 	[SerializeField] private Transform rightPivot;
-	[Tooltip("How far each door swings open (degrees). Pivots rotate in opposite directions.")]
 	[SerializeField] private float openAngle = 95f;
 	[SerializeField] private float openDuration = 0.4f;
 
 	[Header("SFX")]
-	[SerializeField] private AudioClip windupClip;
+	[Tooltip("Per-kick thud. Plays each time a kick registers but the door isn't open yet.")]
+	[SerializeField] private AudioClip kickThudClip;
+	[Tooltip("Big door-burst SFX when the door finally opens.")]
 	[SerializeField] private AudioClip kickOpenClip;
 
-	[Header("Refs")]
-	[Tooltip("The Bond on the player. Door only kicks once this Bond is broken.")]
-	[SerializeField] private Bond playerBond;
-
-	private int currentWindup = 0;
-	private bool isOpen = false;
-
 	/// <summary>
-	/// Called by PlayerController.TryStruggle when this door is the nearest interactable
-	/// AND the player is free of bonds. Treats Struggle as windup toward a kick.
+	/// Position gate. Player must be in the kick zone AND oriented with their back
+	/// to the door (so a "kick" reads as kicking backward against it).
+	///
+	/// Note: when in FloorRestraint, transform.forward includes a small twist offset
+	/// during inch animations (max ~12°). The threshold of 0.7 has slack for that;
+	/// no need to reach into the restraint's internals.
 	/// </summary>
-	public void OnWindup(PlayerController player)
+	public override bool CanBeKicked(PlayerController player)
 	{
-		if (isOpen) return;
+		if (!base.CanBeKicked(player)) return false;
+		if (kickZone == null) return true; // No gate configured — accept always.
 
-		// Gate: must be free of bonds. Pre-break, the door ignores Struggle.
-		if (playerBond != null && !playerBond.IsBroken)
-		{
-			return;
-		}
+		// Proximity check.
+		float dist = Vector3.Distance(player.transform.position, kickZone.position);
+		if (dist > kickZoneRadius) return false;
 
-		currentWindup++;
-		if (AudioManager.Instance != null && windupClip != null)
-		{
-			AudioManager.Instance.PlaySFX(windupClip, 1f, Random.Range(0.95f, 1.05f));
-		}
+		// Orientation check: player's back (-forward) should point roughly at the door.
+		Vector3 toDoor = (transform.position - player.transform.position);
+		toDoor.y = 0f;
+		if (toDoor.sqrMagnitude < 0.0001f) return true; // Standing on the gate; accept.
+		toDoor.Normalize();
 
-		if (currentWindup >= requiredWindup)
+		Vector3 playerBack = -player.transform.forward;
+		playerBack.y = 0f;
+		playerBack.Normalize();
+
+		float dot = Vector3.Dot(playerBack, toDoor);
+		return dot >= backwardDotThreshold;
+	}
+
+	protected override void OnKickRegistered(PlayerController player, float force)
+	{
+		if (AudioManager.Instance != null && kickThudClip != null)
 		{
-			StartCoroutine(KickOpen());
+			AudioManager.Instance.PlaySFX(kickThudClip, 1f, Random.Range(0.95f, 1.05f));
 		}
+		// TODO (post-v0 polish): brief "give" animation on the door per kick before it bursts open.
+	}
+
+	protected override void OnFullyKicked(PlayerController player)
+	{
+		StartCoroutine(KickOpen());
 	}
 
 	private IEnumerator KickOpen()
 	{
-		isOpen = true;
-
 		if (AudioManager.Instance != null && kickOpenClip != null)
 		{
 			AudioManager.Instance.PlaySFX(kickOpenClip, 1f, 1f);
@@ -80,8 +97,6 @@ public class KickableDoor : InteractableBase
 		{
 			Quaternion leftStart = leftPivot.localRotation;
 			Quaternion rightStart = rightPivot.localRotation;
-			// Opposite signs so the doors swing AWAY from each other (outward).
-			// If on playtest they clip into each other, swap the signs.
 			Quaternion leftEnd = leftStart * Quaternion.Euler(0f, -openAngle, 0f);
 			Quaternion rightEnd = rightStart * Quaternion.Euler(0f, openAngle, 0f);
 
@@ -89,7 +104,6 @@ public class KickableDoor : InteractableBase
 			while (elapsed < openDuration)
 			{
 				float t = elapsed / openDuration;
-				// Ease-out: doors snap fast, slow at the end.
 				float eased = 1f - (1f - t) * (1f - t);
 				leftPivot.localRotation = Quaternion.Slerp(leftStart, leftEnd, eased);
 				rightPivot.localRotation = Quaternion.Slerp(rightStart, rightEnd, eased);
@@ -100,7 +114,6 @@ public class KickableDoor : InteractableBase
 			rightPivot.localRotation = rightEnd;
 		}
 
-		// Small beat before completing the level so the kick reads.
 		yield return new WaitForSeconds(0.5f);
 
 		if (LevelManager.Instance != null)

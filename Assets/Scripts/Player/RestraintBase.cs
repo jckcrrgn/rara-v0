@@ -36,6 +36,11 @@ public abstract class RestraintBase : MonoBehaviour
 		return 1f;
 	}
 
+	public virtual float GetKickModifier()
+	{
+		return 1f;
+	}
+
 	/// <summary>
 	/// Called when this restraint becomes active (start of level, or when SetRestraint is called).
 	/// Use for setup: configure rigidbody constraints, play an "entering" animation, etc.

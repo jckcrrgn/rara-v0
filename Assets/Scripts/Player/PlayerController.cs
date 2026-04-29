@@ -2,9 +2,6 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-	// CHANGED: Movement settings (hopForce, rotationSpeed) moved to ChairRestraint.
-	// Movement is now the restraint's job, not the player's.
-
 	[Header("Interaction Settings")]
 	[SerializeField] private float interactionCheckRadius = 1.5f;
 	[SerializeField] private LayerMask interactableLayer = ~0;
@@ -24,20 +21,18 @@ public class PlayerController : MonoBehaviour
 	[SerializeField] private AudioClip struggleSuccessClip;
 	[SerializeField] private AudioClip struggleFailClip;
 	[SerializeField] private AudioClip bondBreakClip;
+	[Tooltip("Grunt of exertion. Plays on every kick attempt regardless of target.")]
+	[SerializeField] private AudioClip kickEffortClip;
+	[Tooltip("Default thud when Kick lands on nothing Kickable (or a Kickable rejecting the kick). " +
+		"Kickables play their own per-hit SFX, so this only fires for misses.")]
+	[SerializeField] private AudioClip kickMissThudClip;
 
-	// NEW: The active restraint. Assign in Inspector, or auto-find on the GameObject.
 	[Header("Restraint")]
 	[SerializeField] private RestraintBase currentRestraint;
 
-	// NEW: Rigidbody is now exposed so restraints can apply forces to it.
-	// Restraints need access to physics; PlayerController owns the rb but lets restraints use it.
 	public Rigidbody Rb { get; private set; }
-
-	// NEW: Grounding moved here as a public field because multiple restraints may care about it,
-	// but each restraint decides what "grounded" means for movement purposes.
 	public bool IsGrounded { get; private set; }
 
-	// Public accessors kept for BondMeterUI compatibility
 	public int StruggleProgress => bond != null ? bond.StruggleProgress : 0;
 	public int BondStrength => bond != null ? bond.BondStrength : 1;
 	public System.Action OnStruggleProgressChanged;
@@ -53,8 +48,6 @@ public class PlayerController : MonoBehaviour
 			bond.OnBroken += EscapeBonds;
 		}
 
-		// NEW: If no restraint assigned in Inspector, try to find one on this GameObject.
-		// This lets you just slap a ChairRestraint component on the Player and it works.
 		if (currentRestraint == null)
 		{
 			currentRestraint = GetComponent<RestraintBase>();
@@ -72,15 +65,11 @@ public class PlayerController : MonoBehaviour
 
 	void Update()
 	{
-		// CHANGED: All movement input (rotation, W-key hop) is delegated to the restraint.
-		// PlayerController no longer knows or cares HOW the player moves.
 		if (currentRestraint != null)
 		{
 			currentRestraint.HandleMovementInput(this);
 		}
 
-		// Struggle and Pick Up are universal verbs — they work the same regardless of restraint.
-		// (The restraint can still influence them via GetStruggleModifier / CanStruggle.)
 		if (Input.GetKeyDown(KeyCode.Space))
 		{
 			TryStruggle();
@@ -90,9 +79,14 @@ public class PlayerController : MonoBehaviour
 		{
 			TryPickUp();
 		}
-	}
 
-	// REMOVED: Hop() — moved to ChairRestraint.
+		// NEW: Kick is now its own verb. Effectiveness scaled by restraint
+		// (free legs = full force, floor-bound = reduced, hogtied = zero).
+		if (Input.GetKeyDown(KeyCode.F))
+		{
+			TryKick();
+		}
+	}
 
 	void TryStruggle()
 	{
@@ -102,38 +96,26 @@ public class PlayerController : MonoBehaviour
 			return;
 		}
 
-		// NEW: Restraint can gate struggle entirely (e.g., a future "gagged" state might block it,
-		// or a phase where the player can't struggle yet).
+		// CHANGED: The bond.IsBroken / KickableDoor redirect is GONE. Struggle is now
+		// purely bond-work. Door-kicking is the Kick verb's job. This resolves the
+		// "why am I struggling against tape if I just need to kick" design smell.
+
 		if (currentRestraint != null && !currentRestraint.CanStruggle())
 		{
 			return;
 		}
 
-		// Start with whatever's in our hands (BareHands by default)
 		ToolType activeTool = heldItem != null ? heldItem.ToolType : ToolType.BareHands;
 		int struggleAmount = bond.GetStruggleProgress(activeTool);
 
 		InteractableBase nearby = FindNearestInteractable();
 
-		// Post-break: Struggle redirects from the (broken) bond to a windup target.
-		// First concrete case is KickableDoor on L4. Future: L15 guard.
-		if (bond.IsBroken && nearby is KickableDoor door)
-		{
-			// Windup runs on its own track: no bond progress, no restraint modifier,
-			// no struggle SFX (door plays its own windup clip).
-			door.OnWindup(this);
-			return;
-		}
-
-		// Pre-break: tools nearby modify struggle effectiveness against the bond.
 		if (nearby is EnvironmentalTool envTool)
 		{
 			struggleAmount += bond.GetStruggleProgress(envTool.ToolType);
 			envTool.OnStruggle(this);
 		}
 
-		// NEW: Restraint can scale the result (e.g., FloorRestraint might make struggle slightly
-		// more effective because you can use your whole body, or duct tape might make it weaker).
 		if (currentRestraint != null)
 		{
 			struggleAmount = Mathf.RoundToInt(struggleAmount * currentRestraint.GetStruggleModifier());
@@ -152,6 +134,43 @@ public class PlayerController : MonoBehaviour
 		}
 
 		bond.ApplyStruggle(struggleAmount);
+	}
+
+	/// <summary>
+	/// Kick verb. Strikes outward with the legs.
+	/// - Force is scaled by the restraint's GetKickModifier (free=1.0, floor=~0.5, hogtied=0).
+	/// - If the nearest interactable is a Kickable that accepts the kick, route force to it.
+	/// - Otherwise (no target, wrong target, or position gate failing): play the thud SFX.
+	///   This is the "kicking the wall of the van" feedback — emergent, in-character, free.
+	/// </summary>
+	void TryKick()
+	{
+		if (currentRestraint == null) return;
+
+		float kickForce = currentRestraint.GetKickModifier();
+		//if hogtied, kick is suppressed
+		if (kickForce <= 0f) return;
+
+		// Effort layer: plays on every kick, always.
+		if (AudioManager.Instance != null && kickEffortClip != null)
+		{
+			AudioManager.Instance.PlaySFX(kickEffortClip, 1f, Random.Range(0.95f, 1.08f));
+		}
+
+		InteractableBase nearby = FindNearestInteractable();
+
+		if (nearby is Kickable kickable && kickable.CanBeKicked(this))
+		{
+			kickable.OnKick(this, kickForce);
+			// Kickable plays its own impact SFX in OnKickRegistered.
+			return;
+		}
+
+		// Miss layer: kicked nothing useful. Plays alongside the grunt.
+		if (AudioManager.Instance != null && kickMissThudClip != null)
+		{
+			AudioManager.Instance.PlaySFX(kickMissThudClip, 1f, Random.Range(0.92f, 1.05f));
+		}
 	}
 
 	System.Collections.IEnumerator ShakeVisual()
@@ -250,13 +269,6 @@ public class PlayerController : MonoBehaviour
 		return nearest;
 	}
 
-	/// <summary>
-	/// Fires when the player breaks free of their bonds. Per-level
-	/// win-condition scripts (e.g. BondBreakWinCondition) listen for this.
-	/// PlayerController itself is no longer responsible for level completion.
-	/// </summary>
-	
-
 	void EscapeBonds()
 	{
 		Debug.Log("FREE OF BONDS!");
@@ -266,8 +278,6 @@ public class PlayerController : MonoBehaviour
 		OnPlayerFreed?.Invoke();
 	}
 
-	// NEW: Public method so restraints (or other systems) can swap which restraint is active.
-	// Useful later for the "freed mid-level, now floor-restrained" scenario from the GDD.
 	public void SetRestraint(RestraintBase newRestraint)
 	{
 		if (currentRestraint != null) currentRestraint.OnExit(this);
@@ -275,8 +285,6 @@ public class PlayerController : MonoBehaviour
 		if (currentRestraint != null) currentRestraint.OnEnter(this);
 	}
 
-	// CHANGED: Grounding kept here because it's a physics fact about the player's body,
-	// not a restraint-specific concept. Restraints can read IsGrounded if they care.
 	void OnCollisionStay(Collision collision)
 	{
 		foreach (ContactPoint contact in collision.contacts)

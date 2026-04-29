@@ -6,7 +6,11 @@ using UnityEngine;
 /// Movement is tap-to-inch — each W press triggers one inchworm cycle:
 ///   lunge forward with a slight shoulder lead, pause, settle.
 /// Shoulder lead alternates left/right between inches for organic motion.
-/// 
+///
+/// Kick: legs are bound but mobile enough to deliver a reduced-force kick.
+/// This is the floor-restrained level pattern — kick a shelf to knock down a tool,
+/// kick a door (twice as many reps as a free-leg kick).
+///
 /// STATUS: Stub-but-tuned. Will need revisiting once the character model
 /// replaces the cube — body tilt should look like a real twist, not a Y-rotation.
 /// </summary>
@@ -31,10 +35,12 @@ public class FloorRestraint : RestraintBase
 	[Tooltip("Floor-bound struggle uses the whole body — slightly more effective. 1.2 = 20% bonus.")]
 	[SerializeField] private float struggleBonus = 1.2f;
 
+	[Header("Kick Tuning")]
+	[Tooltip("Kick force scalar while floor-bound. 0.5 = half the force of a free-legged kick. " +
+		"Means floor-bound players need ~2x the reps to break the same Kickable.")]
+	[SerializeField] private float kickModifier = 0.5f;
+
 	// --- Internal state ---
-	// Steering yaw is the "real" facing direction (controlled by A/D).
-	// Twist offset is the inchworm shoulder lead (controlled by the inch coroutine).
-	// Final rotation each frame = steeringYaw + twistOffset, applied in LateUpdate.
 	private float steeringYaw;
 	private float twistOffset;
 	private bool isInching = false;
@@ -42,7 +48,6 @@ public class FloorRestraint : RestraintBase
 
 	public override void OnEnter(PlayerController player)
 	{
-		// Initialize steering yaw from current rotation so we don't snap on entry.
 		steeringYaw = player.transform.eulerAngles.y;
 		twistOffset = 0f;
 		nextLeadIsRight = true;
@@ -50,17 +55,14 @@ public class FloorRestraint : RestraintBase
 
 	public override void HandleMovementInput(PlayerController player)
 	{
-		// Steering: A/D updates the steering yaw. Always responsive.
 		float rotateInput = Input.GetAxis("Horizontal");
 		steeringYaw += rotateInput * rotationSpeed * Time.deltaTime;
 
-		// Tap W to inch. Ignored while an inch is already in progress.
 		if (Input.GetKeyDown(KeyCode.W) && !isInching)
 		{
 			player.StartCoroutine(InchCycle(player));
 		}
 
-		// Apply combined rotation: steering + twist.
 		player.transform.rotation = Quaternion.Euler(0f, steeringYaw + twistOffset, 0f);
 	}
 
@@ -68,37 +70,31 @@ public class FloorRestraint : RestraintBase
 	{
 		isInching = true;
 
-		// Decide which shoulder leads this inch, then flip for next time.
 		float leadSign = nextLeadIsRight ? 1f : -1f;
 		nextLeadIsRight = !nextLeadIsRight;
 		float targetTwist = shoulderLeadAngle * leadSign;
 
-		// LUNGE: ease-out forward movement + twist toward leading shoulder.
-		// Forward direction is re-read each frame so A/D steering during lunge feels live.
 		float elapsed = 0f;
 		while (elapsed < lungeDuration)
 		{
 			float t = elapsed / lungeDuration;
-			float eased = 1f - (1f - t) * (1f - t); // ease-out
+			float eased = 1f - (1f - t) * (1f - t);
 
-			// Forward push: per-frame delta along current forward direction.
 			Vector3 perFrameDelta = player.transform.forward * (inchDistance / lungeDuration) * Time.deltaTime;
 			player.Rb.MovePosition(player.Rb.position + perFrameDelta);
 
-			// Twist ramps from 0 to targetTwist with the same easing curve.
 			twistOffset = Mathf.Lerp(0f, targetTwist, eased);
 
 			elapsed += Time.deltaTime;
 			yield return null;
 		}
 
-		// SETTLE: no forward motion. Twist eases back toward 0 (body untwists).
 		float startTwist = twistOffset;
 		elapsed = 0f;
 		while (elapsed < settleDuration)
 		{
 			float t = elapsed / settleDuration;
-			float eased = t * t * (3f - 2f * t); // smoothstep
+			float eased = t * t * (3f - 2f * t);
 			twistOffset = Mathf.Lerp(startTwist, 0f, eased);
 			elapsed += Time.deltaTime;
 			yield return null;
@@ -111,6 +107,14 @@ public class FloorRestraint : RestraintBase
 	public override float GetStruggleModifier()
 	{
 		return struggleBonus;
+	}
+
+	// NEW: Floor-bound legs can still kick, just with reduced force.
+	// This is what enables the "kick a shelf to knock the tool down" floor-level pattern,
+	// and forces the L4 player to commit more kicks if they choose not to escape the tape first.
+	public override float GetKickModifier()
+	{
+		return kickModifier;
 	}
 
 	public override void OnExit(PlayerController player)
