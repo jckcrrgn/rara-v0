@@ -1992,10 +1992,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   interactionRange: 1.5
-  requiredForce: 3
+  requiredForce: 1.5
   kickZone: {fileID: 0}
   kickZoneRadius: 1
-  backwardDotThreshold: 0.7
+  feetDotThreshold: 0.7
   leftPivot: {fileID: 228160308}
   rightPivot: {fileID: 606407644}
   openAngle: 95
@@ -2327,11 +2327,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2f9faedb81873fe41b905f8954ce1d82, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  inchDistance: 0.4
+  moveDistance: 0.4
   lungeDuration: 0.25
   settleDuration: 0.35
   shoulderLeadAngle: 12
   rotationSpeed: 80
+  modeToggleKey: 99
+  flipDuration: 2
   struggleBonus: 1.2
   kickModifier: 0.5
 --- !u!1 &1885064321

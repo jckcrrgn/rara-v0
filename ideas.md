@@ -21,6 +21,13 @@ Scratch pad for ideas, observations, and things to try later.
 - Double-cuffed escape (Day 19): An evolution of Cuffed-to-Pole. Since the Detective is a known escape artiste, the enemy applies 2 handcuffs: wrists around a pole AND elbows. The Detective frees herself from her wrist cuffs and the pole, but her arms remain bound.
 - Stealth-between-escapes (Day 19): The structural innovation that could carry the game beyond "puzzle anthology." Detective escapes a restrained state → enters a stealth navigation segment (warehouse, mansion, etc.) → if caught, doesn't game over but transitions to a new (likely more severe) restraint state in a new escape room. Inverts standard stealth game logic: capture isn't punishment, it's the genre the player is good at. Retroactively justifies escape mechanics as the spine of the game. Implications: needs guard AI, free movement, a hub location, new camera, capture/recapture flow. Probably v1.0 or sequel scope. v0 stays as discrete escape rooms with narrative interstitials. Do not build this in v0. Do not start "just prototyping" it.
 - FloorRestraint Roll (Day 20): Shift+A/D to roll. Faster, but requires space to maneuver.
+- FloorRestraint orientation refactor (Day 21): Currently inch moves
+  the detective headfirst (on her belly, prone). For L4 this means
+  she has to pirouette ~180° at the door to get her feet to it —
+  narratively awkward. Future refinement: separate inch (headfirst,
+  prone, precise) from scoot (feet-first, supine, approach for kicks).
+  Three-state floor movement: inch / scoot / roll. Each has different
+  uses. Probably v0.1 polish, not v0.
 
 
 ## Feedback Patterns

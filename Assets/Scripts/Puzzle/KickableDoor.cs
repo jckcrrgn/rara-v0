@@ -9,7 +9,7 @@ using UnityEngine;
 ///   - Set requiredForce ~3 (three free-leg kicks, or six floor-bound kicks).
 ///   - Assign leftPivot, rightPivot for double-door swing.
 ///   - Assign kickZone — an empty Transform sitting at the door's interior face.
-///     The player must be inside kickZoneRadius AND have their back pointed at
+///     The player must be inside kickZoneRadius AND have their feet pointed at
 ///     the door for the kick to register. Otherwise it's a wall-thud.
 ///
 /// Why position-gated: per L4 redesign, bonds on this level are unbreakable
@@ -24,10 +24,10 @@ public class KickableDoor : Kickable
 	[SerializeField] private Transform kickZone;
 	[Tooltip("How close the player must be to kickZone (world-space distance).")]
 	[SerializeField] private float kickZoneRadius = 1.0f;
-	[Tooltip("Dot threshold for player's back-vector vs. direction-to-door. " +
+	[Tooltip("Dot threshold for player's feet-vector vs. direction-to-door. " +
 		"0.7 = ~45° cone. Higher is stricter.")]
 	[Range(0f, 1f)]
-	[SerializeField] private float backwardDotThreshold = 0.7f;
+	[SerializeField] private float feetDotThreshold = 0.7f;
 
 	[Header("Door Animation")]
 	[SerializeField] private Transform leftPivot;
@@ -42,12 +42,18 @@ public class KickableDoor : Kickable
 	[SerializeField] private AudioClip kickOpenClip;
 
 	/// <summary>
-	/// Position gate. Player must be in the kick zone AND oriented with their back
-	/// to the door (so a "kick" reads as kicking backward against it).
+	/// Position gate. Player must be in the kick zone AND have their feet oriented
+	/// toward the door (so a "kick" reads as kicking forward into it from where
+	/// the legs are pointed).
 	///
-	/// Note: when in FloorRestraint, transform.forward includes a small twist offset
-	/// during inch animations (max ~12°). The threshold of 0.7 has slack for that;
-	/// no need to reach into the restraint's internals.
+	/// Uses the restraint's GetKickDirection rather than -transform.forward directly,
+	/// because feet/forward relationship varies by restraint:
+	///   - Inch (FloorRestraint, prone, head-leading): feet = -forward
+	///   - Scoot (FloorRestraint, supine, feet-leading): feet = +forward
+	///   - Chair / Cuffed / Hanging: feet = -forward (default)
+	///
+	/// Note: in inch mode the forward vector includes a small twist offset
+	/// (max ~12° during shoulder-lead). The threshold of 0.7 has slack for that.
 	/// </summary>
 	public override bool CanBeKicked(PlayerController player)
 	{
@@ -58,18 +64,18 @@ public class KickableDoor : Kickable
 		float dist = Vector3.Distance(player.transform.position, kickZone.position);
 		if (dist > kickZoneRadius) return false;
 
-		// Orientation check: player's back (-forward) should point roughly at the door.
+		// Orientation check: player's feet vector should point roughly at the door.
 		Vector3 toDoor = (transform.position - player.transform.position);
 		toDoor.y = 0f;
 		if (toDoor.sqrMagnitude < 0.0001f) return true; // Standing on the gate; accept.
 		toDoor.Normalize();
 
-		Vector3 playerBack = -player.transform.forward;
-		playerBack.y = 0f;
-		playerBack.Normalize();
+		Vector3 feet = player.CurrentRestraint != null
+			? player.CurrentRestraint.GetKickDirection(player)
+			: -player.transform.forward; // Fallback if somehow no restraint is set.
 
-		float dot = Vector3.Dot(playerBack, toDoor);
-		return dot >= backwardDotThreshold;
+		float dot = Vector3.Dot(feet, toDoor);
+		return dot >= feetDotThreshold;
 	}
 
 	protected override void OnKickRegistered(PlayerController player, float force)

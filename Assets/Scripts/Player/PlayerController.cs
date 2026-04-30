@@ -33,6 +33,10 @@ public class PlayerController : MonoBehaviour
 	public Rigidbody Rb { get; private set; }
 	public bool IsGrounded { get; private set; }
 
+	// Read-only accessor so other systems (e.g. Kickable orientation gates) can
+	// query restraint state without owning a reference.
+	public RestraintBase CurrentRestraint => currentRestraint;
+
 	public int StruggleProgress => bond != null ? bond.StruggleProgress : 0;
 	public int BondStrength => bond != null ? bond.BondStrength : 1;
 	public System.Action OnStruggleProgressChanged;
@@ -80,7 +84,7 @@ public class PlayerController : MonoBehaviour
 			TryPickUp();
 		}
 
-		// NEW: Kick is now its own verb. Effectiveness scaled by restraint
+		// Kick is its own verb. Effectiveness scaled by restraint
 		// (free legs = full force, floor-bound = reduced, hogtied = zero).
 		if (Input.GetKeyDown(KeyCode.F))
 		{
@@ -95,10 +99,6 @@ public class PlayerController : MonoBehaviour
 			Debug.LogWarning("No Bond assigned to player.");
 			return;
 		}
-
-		// CHANGED: The bond.IsBroken / KickableDoor redirect is GONE. Struggle is now
-		// purely bond-work. Door-kicking is the Kick verb's job. This resolves the
-		// "why am I struggling against tape if I just need to kick" design smell.
 
 		if (currentRestraint != null && !currentRestraint.CanStruggle())
 		{
