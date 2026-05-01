@@ -2,6 +2,52 @@
 
 Scratch pad for ideas, observations, and things to try later.
 
+## Polish Backlog (from Day 23 playtest)
+
+Tier 1 — Legibility blockers (do before next playtest)
+- L3 desk bump finickiness: Make desk non-kinematic with finite mass.
+  Drawer opens via accumulated jostle (visible give), not hidden
+  threshold. Generalizes to future "bump heavy thing" puzzles.
+- L4 prone-kick suppression: Kick must be unavailable in prone (inch)
+  mode. Logic + narrative + pedagogy fix in one — currently lets
+  players win L4 without learning scoot. Gate via existing
+  GetKickDirection / restraint state.
+- L4 kick signaling: Nothing tells player kicking the door is the
+  answer. Cheapest fix first: one-shot mutter line on entry, or faint
+  door highlight, or door rattles when player is near + facing it.
+- Win UI text: ✅ DONE Day 23. (LevelManager auto-advances; text
+  trimmed to "LEVEL COMPLETE" across all scenes; gameCompleteUI slot
+  available for L5 / future finale.)
+
+Tier 2 — Feel pass
+- L1 chair turn uniformity: Add jitter to ChairRestraint rotate
+  routine. Per-step rotation ±20%, stutter in easing curve, occasional
+  double-step or stuck-step. She's tied to a chair, not a microwave.
+- L1 hop distance: Tune down. Single serialized field.
+- L4 inch input: Hold-W instead of tap-W. Tap was right for chair
+  (deliberate effort). Floor wants continuous grinding effort.
+- L4 starting distance: Move player closer to door at spawn. Also
+  reduces inch-tedium.
+- KickableDoor stiffness: Add wind-up before door gives, or make hinge
+  rotation progressive rather than binary closed/open.
+
+Tier 3 — Content & polish
+- L2 room dressing: Currently big and bereft. Add furniture/debris/set
+  dressing. Possibly defer until character model lands.
+- SFX wiring pass: kick layer (effort, miss thud, door thud, door
+  open), L2 shelf bump, L5 cuff rattle, pipe shuffle, drag scrape,
+  pin-click. Sourced from OpenGameArt + Freesound.
+- L5 simplicity: Hold off. L5 is intro to new restraint + new verb;
+  simple is correct. Reassess after SFX pass.
+
+Parked (do not build in v0)
+- L1 box-cutter pickup logic: Currently narratively weird that
+  chair-tied detective picks up box cutter from floor. Two ideas
+  surfaced in playtest: chair-tipping to bring hands close, or
+  kick-and-catch as a verb. Kick-and-catch is genuinely novel but is
+  a feature not a fix — needs new physics state, timing window, catch
+  input, fail feedback. Park for post-v0.
+
 ## Mechanics
 - Struggle as universal verb (Day 5): Struggle always works against bonds, just at different rates. Pick Up modifies struggle effectiveness via tools (nails, box cutters, etc.). Late-game difficulty comes from stronger bonds requiring stronger tools, plus timers preventing slow bare-hands escape. This is the core mechanic identity.
 - Settings -> Keybinds
@@ -28,6 +74,7 @@ Scratch pad for ideas, observations, and things to try later.
   prone, precise) from scoot (feet-first, supine, approach for kicks).
   Three-state floor movement: inch / scoot / roll. Each has different
   uses. Probably v0.1 polish, not v0.
+- Kick-and-catch (Day 23): Objects on the floor can be kicked into the air and then caught with good timing.
 
 
 ## Feedback Patterns
@@ -36,6 +83,7 @@ Scratch pad for ideas, observations, and things to try later.
 
 ## Bugs-That-Are-Features
 - Chair tipping felt great (Day 2): When the cube fell over during early testing, hopping stopped working and it genuinely felt like a tied-up detective whose chair had tipped. Accidental but authentic. Could be a real mechanic — maybe struggling increases tip risk, or certain collisions tip you. Would transition player to floor restraint. Revisit when floor movement is built.
+-   -Chair-tipping to bring hands closer (Day 23): Chair-tipping could be intentional to bring hands closer to an object on the floor.
 - Box cutter lands on Player's head (Day 10): During L2 shelf-bump tuning, the cutter fell directly onto the player cube's head and sat there. Felt authentic to the detective's whole vibe — long-suffering, things land on them. Could be a deliberate bit for L2: shelf bump always puts the cutter on/near the player, not on the floor. Revisit when character model replaces cube.
 - Cutter mass tuning (Day 12): Box-cutter-on-head bit only works if mass is low (~0.1) and shelf fall impulse is tuned. At default mass the cutter crippled hop and killed L2. Emergent charm still needs a tuning pass to stay fun.
 

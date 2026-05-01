@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -9,26 +10,35 @@ public class LevelManager : MonoBehaviour
 	[SerializeField] private bool isLevelComplete = false;
 
 	[Header("UI References")]
+	[Tooltip("Shown on normal level complete. Text should read just 'LEVEL COMPLETE' " +
+			 "(or similar) — no keypress hints; auto-advance carries the player.")]
 	[SerializeField] private GameObject levelCompleteUI;
+	[Tooltip("Shown instead of levelCompleteUI when this is the final scene in build settings. " +
+			 "Optional — if null, levelCompleteUI is shown and auto-advance is suppressed.")]
+	[SerializeField] private GameObject gameCompleteUI;
+
+	[Header("Advance Behavior")]
+	[Tooltip("If true, auto-loads next scene after autoAdvanceDelay. If false, waits for N key.")]
+	[SerializeField] private bool autoAdvance = true;
+	[Tooltip("Seconds the level-complete UI is shown before auto-advancing.")]
+	[SerializeField] private float autoAdvanceDelay = 1.75f;
+
+	private bool isFinalLevel;
 
 	void Awake()
 	{
-		if (Instance == null)
-		{
-			Instance = this;
-		}
-		else
-		{
-			Destroy(gameObject);
-		}
+		if (Instance == null) Instance = this;
+		else Destroy(gameObject);
 	}
 
 	void Start()
 	{
-		if (levelCompleteUI != null)
-		{
-			levelCompleteUI.SetActive(false);
-		}
+		if (levelCompleteUI != null) levelCompleteUI.SetActive(false);
+		if (gameCompleteUI != null) gameCompleteUI.SetActive(false);
+
+		// Final level = no scene after this one in build settings.
+		int currentIndex = SceneManager.GetActiveScene().buildIndex;
+		isFinalLevel = (currentIndex + 1 >= SceneManager.sceneCountInBuildSettings);
 	}
 
 	void Update()
@@ -38,7 +48,8 @@ public class LevelManager : MonoBehaviour
 			RestartLevel();
 		}
 
-		if (isLevelComplete && Input.GetKeyDown(KeyCode.N))
+		// N still works as a manual fallback for autoAdvance==false levels.
+		if (isLevelComplete && Input.GetKeyDown(KeyCode.N) && !isFinalLevel)
 		{
 			LoadNextLevel();
 		}
@@ -49,18 +60,26 @@ public class LevelManager : MonoBehaviour
 		if (isLevelComplete) return;
 
 		isLevelComplete = true;
-		Debug.Log("Level Complete!");
+		Debug.Log(isFinalLevel ? "Game Complete!" : "Level Complete!");
 
-		if (levelCompleteUI != null)
-		{
-			levelCompleteUI.SetActive(true);
-		}
+		// Pick which panel to show.
+		GameObject panel = (isFinalLevel && gameCompleteUI != null) ? gameCompleteUI : levelCompleteUI;
+		if (panel != null) panel.SetActive(true);
 
 		PlayerController player = FindFirstObjectByType<PlayerController>();
-		if (player != null)
+		if (player != null) player.enabled = false;
+
+		// Only auto-advance if we have somewhere to go.
+		if (autoAdvance && !isFinalLevel)
 		{
-			player.enabled = false;
+			StartCoroutine(AutoAdvanceRoutine());
 		}
+	}
+
+	private IEnumerator AutoAdvanceRoutine()
+	{
+		yield return new WaitForSeconds(autoAdvanceDelay);
+		if (isLevelComplete) LoadNextLevel();
 	}
 
 	public void RestartLevel()
@@ -77,7 +96,7 @@ public class LevelManager : MonoBehaviour
 		}
 		else
 		{
-			Debug.Log("No more levels. You escaped. (Returning to menu not yet implemented.)");
+			Debug.Log("No more levels — already on final scene.");
 		}
 	}
 }

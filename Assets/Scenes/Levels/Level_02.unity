@@ -634,6 +634,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   isLevelComplete: 0
   levelCompleteUI: {fileID: 1975133516}
+  gameCompleteUI: {fileID: 0}
+  autoAdvance: 1
+  autoAdvanceDelay: 1.75
 --- !u!4 &210844884
 Transform:
   m_ObjectHideFlags: 0
@@ -2090,6 +2093,8 @@ MonoBehaviour:
   struggleSuccessClip: {fileID: 8300000, guid: 19d6ea88539ef004a91e7ae0eb11a6ae, type: 3}
   struggleFailClip: {fileID: 8300000, guid: a0aefa6ef75a6de4d944e5850b8d260f, type: 3}
   bondBreakClip: {fileID: 0}
+  kickEffortClip: {fileID: 0}
+  kickMissThudClip: {fileID: 0}
   currentRestraint: {fileID: 1716394342}
 --- !u!65 &1716394338
 BoxCollider:
@@ -3026,11 +3031,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'LEVEL COMPLETE
-
-    Press R to restart
-
-    Press N for next level'
+  m_text: LEVEL COMPLETE
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
