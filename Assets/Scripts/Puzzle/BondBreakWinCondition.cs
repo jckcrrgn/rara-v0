@@ -21,7 +21,7 @@ public class BondBreakWinCondition : MonoBehaviour
 	{
 		if (player == null)
 		{
-			player = FindObjectOfType<PlayerController>();
+			player = FindFirstObjectByType<PlayerController>();
 		}
 
 		if (player != null)

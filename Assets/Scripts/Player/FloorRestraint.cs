@@ -31,10 +31,13 @@ using UnityEngine;
 /// Roll (Shift+A/D) is reserved as a third mode — lateral, fast, noisy.
 /// Not implemented yet (see ideas.md Day 20).
 ///
-/// Kick: legs are bound but mobile enough to deliver a reduced-force kick.
-/// Floor-bound kicks need ~2x the reps of a free-leg kick. The kick direction
-/// flips with mode (see GetKickDirection): in inch mode feet point along
-/// -forward; in scoot mode feet point along +forward.
+/// Kick: legs are bound but mobile enough to deliver a reduced-force kick —
+/// but ONLY in scoot mode. Prone (inch) kicks are suppressed entirely:
+/// anatomically you can't generate force kicking from your stomach with bound
+/// legs, and design-wise this couples the verb to the mode (inch = position,
+/// scoot = apply force). PlayerController still plays the effort grunt on a
+/// suppressed kick, so the player gets feedback that they tried — the absence
+/// of impact is the cue to try scoot.
 /// </summary>
 public class FloorRestraint : RestraintBase
 {
@@ -70,8 +73,9 @@ public class FloorRestraint : RestraintBase
 	[SerializeField] private float struggleBonus = 1.2f;
 
 	[Header("Kick Tuning")]
-	[Tooltip("Kick force scalar while floor-bound. 0.5 = half the force of a free-legged kick. " +
-		"Means floor-bound players need ~2x the reps to break the same Kickable.")]
+	[Tooltip("Kick force scalar while floor-bound AND in scoot mode. 0.5 = half the force of a free-legged kick. " +
+		"Means floor-bound players need ~2x the reps to break the same Kickable. " +
+		"Inch (prone) mode returns 0 — kick is suppressed entirely until the player flips to scoot.")]
 	[SerializeField] private float kickModifier = 0.5f;
 
 	// --- Internal state ---
@@ -223,12 +227,15 @@ public class FloorRestraint : RestraintBase
 		return struggleBonus;
 	}
 
-	// Floor-bound legs can still kick, just with reduced force.
-	// This is what enables the "kick a shelf to knock the tool down" floor-level pattern,
-	// and forces the L4 player to commit more kicks if they choose not to escape the tape first.
+	// Floor-bound legs can still kick, but ONLY in scoot mode.
+	// Inch (prone) returns 0 — anatomically can't generate force kicking from your
+	// stomach with bound legs, and couples the kick verb to scoot mode so the
+	// C-toggle becomes a meaningful tactical choice (position vs. apply force).
+	// PlayerController still plays the effort grunt on a 0-force kick attempt, so
+	// the player gets "you tried, it didn't work" feedback — the cue to try scoot.
 	public override float GetKickModifier()
 	{
-		return kickModifier;
+		return isScootMode ? kickModifier : 0f;
 	}
 
 	/// <summary>

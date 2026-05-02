@@ -21,7 +21,9 @@ public class PlayerController : MonoBehaviour
 	[SerializeField] private AudioClip struggleSuccessClip;
 	[SerializeField] private AudioClip struggleFailClip;
 	[SerializeField] private AudioClip bondBreakClip;
-	[Tooltip("Grunt of exertion. Plays on every kick attempt regardless of target.")]
+	[Tooltip("Grunt of exertion. Plays on every kick attempt regardless of target — " +
+		"including suppressed kicks (e.g. prone floor-restraint), so the player " +
+		"hears that they tried even when no force was generated.")]
 	[SerializeField] private AudioClip kickEffortClip;
 	[Tooltip("Default thud when Kick lands on nothing Kickable (or a Kickable rejecting the kick). " +
 		"Kickables play their own per-hit SFX, so this only fires for misses.")]
@@ -85,7 +87,7 @@ public class PlayerController : MonoBehaviour
 		}
 
 		// Kick is its own verb. Effectiveness scaled by restraint
-		// (free legs = full force, floor-bound = reduced, hogtied = zero).
+		// (free legs = full force, floor-bound scoot = reduced, floor-bound inch = zero, hogtied = zero).
 		if (Input.GetKeyDown(KeyCode.F))
 		{
 			TryKick();
@@ -138,7 +140,11 @@ public class PlayerController : MonoBehaviour
 
 	/// <summary>
 	/// Kick verb. Strikes outward with the legs.
-	/// - Force is scaled by the restraint's GetKickModifier (free=1.0, floor=~0.5, hogtied=0).
+	/// - Effort grunt plays on EVERY kick attempt — even suppressed ones — so the
+	///   player always hears that they tried. Absence of impact SFX is the cue
+	///   that the kick didn't generate force (try scoot, or escape your legs first).
+	/// - Force is scaled by the restraint's GetKickModifier (free=1.0, floor-scoot=~0.5,
+	///   floor-inch=0, hogtied=0). Zero force = effort grunt only, no thud, no Kickable hit.
 	/// - If the nearest interactable is a Kickable that accepts the kick, route force to it.
 	/// - Otherwise (no target, wrong target, or position gate failing): play the thud SFX.
 	///   This is the "kicking the wall of the van" feedback — emergent, in-character, free.
@@ -147,15 +153,19 @@ public class PlayerController : MonoBehaviour
 	{
 		if (currentRestraint == null) return;
 
-		float kickForce = currentRestraint.GetKickModifier();
-		//if hogtied, kick is suppressed
-		if (kickForce <= 0f) return;
-
-		// Effort layer: plays on every kick, always.
+		// Effort layer: plays on every kick, always. Moved above the force check so
+		// suppressed kicks (e.g. prone floor-restraint, hogtied) still give the player
+		// audio feedback that they tried. Silence here would just feel like the input
+		// was ignored.
 		if (AudioManager.Instance != null && kickEffortClip != null)
 		{
 			AudioManager.Instance.PlaySFX(kickEffortClip, 1f, Random.Range(0.95f, 1.08f));
 		}
+
+		float kickForce = currentRestraint.GetKickModifier();
+		// Zero or negative force: kick is suppressed (prone, hogtied, etc.).
+		// Effort grunt already played; no thud, no Kickable interaction.
+		if (kickForce <= 0f) return;
 
 		InteractableBase nearby = FindNearestInteractable();
 

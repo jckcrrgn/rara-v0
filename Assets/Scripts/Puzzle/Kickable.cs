@@ -42,6 +42,7 @@ public abstract class Kickable : InteractableBase
 		if (isResolved) return;
 
 		currentForce += force;
+		Debug.Log($"{name}: kick registered (+{force:F2}). Progress: {currentForce:F2} / {requiredForce:F2}");
 		OnKickRegistered(player, force);
 
 		if (currentForce >= requiredForce)
