@@ -1996,14 +1996,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   interactionRange: 1.5
   requiredForce: 1.5
-  kickZone: {fileID: 0}
+  kickZone: {fileID: 385959863}
   kickZoneRadius: 1
   feetDotThreshold: 0.7
   leftPivot: {fileID: 228160308}
   rightPivot: {fileID: 606407644}
   openAngle: 95
   openDuration: 0.4
-  kickThudClip: {fileID: 0}
+  kickThudClip: {fileID: 8300000, guid: 6afc58b9a8d00eb49b1d91ffcb57570e, type: 3}
   kickOpenClip: {fileID: 0}
 --- !u!4 &1592891560
 Transform:
@@ -2840,7 +2840,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4709457099200860874, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -2.5
+      value: 0.23
       objectReference: {fileID: 0}
     - target: {fileID: 4709457099200860874, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       propertyPath: m_LocalRotation.w
