@@ -15,7 +15,7 @@ public class PlayerController : MonoBehaviour
 	[Header("Feedback")]
 	[SerializeField] private Transform visualRoot;
 	[SerializeField] private float shakeDuration = 0.2f;
-	[SerializeField] private float shakeMagnitude = 0.08f;
+	[SerializeField] private float shakeMagnitude = 8f;
 
 	[Header("SFX")]
 	[SerializeField] private AudioClip struggleSuccessClip;
@@ -99,12 +99,28 @@ public class PlayerController : MonoBehaviour
 
 	void Update()
 	{
+		// While a mutter is showing, world is paused — no movement, no verbs.
+		// MutterSystem owns the dismissKey input itself (Space, currently shared
+		// with Struggle); gating here keeps Struggle from double-firing on the
+		// frame of dismissal.
+		if (MutterSystem.Instance != null && MutterSystem.Instance.IsActive)
+		{
+			return;
+		}
+
+		// Suppress Struggle on the frame *after* a mutter dismisses. The dismiss
+		// happens in MutterSystem.Update; depending on script execution order,
+		// PlayerController.Update could see Space pressed AND IsActive already
+		// false in the same frame. WasJustDismissed catches this.
+		bool justDismissed = MutterSystem.Instance != null
+			&& MutterSystem.Instance.WasJustDismissed;
+
 		if (currentRestraint != null)
 		{
 			currentRestraint.HandleMovementInput(this);
 		}
 
-		if (Input.GetKeyDown(KeyCode.Space))
+		if (Input.GetKeyDown(KeyCode.Space) && !justDismissed)
 		{
 			TryStruggle();
 		}

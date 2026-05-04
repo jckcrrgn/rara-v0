@@ -11,10 +11,10 @@ public class LevelManager : MonoBehaviour
 
 	[Header("UI References")]
 	[Tooltip("Shown on normal level complete. Text should read just 'LEVEL COMPLETE' " +
-			 "(or similar) — no keypress hints; auto-advance carries the player.")]
+			 "(or similar) â€” no keypress hints; auto-advance carries the player.")]
 	[SerializeField] private GameObject levelCompleteUI;
 	[Tooltip("Shown instead of levelCompleteUI when this is the final scene in build settings. " +
-			 "Optional — if null, levelCompleteUI is shown and auto-advance is suppressed.")]
+			 "Optional â€” if null, levelCompleteUI is shown and auto-advance is suppressed.")]
 	[SerializeField] private GameObject gameCompleteUI;
 
 	[Header("Advance Behavior")]
@@ -22,6 +22,13 @@ public class LevelManager : MonoBehaviour
 	[SerializeField] private bool autoAdvance = true;
 	[Tooltip("Seconds the level-complete UI is shown before auto-advancing.")]
 	[SerializeField] private float autoAdvanceDelay = 1.75f;
+
+	[Header("Entry Mutter")]
+	[Tooltip("Mutter line that fires on level start. Leave empty for no entry mutter. " +
+		"TextArea so longer lines wrap nicely in the inspector. Per-level so each " +
+		"scene's LevelManager owns its own opener.")]
+	[TextArea(2, 4)]
+	[SerializeField] private string entryMutter;
 
 	private bool isFinalLevel;
 
@@ -39,6 +46,11 @@ public class LevelManager : MonoBehaviour
 		// Final level = no scene after this one in build settings.
 		int currentIndex = SceneManager.GetActiveScene().buildIndex;
 		isFinalLevel = (currentIndex + 1 >= SceneManager.sceneCountInBuildSettings);
+
+		if (!string.IsNullOrEmpty(entryMutter) && MutterSystem.Instance != null)
+		{
+			MutterSystem.Instance.Play(entryMutter);
+		}
 	}
 
 	void Update()
@@ -96,7 +108,7 @@ public class LevelManager : MonoBehaviour
 		}
 		else
 		{
-			Debug.Log("No more levels — already on final scene.");
+			Debug.Log("No more levels â€” already on final scene.");
 		}
 	}
 }
