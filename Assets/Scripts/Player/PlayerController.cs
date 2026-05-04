@@ -29,11 +29,39 @@ public class PlayerController : MonoBehaviour
 		"Kickables play their own per-hit SFX, so this only fires for misses.")]
 	[SerializeField] private AudioClip kickMissThudClip;
 
+	[Header("Kick")]
+	[Tooltip("How long a single kick attempt occupies. The detective's leg goes " +
+		"through wind-up, strike, and recovery; she can't initiate another kick " +
+		"until that window finishes. Applies even to suppressed (zero-force) " +
+		"kicks — she still went through the motion. PLACEHOLDER VALUE: when the " +
+		"character model arrives, replace with the actual kick animation length " +
+		"(or a kick-active sub-window of it).")]
+	[SerializeField] private float kickDuration = 0.5f;
+
 	[Header("Restraint")]
 	[SerializeField] private RestraintBase currentRestraint;
 
 	public Rigidbody Rb { get; private set; }
 	public bool IsGrounded { get; private set; }
+
+	// Kick state. Set true when a KickCycle is in flight.
+	private bool isKicking = false;
+
+	/// <summary>
+	/// True if the player is currently committing the body to any action that
+	/// should block other body-committing verbs (kick during inch, inch during
+	/// flip, flip during kick, etc.). Aggregates the active restraint's busy
+	/// state with the kick state.
+	///
+	/// Restraint coroutines (FloorRestraint's MoveCycle and FlipCycle) check
+	/// this before starting a new cycle, so they refuse to start if a kick is
+	/// in flight. KickCycle checks this before starting, so it refuses to fire
+	/// if a move/flip is in progress.
+	///
+	/// Steering (A/D heading adjustment) does NOT contribute to IsBusy — it's
+	/// aim, not body-committing motion.
+	/// </summary>
+	public bool IsBusy => isKicking || (currentRestraint != null && currentRestraint.IsBusy);
 
 	// Read-only accessor so other systems (e.g. Kickable orientation gates) can
 	// query restraint state without owning a reference.
@@ -139,7 +167,29 @@ public class PlayerController : MonoBehaviour
 	}
 
 	/// <summary>
-	/// Kick verb. Strikes outward with the legs.
+	/// Kick verb entry point. Delegates to KickCycle coroutine, which owns the
+	/// timing of the kick action (wind-up, strike, recovery). Gated on IsBusy:
+	/// can't kick mid-crawl, can't kick mid-flip, can't kick mid-kick.
+	///
+	/// Why a coroutine instead of a cooldown timer:
+	///   The kick is an action that takes time, not a button with a refractory
+	///   period. The coroutine is the timeline. When the character model arrives,
+	///   anim triggers, wind-up/strike/recovery SFX, hitbox enable/disable
+	///   windows -- all of those slot into the coroutine at the right beats.
+	///   Right now the cube has no animation so the coroutine is mostly just
+	///   "play sound, apply force, wait." But the shape is correct.
+	/// </summary>
+	void TryKick()
+	{
+		if (currentRestraint == null) return;
+		if (IsBusy) return;
+
+		StartCoroutine(KickCycle());
+	}
+
+	/// <summary>
+	/// One full kick cycle. Owns its own duration; gates re-entry via isKicking.
+	///
 	/// - Effort grunt plays on EVERY kick attempt — even suppressed ones — so the
 	///   player always hears that they tried. Absence of impact SFX is the cue
 	///   that the kick didn't generate force (try scoot, or escape your legs first).
@@ -148,39 +198,50 @@ public class PlayerController : MonoBehaviour
 	/// - If the nearest interactable is a Kickable that accepts the kick, route force to it.
 	/// - Otherwise (no target, wrong target, or position gate failing): play the thud SFX.
 	///   This is the "kicking the wall of the van" feedback — emergent, in-character, free.
+	///
+	/// The duration window applies regardless of outcome. Even a zero-force prone
+	/// kick locks the verb for kickDuration -- she still went through the motion.
+	/// This makes the prone-vs-scoot lesson clearer: spamming F in prone produces
+	/// a deliberate, thwarted cadence of effort grunts, not rapid-fire mashing.
 	/// </summary>
-	void TryKick()
+	System.Collections.IEnumerator KickCycle()
 	{
-		if (currentRestraint == null) return;
+		isKicking = true;
 
-		// Effort layer: plays on every kick, always. Moved above the force check so
-		// suppressed kicks (e.g. prone floor-restraint, hogtied) still give the player
-		// audio feedback that they tried. Silence here would just feel like the input
-		// was ignored.
+		// Effort layer: plays on every kick, always. Above the force check so
+		// suppressed kicks (e.g. prone floor-restraint, hogtied) still give the
+		// player audio feedback that they tried.
 		if (AudioManager.Instance != null && kickEffortClip != null)
 		{
 			AudioManager.Instance.PlaySFX(kickEffortClip, 1f, Random.Range(0.95f, 1.08f));
 		}
 
 		float kickForce = currentRestraint.GetKickModifier();
-		// Zero or negative force: kick is suppressed (prone, hogtied, etc.).
-		// Effort grunt already played; no thud, no Kickable interaction.
-		if (kickForce <= 0f) return;
 
-		InteractableBase nearby = FindNearestInteractable();
-
-		if (nearby is Kickable kickable && kickable.CanBeKicked(this))
+		if (kickForce > 0f)
 		{
-			kickable.OnKick(this, kickForce);
-			// Kickable plays its own impact SFX in OnKickRegistered.
-			return;
-		}
+			// Force-generating kick: route to a Kickable if available, else play miss thud.
+			InteractableBase nearby = FindNearestInteractable();
 
-		// Miss layer: kicked nothing useful. Plays alongside the grunt.
-		if (AudioManager.Instance != null && kickMissThudClip != null)
-		{
-			AudioManager.Instance.PlaySFX(kickMissThudClip, 1f, Random.Range(0.92f, 1.05f));
+			if (nearby is Kickable kickable && kickable.CanBeKicked(this))
+			{
+				kickable.OnKick(this, kickForce);
+				// Kickable plays its own impact SFX in OnKickRegistered.
+			}
+			else if (AudioManager.Instance != null && kickMissThudClip != null)
+			{
+				// Miss layer: kicked nothing useful. Plays alongside the grunt.
+				AudioManager.Instance.PlaySFX(kickMissThudClip, 1f, Random.Range(0.92f, 1.05f));
+			}
 		}
+		// else: suppressed kick. Effort grunt already played; no thud, no Kickable.
+
+		// Hold the kick state for the full duration regardless of outcome.
+		// When animation arrives, replace with anim event hooks for wind-up,
+		// strike, and recovery beats.
+		yield return new WaitForSeconds(kickDuration);
+
+		isKicking = false;
 	}
 
 	System.Collections.IEnumerator ShakeVisual()

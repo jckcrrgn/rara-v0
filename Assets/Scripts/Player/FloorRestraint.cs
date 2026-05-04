@@ -5,11 +5,21 @@ using UnityEngine;
 /// Floor restraint: player is bound on the floor (duct tape, hands tied, etc.).
 ///
 /// Movement has two modes, toggled by C:
-///   - INCH (default): tap W to lunge headfirst (prone, on belly). Slow, precise.
-///     Travel direction = +transform.forward. Shoulder-lead twist alternates per inch.
-///   - SCOOT: tap W to push feet-first (supine, on back). Slow, precise, symmetric (no twist).
-///     Travel direction = +transform.forward (same world-space direction as inch) —
-///     the C-toggle only flips visual orientation, not travel direction.
+///   - INCH (default): hold W to lunge headfirst (prone, on belly), one inch
+///     at a time with alternating shoulder lead. Releasing W mid-cycle lets
+///     the current inch finish; no new one starts.
+///   - SCOOT: hold W to push feet-first (supine, on back). Same cadence as
+///     inch but symmetric (no shoulder lead).
+///
+/// Hold-W rather than tap-W: tap-mashing was tedious on L4 (long stretch of
+/// floor between spawn and door). Hold-W preserves the per-inch cadence —
+/// the inchworm rhythm is doing real character work — but takes the carpal
+/// tunnel out of it. Each inch is still a discrete cycle: lunge, settle,
+/// brief inter-cycle pause, then if W is still held, another cycle starts
+/// with the opposite shoulder lead. Speed is identical to perfect tap-mashing.
+///
+/// Travel direction = +transform.forward in both modes — the C-toggle only
+/// flips visual orientation, not travel direction.
 ///
 /// Why "visual flip only": the player is steering the detective toward something
 /// (a door, a tool, an enemy). Pressing W should consistently push toward that
@@ -44,10 +54,15 @@ public class FloorRestraint : RestraintBase
 	[Header("Inch/Scoot Movement")]
 	[Tooltip("How far the player travels per inch or scoot.")]
 	[SerializeField] private float moveDistance = 0.4f;
-	[Tooltip("Duration of the lunge phase (push along +forward).")]
+	[Tooltip("Duration of the lunge phase (push along +forward). Holding W " +
+		"chains cycles back-to-back; lungeDuration sets how fast each one is.")]
 	[SerializeField] private float lungeDuration = 0.25f;
 	[Tooltip("Duration of the settle phase (pause + body untwists).")]
 	[SerializeField] private float settleDuration = 0.35f;
+	[Tooltip("Pause between back-to-back cycles when W is held. Preserves the " +
+		"discrete-rep cadence — without it, hold-W reads as smooth gliding " +
+		"instead of inching. Small value: 0.05-0.15 sec. Set 0 for max speed.")]
+	[SerializeField] private float interCycleDelay = 0.08f;
 
 	[Header("Inch Shoulder Lead")]
 	[Tooltip("Degrees of Y-rotation tilt during an inch lunge. Alternates sign per inch — " +
@@ -88,6 +103,10 @@ public class FloorRestraint : RestraintBase
 	private bool nextLeadIsRight = true;
 	private bool isScootMode = false;
 
+	// Inch cycle, scoot cycle, and flip cycle all commit the body to a motion.
+	// Steering (A/D) does NOT — that's aim adjustment, not body-committing motion.
+	public override bool IsBusy => isMoving || isFlipping;
+
 	public override void OnEnter(PlayerController player)
 	{
 		steeringYaw = player.transform.eulerAngles.y;
@@ -106,12 +125,12 @@ public class FloorRestraint : RestraintBase
 		float rotateInput = Input.GetAxis("Horizontal");
 		steeringYaw += rotateInput * rotationSpeed * Time.deltaTime;
 
-		if (Input.GetKeyDown(modeToggleKey) && !isFlipping && !isMoving)
+		if (Input.GetKeyDown(modeToggleKey) && !player.IsBusy)
 		{
 			player.StartCoroutine(FlipCycle(player));
 		}
 
-		if (Input.GetKeyDown(KeyCode.W) && !isMoving && !isFlipping)
+		if (Input.GetKey(KeyCode.W) && !player.IsBusy)
 		{
 			player.StartCoroutine(MoveCycle(player));
 		}
@@ -172,6 +191,12 @@ public class FloorRestraint : RestraintBase
 	/// direction of W is consistent across both modes.
 	/// Inch applies an alternating shoulder-lead twist; scoot is symmetric (both legs
 	/// pushing together) so no twist is applied.
+	///
+	/// Hold-W behavior: at the end of each cycle, if W is still held, the next
+	/// cycle is started directly (no Update tick required). The interCycleDelay
+	/// in the middle preserves the discrete-rep cadence — without it, holding W
+	/// reads as smooth gliding rather than inching. Releasing W mid-cycle lets
+	/// the current cycle finish; no new one starts.
 	/// </summary>
 	private IEnumerator MoveCycle(PlayerController player)
 	{
@@ -219,7 +244,28 @@ public class FloorRestraint : RestraintBase
 		}
 
 		twistOffset = 0f;
+
+		// Inter-cycle pause: brief beat between reps. Preserves the discrete-rep
+		// cadence so hold-W reads as automated rhythm, not smooth gliding. Also
+		// gives the player a frame-perfect window to release W if they want to
+		// stop exactly here.
+		if (interCycleDelay > 0f)
+		{
+			yield return new WaitForSeconds(interCycleDelay);
+		}
+
 		isMoving = false;
+
+		// Hold-W chaining: if W is still held and the player isn't busy with
+		// any other body-committing action (flip, kick), start the next cycle
+		// directly. Don't wait for the next Update tick — that would add an
+		// unpredictable extra frame of dead time. Checking player.IsBusy here
+		// rather than just local state means future busy states (new restraint
+		// types, additional verbs) automatically gate this chain correctly.
+		if (Input.GetKey(KeyCode.W) && !player.IsBusy)
+		{
+			player.StartCoroutine(MoveCycle(player));
+		}
 	}
 
 	public override float GetStruggleModifier()

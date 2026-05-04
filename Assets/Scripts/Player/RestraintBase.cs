@@ -27,6 +27,22 @@ public abstract class RestraintBase : MonoBehaviour
 	}
 
 	/// <summary>
+	/// Returns true if the restraint is currently committing the body to a
+	/// motion (e.g. an inch cycle, a flip cycle, a chair turn). Used by
+	/// PlayerController to gate body-committing verbs against each other:
+	/// you can't start a kick while you're crawling, can't start a crawl
+	/// while you're flipping, can't start a flip while you're kicking, etc.
+	///
+	/// Default: false (restraint never blocks the player on its own).
+	/// Override in restraints with multi-frame movement coroutines.
+	///
+	/// Steering input (A/D rotation) does NOT count as busy — that's an aim
+	/// adjustment, not a body-committing motion. Only multi-frame body
+	/// commitments should set this true.
+	/// </summary>
+	public virtual bool IsBusy => false;
+
+	/// <summary>
 	/// Multiplier applied to struggle progress while in this restraint.
 	/// 1.0 = normal. >1 = struggle is more effective. <1 = harder to escape.
 	/// Use this to differentiate restraint types: duct tape might be 1.2, cuffs 0.8, etc.

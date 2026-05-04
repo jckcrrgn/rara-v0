@@ -2333,6 +2333,7 @@ MonoBehaviour:
   moveDistance: 0.4
   lungeDuration: 0.25
   settleDuration: 0.35
+  interCycleDelay: 0.08
   shoulderLeadAngle: 12
   rotationSpeed: 80
   modeToggleKey: 99
@@ -2840,7 +2841,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4709457099200860874, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.23
+      value: -1.35
       objectReference: {fileID: 0}
     - target: {fileID: 4709457099200860874, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       propertyPath: m_LocalRotation.w
