@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -30,7 +31,6 @@ public class CuffedRestraint : RestraintBase
 	[Tooltip("Cooldown between steps, in seconds. Prevents instant re-trigger when holding A/D.")]
 	[SerializeField] private float orbitStepCooldown = 0.3f;
 
-
 	[Header("Drag Verb")]
 	[Tooltip("Forward cone reach distance for the Drag verb.")]
 	[SerializeField] private float dragRange = 2f;
@@ -50,7 +50,7 @@ public class CuffedRestraint : RestraintBase
 	[SerializeField] private float struggleModifier = 1f;
 
 	// --- Internal state ---
-	private float currentAngle; // angle around anchor in degrees
+	private float currentAngle;
 	private bool isDragging = false;
 	private bool isStepping = false;
 	private float nextStepAllowedTime = 0f;
@@ -65,9 +65,6 @@ public class CuffedRestraint : RestraintBase
 			return;
 		}
 
-		// Compute initial angle from anchor to player's current XZ position so we
-		// don't snap on entry. If the player happened to spawn exactly at the anchor,
-		// default to angle 0 (player ends up on +X side of anchor).
 		Vector3 fromAnchor = player.transform.position - anchor.position;
 		fromAnchor.y = 0f;
 		if (fromAnchor.sqrMagnitude < 0.0001f)
@@ -81,8 +78,6 @@ public class CuffedRestraint : RestraintBase
 
 		ApplyOrbitPosition(player);
 
-		// Freeze rigidbody position so physics can't drift the player off the anchor.
-		// We'll move her manually via MovePosition. Rotation is also fully manual here.
 		if (player.Rb != null)
 		{
 			player.Rb.isKinematic = true;
@@ -91,7 +86,6 @@ public class CuffedRestraint : RestraintBase
 
 	public override void OnExit(PlayerController player)
 	{
-		// Restore physics. Whatever restraint comes next can re-freeze if it needs to.
 		if (player != null && player.Rb != null)
 		{
 			player.Rb.isKinematic = false;
@@ -106,8 +100,6 @@ public class CuffedRestraint : RestraintBase
 			return;
 		}
 
-		// A/D: step around the anchor in discrete chunks.
-		// GetAxisRaw so holding the key gives clean -1/0/+1 with no smoothing ramp.
 		float rotateInput = Input.GetAxisRaw("Horizontal");
 		if (Mathf.Abs(rotateInput) > 0.001f && !isStepping && Time.time >= nextStepAllowedTime)
 		{
@@ -115,28 +107,21 @@ public class CuffedRestraint : RestraintBase
 			player.StartCoroutine(OrbitStepRoutine(player, stepDelta));
 		}
 
-		// T: drag a small object on the floor toward the player.
 		if (Input.GetKeyDown(KeyCode.T) && !isDragging)
 		{
 			TryDrag(player);
 		}
 	}
 
-	/// <summary>
-	/// Position the player at currentAngle around the anchor, facing outward.
-	/// Called on entry and every frame the player rotates.
-	/// </summary>
 	private void ApplyOrbitPosition(PlayerController player)
 	{
 		float rad = currentAngle * Mathf.Deg2Rad;
 		Vector3 offset = new Vector3(Mathf.Cos(rad), 0f, Mathf.Sin(rad)) * tetherRadius;
 		Vector3 targetPos = anchor.position + offset;
-		targetPos.y = player.transform.position.y; // preserve current Y (floor height)
+		targetPos.y = player.transform.position.y;
 
-		// Use MovePosition so we play nice with physics if the rigidbody isn't fully frozen.
 		player.transform.position = targetPos;
 
-		// Face outward from the anchor (back to the pipe).
 		Vector3 outward = offset.normalized;
 		if (outward.sqrMagnitude > 0.0001f)
 		{
@@ -147,19 +132,10 @@ public class CuffedRestraint : RestraintBase
 	private void TryDrag(PlayerController player)
 	{
 		Pickupable target = FindDragTarget(player);
-		if (target == null)
-		{
-			// Could play a "nothing in reach" SFX or shake here. For now, silent.
-			return;
-		}
-
+		if (target == null) return;
 		player.StartCoroutine(DragRoutine(player, target));
 	}
 
-	/// <summary>
-	/// Forward-cone search for a Pickupable below the mass threshold.
-	/// Returns the nearest valid target, or null.
-	/// </summary>
 	private Pickupable FindDragTarget(PlayerController player)
 	{
 		Collider[] hits = Physics.OverlapSphere(player.transform.position, dragRange, dragTargetLayer);
@@ -175,12 +151,10 @@ public class CuffedRestraint : RestraintBase
 			if (p == null) continue;
 			if (!p.gameObject.activeInHierarchy) continue;
 
-			// Mass check — must have a rigidbody under threshold.
 			Rigidbody itemRb = hit.GetComponent<Rigidbody>();
 			if (itemRb == null) continue;
 			if (itemRb.mass > dragMassThreshold) continue;
 
-			// Cone check — must be within forward cone.
 			Vector3 toItem = hit.transform.position - player.transform.position;
 			toItem.y = 0f;
 			float distFlat = toItem.magnitude;
@@ -198,10 +172,6 @@ public class CuffedRestraint : RestraintBase
 		return best;
 	}
 
-	/// <summary>
-	/// Slide the target object toward the player's feet over dragDuration seconds.
-	/// At end, the item sits within normal Pick Up range and player can E to grab it.
-	/// </summary>
 	private IEnumerator DragRoutine(PlayerController player, Pickupable target)
 	{
 		isDragging = true;
@@ -211,21 +181,20 @@ public class CuffedRestraint : RestraintBase
 		if (itemRb != null)
 		{
 			wasKinematic = itemRb.isKinematic;
-			itemRb.isKinematic = true; // pause physics so the slide is clean
+			itemRb.isKinematic = true;
 			itemRb.linearVelocity = Vector3.zero;
 			itemRb.angularVelocity = Vector3.zero;
 		}
 
 		Vector3 startPos = target.transform.position;
-		// End position: in front of the player at floor height, just within Pick Up range.
 		Vector3 endPos = player.transform.position + player.transform.forward * dragEndOffset;
-		endPos.y = startPos.y; // keep item on floor
+		endPos.y = startPos.y;
 
 		float elapsed = 0f;
 		while (elapsed < dragDuration)
 		{
 			float t = elapsed / dragDuration;
-			float eased = 1f - (1f - t) * (1f - t); // ease-out — quick start, slow finish
+			float eased = 1f - (1f - t) * (1f - t);
 			target.transform.position = Vector3.Lerp(startPos, endPos, eased);
 			elapsed += Time.deltaTime;
 			yield return null;
@@ -241,10 +210,6 @@ public class CuffedRestraint : RestraintBase
 		isDragging = false;
 	}
 
-	/// <summary>
-	/// Rotate around the anchor by stepDelta degrees over orbitStepDuration seconds.
-	/// Uses ease-in-out so the step has a "shuffle" feel — deliberate start, deliberate stop.
-	/// </summary>
 	private IEnumerator OrbitStepRoutine(PlayerController player, float stepDelta)
 	{
 		isStepping = true;
@@ -256,7 +221,6 @@ public class CuffedRestraint : RestraintBase
 		while (elapsed < orbitStepDuration)
 		{
 			float t = elapsed / orbitStepDuration;
-			// Ease-in-out: smoothstep. Slow start, slow end, faster middle.
 			float eased = t * t * (3f - 2f * t);
 			currentAngle = Mathf.Lerp(startAngle, endAngle, eased);
 			ApplyOrbitPosition(player);
@@ -274,5 +238,18 @@ public class CuffedRestraint : RestraintBase
 	public override float GetStruggleModifier()
 	{
 		return struggleModifier;
+	}
+
+	public override List<ControlHint> GetControlHints()
+	{
+		// Cuffed: shuffle around the anchor, drag floor items with foot, struggle, pickup.
+		// No kick (anchored to pipe, no leverage).
+		return new List<ControlHint>
+		{
+			new ControlHint("Shuffle", "A / D"),
+			new ControlHint("Drag", "T"),
+			new ControlHint("Struggle", "Space"),
+			new ControlHint("Pick Up", "E"),
+		};
 	}
 }

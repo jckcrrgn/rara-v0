@@ -72,6 +72,13 @@ public class PlayerController : MonoBehaviour
 	public System.Action OnStruggleProgressChanged;
 	public System.Action OnPlayerFreed;
 
+	/// <summary>
+	/// Fires when SetRestraint changes the active restraint. UI subscribes to
+	/// this so it can re-bind to the new restraint's OnHintsChanged event and
+	/// rebuild the hints panel.
+	/// </summary>
+	public System.Action OnRestraintChanged;
+
 	void Start()
 	{
 		Rb = GetComponent<Rigidbody>();
@@ -90,6 +97,7 @@ public class PlayerController : MonoBehaviour
 		if (currentRestraint != null)
 		{
 			currentRestraint.OnEnter(this);
+			OnRestraintChanged?.Invoke();
 		}
 		else
 		{
@@ -370,6 +378,7 @@ public class PlayerController : MonoBehaviour
 		if (currentRestraint != null) currentRestraint.OnExit(this);
 		currentRestraint = newRestraint;
 		if (currentRestraint != null) currentRestraint.OnEnter(this);
+		OnRestraintChanged?.Invoke();
 	}
 
 	void OnCollisionStay(Collision collision)

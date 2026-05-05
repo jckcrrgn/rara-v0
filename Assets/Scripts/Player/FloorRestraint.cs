@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -147,11 +148,19 @@ public class FloorRestraint : RestraintBase
 	///
 	/// Both Y and Z are animated together. On a cube the Z portion is invisible
 	/// (Z-symmetric), but it's wired so the character-model transition is in place.
+	///
+	/// Hint refresh: fire RaiseHintsChanged at the start of the flip so the UI
+	/// updates the W label ("Inch (hold)" → "Scoot (hold)") and the F-kick
+	/// conditional state immediately when the player commits to the toggle,
+	/// rather than waiting for the animation to finish. Feels more responsive
+	/// and there's no race — the new mode is committed before the animation runs.
 	/// </summary>
 	private IEnumerator FlipCycle(PlayerController player)
 	{
 		isFlipping = true;
 		isScootMode = !isScootMode;
+		RaiseHintsChanged();
+
 		// Debug.Log scaffolding — replace with mutter line / UI cue once those exist.
 		Debug.Log(isScootMode ? "Floor mode: SCOOT (feet-first)" : "Floor mode: INCH (headfirst)");
 
@@ -296,6 +305,34 @@ public class FloorRestraint : RestraintBase
 	{
 		Vector3 steeringForward = Quaternion.Euler(0f, steeringYaw, 0f) * Vector3.forward;
 		return isScootMode ? steeringForward : -steeringForward;
+	}
+
+	public override List<ControlHint> GetControlHints()
+	{
+		// Mode-aware hints. The W label and F conditional state both flip with the mode.
+		List<ControlHint> hints = new List<ControlHint>();
+
+		if (isScootMode)
+		{
+			hints.Add(new ControlHint("Scoot", "W (hold)"));
+			hints.Add(new ControlHint("Flip to inch", "C"));
+			hints.Add(new ControlHint("Kick", "F"));
+		}
+		else
+		{
+			hints.Add(new ControlHint("Inch", "W (hold)"));
+			hints.Add(new ControlHint("Flip to scoot", "C"));
+			// Conditional: kick exists in this restraint but is suppressed in inch mode.
+			// Greyed out + parenthetical hint at WHY it's unavailable, teaching the
+			// inch↔scoot relationship.
+			hints.Add(new ControlHint("Kick", "F", conditional: true, conditionalSuffix: "flip first"));
+		}
+
+		hints.Add(new ControlHint("Turn", "A / D"));
+		hints.Add(new ControlHint("Struggle", "Space"));
+		hints.Add(new ControlHint("Pick Up", "E"));
+
+		return hints;
 	}
 
 	public override void OnExit(PlayerController player)

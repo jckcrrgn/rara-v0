@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -31,11 +32,23 @@ public class ChairRestraint : RestraintBase
 
 	public override float GetKickModifier()
 	{
-		return 0f; // Chair anchors the legs — no kick verb in v0.
+		return 0f; // Chair anchors the legs â€” no kick verb in v0.
+	}
+
+	public override List<ControlHint> GetControlHints()
+	{
+		// Chair: hop + turn + struggle + pickup. No kick (legs anchored).
+		return new List<ControlHint>
+		{
+			new ControlHint("Hop", "W"),
+			new ControlHint("Turn", "A / D"),
+			new ControlHint("Struggle", "Space"),
+			new ControlHint("Pick Up", "E"),
+		};
 	}
 
 	public override void OnExit(PlayerController player)
 	{
-		// No cleanup needed — chair's OnEnter handles its own setup.
+		// No cleanup needed â€” chair's OnEnter handles its own setup.
 	}
 }
