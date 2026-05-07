@@ -66,7 +66,7 @@ public class ChairRestraint : RestraintBase
 	[Tooltip("Angular impulse around Y-axis, scaled by direction. Higher = " +
 		"more rotation per tap. Final angle traveled depends on this AND on " +
 		"the Rigidbody's angularDrag. Tune by feel.")]
-	[SerializeField] private float turnAngularImpulse = 1.5f;
+	[SerializeField] private float turnAngularImpulse = 0.2f;
 
 	[Header("SFX (optional)")]
 	[Tooltip("Plays on each turn-hop tap. Wooden creak, chair scuff, floor " +

@@ -1976,15 +1976,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hopForce: 3
-  stepAngle: 18
-  stepDuration: 0.18
-  angleJitter: 0.2
-  durationJitter: 0.3
-  interStepDelay: 0.05
-  stuckStepOneInN: 6
-  stuckStepAngleFraction: 0.15
-  stepClip: {fileID: 0}
-  stuckStepClip: {fileID: 0}
+  turnVerticalImpulse: 2
+  turnLateralImpulse: 0.5
+  turnAngularImpulse: 0.2
+  turnHopClip: {fileID: 0}
 --- !u!1 &1819085584
 GameObject:
   m_ObjectHideFlags: 0

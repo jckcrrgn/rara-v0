@@ -2336,7 +2336,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hopForce: 3
-  rotationSpeed: 100
+  turnVerticalImpulse: 2
+  turnLateralImpulse: 0.5
+  turnAngularImpulse: 0.2
+  turnHopClip: {fileID: 0}
 --- !u!1001 &9189937284300119568
 PrefabInstance:
   m_ObjectHideFlags: 0

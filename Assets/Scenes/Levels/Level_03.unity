@@ -1280,7 +1280,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hopForce: 3
-  rotationSpeed: 100
+  turnVerticalImpulse: 2
+  turnLateralImpulse: 0.5
+  turnAngularImpulse: 0.2
+  turnHopClip: {fileID: 0}
 --- !u!1 &1445175850
 GameObject:
   m_ObjectHideFlags: 0
@@ -2405,7 +2408,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ff00ec8b39c61a44898662478dcb9bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  requiredJostle: 8
+  requiredJostle: 3
   minImpulse: 0.5
   requirePlayer: 1
   creakClip: {fileID: 8300000, guid: c64dd3cab3e434a4ab777e0a44e25435, type: 3}
