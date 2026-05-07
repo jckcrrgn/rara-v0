@@ -864,7 +864,7 @@ MonoBehaviour:
   gameCompleteUI: {fileID: 0}
   autoAdvance: 1
   autoAdvanceDelay: 1.75
-  entryMutter: Gotta be something in that drawer. If I can just rattle it open...
+  entryMutter: Gotta be something in that drawer. Maybe I can rattle it open...
 --- !u!4 &1007953697
 Transform:
   m_ObjectHideFlags: 0
