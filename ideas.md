@@ -142,3 +142,182 @@ Next steps for mutter:
   IsBroken gate — kick should work regardless of bond state on L4 specifically.
   Possibly: a per-door `requiresFreeBonds` bool, default true for
   finale, false for L4.
+
+## Day 30 Playtest
+
+Two playtesters: Retro (gamer friend, remote via Discord) and Molli
+(relative non-gamer, in-person). Full L1–L5 playthrough both. Build
+was the post-Day-29 chair-sync version with L4 wall distinction and
+rewritten L4 entry mutter.
+
+### Headline finding
+
+The game does not communicate that barehanded struggle is sometimes
+sufficient and sometimes not. Both playtesters, independently, learned
+"Struggle is the answer" in L1 and carried that model forward; both
+hit the same cascade of confusion when L2 didn't reward it. This is
+not a polish issue — it's the core mechanic legibility breaking down,
+and it shows up in the data three different ways:
+
+- Retro L1→L2 cascade: in L1 he hopped over to the (decorative) box
+  cutter, "stood on it," struggled, and escaped. He believed he was
+  using the cutter. When L2 didn't work the same way he concluded the
+  game was bugged. "It's not letting me use the cutter." A minute
+  later, on discovering the verb cards: "Oh I'm stupid. I need to
+  read."
+- Molli L2 accidental-pickup: she got the cutter down from the shelf,
+  struggled for a minute, then asked "Do I have to get the box cutter
+  off [my head]?" — and resolved L2 likely by accidentally pressing E
+  during her mashing. She did not find the verb cards UI until 5
+  minutes into L4. She had no model of Pick Up as a verb until then.
+- Molli L3 false-positive: she struggled out of L3 without touching
+  the drawer, and asked "Does that count? I didn't touch the drawer,
+  though..." She solved an intended-tool puzzle without the tool and
+  the win felt unearned to her.
+
+Root cause: barehand struggle was originally intended as a slow,
+thoughtful process. Tuning collapsed it to a spammable Space-press.
+The teaching loop the design notes describe ("Struggle is universal,
+tools modify effectiveness") never fires because the unmodified
+version is already fast enough to win.
+
+### Secondary finding: ControlHintsPanel is invisible
+
+Molli didn't find the verb cards until 5 minutes into L4 (worsened by
+ultrawide monitor pushing them off to the side). Retro found them
+mid-L2 and treated the discovery as a personal failure ("I'm stupid").
+The panel is currently load-bearing for verb discoverability and not
+catching anyone. Direction: demote it. Use diegetic teaching (mutters)
+for first-time verb introduction; let panel stay as quiet always-on
+reference but stop relying on it. Pause menu with controls reference
+is the eventual right home for "what can I do" reference (Molli's
+suggestion in debrief), but pause menu is not Tier 1.
+
+### L4 specifics
+
+L4 was the biggest hurdle. Retro 1m10s, Molli 5+ minutes. Molli's L4
+time was largely downstream of still not having a verb model — she was
+asking "what did the instructions say?" and "how do I go forward?"
+because Pick Up / scoot toggle / kick were all simultaneously novel.
+Once she found verb cards she resolved fast. Retro's 1m10s suggests
+that with a verb model in hand, L4's design is approximately fine.
+
+Retro flagged: L4 door reads as wall, would benefit from a line/seam
+to read as a door. (Building on yesterday's wall-distinction work.)
+
+### Bright spots (do not let these get drowned out)
+
+- Both laughed at mutters. MutterSystem as tone vehicle: validated.
+- Both liked physics interactions (Retro especially: drawer rattle,
+  shelf bump).
+- Both got through L5 in <1 minute once verb model was in place. L5
+  is the proof that every level can feel that way once verb legibility
+  is fixed. Hold this when tempted to add complexity to L5 — its
+  current simplicity is correct.
+- Difficulty ramp landed for Molli: "Each level gets harder."
+- Tone landing: Molli laughed at L5 mutter ("handcuffs. How
+  romantic."), Retro laughed at L4 mutter ("How do I keep getting
+  myself in these situations?"). Character voice is working.
+- Molli, debrief: "It's very charming."
+
+### Verbatim quotes (devlog/Patreon)
+
+- Molli: "handcuffs. How romantic." (L5 mutter)
+- Molli: "when I got to L4 it's like... how the fuck do I kick?"
+- Molli: "It's very charming."
+- Molli: "Each level gets harder."
+- Molli: "Do I have to get the box cutter off [my head]?"
+- Retro: "It's not letting me use the cutter." (L2, pre-discovery)
+- Retro: "Oh I'm stupid. I need to read." (verb card discovery)
+- Retro: laughed at "How do I keep getting myself in these situations?"
+
+### Tier 1 — Must ship before Playtest #2
+
+Without these, Playtest #2 is poisoned data — every player will hit
+the same cascade.
+
+- Barehand struggle does nothing. ChairRestraint, FloorRestraint,
+  CuffedRestraint: Struggle without a held tool produces zero bond
+  progress. Effort SFX/animation still plays for "you tried" feedback
+  (same pattern as L4 prone-kick suppression). Keystone fix; the rest
+  of the cascade resolves from here. Note: this is a real shift from
+  the design-notes framing of "Struggle is the universal verb" — Pick
+  Up effectively becomes the gating verb, with Struggle as the closing
+  verb. Update GDD to reflect. Revisiting universal Struggle as a
+  meaningful verb in its own right is a v1 question (see thumbstick
+  prototype note below).
+- MutterTrigger component. Collider-based, fires
+  MutterSystem.Play() on enter, configurable fire-once vs repeat.
+  Already designed in the Mutter System notes above; pulled forward
+  by today's findings. Infrastructure for the L1 + L4 teaching chains.
+- L1 teaching mutter chain. Three beats:
+    - Re-tune entry mutter to gesture toward "I need something to cut
+      these"
+    - MutterTrigger near cutter: "...if I could just pick that up."
+    - Optional after N failed barehand struggles: "...too tight. Bare
+      hands won't do it."
+- L4 teaching mutter additions. Existing entry mutter stays (it
+  landed). Add:
+    - MutterTrigger near door for orientation cue: "...need to turn
+      around. Get my feet to it."
+    - Possibly a trigger on first failed face-on kick: "...wrong
+      way."
+
+Treat MutterTrigger + L1 chain as one composite feature — neither is
+useful without the other. Effective max-3 for Playtest #2:
+1. Barehand struggle does nothing
+2. MutterTrigger + L1 teaching chain
+3. L4 teaching mutter additions
+
+### Tier 2 — Polish, log for after Playtest #2
+
+These are real findings but not blocking. Some may auto-resolve once
+Tier 1 lands; resist pre-emptive fixes — the point of waiting is to
+see what's *left* after Tier 1.
+
+- L4 door visual: add line/seam so it reads as a door not a wall.
+  Iterating on yesterday's wall-distinction work.
+- Pause menu with controls reference. Molli's debrief suggestion.
+  The right long-term home for "what can I do" reference, but only
+  worth building once mutter-as-teaching is validated.
+- ControlHintsPanel ultrawide positioning. Anchor verb cards to
+  respect ultrawide aspect ratios. Matters less if panel becomes
+  non-load-bearing post-mutter-chain, but still real.
+- L3 bond strength tuning. Molli struggled out without the scissors.
+  Tier 1 #1 (no barehand progress) likely fixes this automatically.
+  Verify after Tier 1; don't pre-tune.
+- L1 cutter placement. The decorative cutter on L1's floor is what
+  enabled Retro's "stand on it and struggle" misread. Tier 1 #1 will
+  make standing-and-spamming-Space produce nothing, which teaches him
+  to try E — but the cutter being there at all is questionable.
+  L1's intended solve is the nail; the cutter is a redundant
+  alternative that *taught a wrong lesson*. Consider removing from L1
+  entirely and letting the nail be the single solve.
+
+### Tier 3 — Notes, not the build
+
+- Mutter system as tone vehicle: validated by both playtesters
+  laughing.
+- Physics interactions are loved: drawer, shelf, kick. Lean into
+  this in future levels.
+- L5 simplicity is a feature, not a bug. Both playtesters solved <1
+  min once they had verb model. Don't add complexity to L5; let it
+  be the easy denouement after L4's spike.
+- "It's very charming" is the tone we're hitting. Hold this.
+- Difficulty ramp ordering (excluding the verb-legibility issue) is
+  felt by players. The intended curve works once the legibility
+  fog clears.
+
+### Future-iteration note: Struggle as a real verb
+
+Today's decision to make barehand struggle do nothing is the right
+call for v0 *given the current Space-spam implementation*. The reason
+it works as a tone choice — "she's tied too well, this isn't
+neighborhood kids" — is genuine, but it also tacitly admits that the
+current Struggle verb has no mechanical body to it. A previous
+prototype involved feeling around for "sweet spots" on dual
+thumbsticks and rubbing across both simultaneously. That kind of
+fleshed-out Struggle could re-justify universal barehand struggle as
+a meaningful verb in its own right. Park for v1 / sequel. Worth
+writing up properly — easy thing to forget if it lives only in
+chat.
