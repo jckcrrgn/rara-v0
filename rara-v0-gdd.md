@@ -32,20 +32,22 @@ Every puzzle is solved using four actions in creative combinations. Each verb ha
 
 | Verb | Strength axis | Source |
 |------|---------------|--------|
-| **Struggle** | Tool held | Pickupable items (BareHands, BoxCutter, Nails…) and environmental tools |
+| **Struggle** | Tool held | Pickupable items (BoxCutter, Nails…) and environmental tools. Barehanded Struggle produces no progress in v0. |
 | **Move** | Movement mode | Restraint type (chair=hop, floor=inch/roll, hanging=swing) |
 | **Pick Up** | Reach / range | Restraint type (hands-front=in front of you, hands-behind=behind you, future variants) |
 | **Kick** | Leg state | Restraint type (free=full force, floor-bound=reduced, hogtied=disabled) |
 
 This is a deliberate design pattern: **restraints modulate verbs**. New restraint types are interesting because each one changes how the four verbs behave. No new verbs needed for new puzzle situations — just new restraint configurations.
 
+**Verb roles in the puzzle loop:** Pick Up is the *gating* verb — the player must acquire a tool before bonds can be broken. Struggle is the *closing* verb — once a tool is held, Struggle applies it. Move connects the two by getting the detective to where the tool is. Kick is a separate solve path used when no tool exists in scene (L4) or when something needs to be struck (Act 2+ Kickables).
+
 #### Struggle — Strain against your restraints
-- Universal verb: always works against bonds, just at different rates
-- Loosens bindings over time (may take multiple uses)
-- Can knock over nearby objects
-- Makes noise (which can be good or bad)
-- Effectiveness modified by held tools (bare hands = slow, sharp object = fast)
-- Effectiveness modified by restraint type (floor-bound uses whole body, slight bonus)
+- **Tool-gated:** Bare-handed Struggle produces no bond progress. The detective is bound by professionals — rope, zip ties, cuffs — not neighborhood kids. Effort SFX and animation still play (same "you tried" pattern as L4 prone-kick suppression), but bonds don't loosen without a tool.
+- Once a tool is held, Struggle applies it. Effectiveness scales with tool sharpness/force (nail = slow, scissors = fast).
+- Can knock over nearby objects.
+- Makes noise (which can be good or bad in stealth segments).
+- Effectiveness modified by restraint type (e.g., floor-bound uses whole body, slight bonus).
+- *(v1 question: a fleshed-out Struggle verb — feeling for "sweet spots" with dual thumbsticks, rubbing across both — could re-justify universal barehand struggle as a meaningful verb in its own right. See "Future Ideas.")*
 
 #### Move — Scoot, hop, roll, or drag yourself while bound
 - Movement mode is restricted by how you're restrained (chair = hop/scoot, floor = inch *or* roll, hanging = swing)
@@ -55,10 +57,11 @@ This is a deliberate design pattern: **restraints modulate verbs**. New restrain
 - Movement noise is a stealth lever in Act 2+: rolling alerts guards, inching doesn't.
 
 #### Pick Up — Grab an object within reach
+- **The gating verb.** Without a tool in hand, Struggle does nothing. Pick Up is the action that unlocks bond-breaking.
 - Hands tied in front: limited grab range in front of you
 - Hands tied behind: grab things behind you (post-v0 mechanical variant)
 - Objects modify Struggle effectiveness (sharp edge speeds up bond-breaking) or serve as puzzle elements
-- Core loop: Move to find tools → Pick Up → Struggle with tool to escape faster
+- Core loop: Move to find tools → Pick Up → Struggle with tool to escape
 
 #### Kick — Strike outward with the legs
 - Force scales with leg state. Free legs deliver full force. Floor-bound legs deliver reduced force (~half) — kicking is still possible but takes more reps. Hogtied legs deliver none — the verb is suppressed.
@@ -117,9 +120,9 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 **Restraints:** Chair (L1–3), floor (L4), cuffed to pipe (L5).
 **Detective mood:** Annoyed, confident. "Not my first time."
 
-- **L1 — The Back Room:** Tied to a wooden chair. Room has a nail sticking out of the wall. Struggle to loosen chair, Move to the wall, Struggle against the nail to cut rope. (Tutorial: Struggle + Move)
-- **L2 — The Storage Unit:** Chair again. A shelf nearby has a box cutter on the edge. Move to the shelf, bump it to knock the cutter down, Pick Up, cut free. (Tutorial: Move + Pick Up)
-- **L3 — The Office:** Chair, hands behind back. Desk nearby has a drawer slightly ajar with scissors inside. Move to desk, bump it to jostle the drawer open, Pick Up scissors, Struggle with scissors to cut through rope fast. (Tutorial: Pick Up as Struggle modifier — tools make escape faster)
+- **L1 — The Back Room:** Tied to a wooden chair. Room has a nail sticking out of the wall. Move to the wall, Struggle against the nail to cut rope. (Tutorial: Struggle + Move. The nail is an environmental tool — Struggle gates on being adjacent to it.)
+- **L2 — The Storage Unit:** Chair again. A shelf nearby has a box cutter on the edge. Move to the shelf, bump it to knock the cutter down, Pick Up, Struggle to cut free. (Tutorial: Pick Up — tools must be acquired before Struggle works.)
+- **L3 — The Office:** Chair, hands behind back. Desk nearby has a drawer slightly ajar with scissors inside. Move to desk, bump it to jostle the drawer open, Pick Up scissors, Struggle with scissors to cut through rope. (Tutorial: tools have different speeds — scissors are faster than the L1 nail or L2 cutter.)
 - **L4 — The Van:** Duct-taped on the floor of a van. Bonds are unbreakable bare-handed (no tools in scene). The only escape is to kick the back doors open. Inch/roll to the door, orient yourself with your back to it, and Kick — repeatedly. Floor-bound kicks are reduced force, so this takes ~6 reps. Each kick lands as a thud against the door; the sixth bursts it open. (Tutorial: Kick verb. Tutorial: positioning matters — kicking out of position just thuds against the wall.)
 - **L5 — The Basement:** Cuffed to a radiator pipe. Reach radius is limited. Must use objects within range creatively. First real multi-step puzzle combining Struggle, Move, and Pick Up.
 
@@ -330,3 +333,4 @@ rara-v0/
 - Hands-behind as Pick Up range modifier — pickup cone limited to behind the player; combos with chair-tipping for emergent puzzle solutions.
 - Stealth-between-escapes — guard AI segments where capture transitions to a new escape state instead of game over. Probably v1.0 or sequel.
 - Double-cuffed escape — wrists AND elbows cuffed; freeing wrists from a pole still leaves elbows bound.
+- **Struggle as a real mechanical verb (v1).** v0's choice to make barehand Struggle do nothing is correct given the current Space-spam implementation — but it tacitly admits Struggle has no mechanical body to it. A previous prototype involved feeling around for "sweet spots" on dual thumbsticks and rubbing across both simultaneously to work bonds loose. A fleshed-out Struggle of that kind could re-justify universal barehand struggle as a meaningful verb in its own right — and would change the puzzle grammar significantly (bonds become a real time/effort cost rather than a tool-presence binary). Park for v1 / sequel.
