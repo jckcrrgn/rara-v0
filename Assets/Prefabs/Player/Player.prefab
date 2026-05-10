@@ -17,7 +17,7 @@ GameObject:
   - component: {fileID: 7040638199935036622}
   m_Layer: 0
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -129,9 +129,9 @@ MonoBehaviour:
     m_Bits: 4294967295
   bond: {fileID: 7040638199935036622}
   heldItem: {fileID: 0}
-  visualRoot: {fileID: 0}
+  visualRoot: {fileID: 4709457099200860874}
   shakeDuration: 0.2
-  shakeMagnitude: 0.08
+  shakeMagnitude: 8
   struggleSuccessClip: {fileID: 8300000, guid: d7e95b08ddc82b8469204d874282cce1, type: 3}
   struggleFailClip: {fileID: 8300000, guid: a0aefa6ef75a6de4d944e5850b8d260f, type: 3}
   bondBreakClip: {fileID: 8300000, guid: ad405c0621a104c479c672b588ded4c9, type: 3}
@@ -181,7 +181,6 @@ MonoBehaviour:
   bondType: 0
   bondStrength: 25
   struggleProgress: 0
-  bareHandsProgress: 1
   bladeProgress: 10
   pointProgress: 5
   keyProgress: 0

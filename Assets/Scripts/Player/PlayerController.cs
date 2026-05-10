@@ -73,6 +73,19 @@ public class PlayerController : MonoBehaviour
 	public System.Action OnPlayerFreed;
 
 	/// <summary>
+	/// Fires when a Struggle attempt produces zero or negative bond progress
+	/// (e.g. barehanded against a rope, wrong-tool-for-bond combinations). Used
+	/// by stuck-player rescue components like BarehandStuckMutter to detect
+	/// players who are spamming Struggle without success and need a nudge.
+	///
+	/// Fires AFTER restraint modifier and environmental-tool aggregation, so
+	/// "failed" here means "the full pipeline still produced no progress" —
+	/// exactly the condition the player experiences as "I'm pressing Space
+	/// and nothing is happening."
+	/// </summary>
+	public System.Action OnFailedStruggle;
+
+	/// <summary>
 	/// Fires when SetRestraint changes the active restraint. UI subscribes to
 	/// this so it can re-bind to the new restraint's OnHintsChanged event and
 	/// rebuild the hints panel.
@@ -180,6 +193,7 @@ public class PlayerController : MonoBehaviour
 			StartCoroutine(ShakeVisual());
 			if (AudioManager.Instance != null && struggleFailClip != null)
 				AudioManager.Instance.PlaySFX(struggleFailClip, 1f, Random.Range(0.95f, 1.05f));
+			OnFailedStruggle?.Invoke();
 		}
 		else
 		{
