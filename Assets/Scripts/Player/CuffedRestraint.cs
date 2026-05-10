@@ -46,7 +46,7 @@ public class CuffedRestraint : RestraintBase
 	[SerializeField] private LayerMask dragTargetLayer = ~0;
 
 	[Header("Struggle Tuning")]
-	[Tooltip("Cuffs are mechanically rigid — bare-hands struggle is near-useless. Bond config should already enforce this (bareHandsProgress = 0).")]
+	[Tooltip("Cuffs are mechanically rigid — bare-hands struggle is useless. Enforced globally in Bond.GetStruggleProgress (bareHands returns 0).")]
 	[SerializeField] private float struggleModifier = 1f;
 
 	// --- Internal state ---

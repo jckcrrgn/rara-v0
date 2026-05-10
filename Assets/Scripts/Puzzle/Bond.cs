@@ -26,8 +26,6 @@ public class Bond : MonoBehaviour
 	[SerializeField] private int struggleProgress = 0;
 
 	[Header("Tool Compatibility")]
-	[Tooltip("Progress amount granted by bare-hands struggle. Set to 0 for bonds that require tools (zip ties, handcuffs).")]
-	[SerializeField] private int bareHandsProgress = 1;
 	[Tooltip("Progress amount granted when struggling with a blade tool.")]
 	[SerializeField] private int bladeProgress = 10;
 	[Tooltip("Progress amount granted when struggling with a point tool (nail, shard).")]
@@ -47,7 +45,16 @@ public class Bond : MonoBehaviour
 	{
 		return tool switch
 		{
-			ToolType.BareHands => bareHandsProgress,
+			// Day 31: barehand Struggle produces no bond progress in v0. Pick Up
+			// is the gating verb; Struggle is the closing verb. PlayerController
+			// still routes barehand attempts through ApplyStruggle so effort SFX
+			// + rejection shake fire ("you tried" feedback, same pattern as L4
+			// prone-kick suppression). See GDD "Verb roles in the puzzle loop"
+			// and ideas.md "Day 30 Playtest" / "Future-iteration note: Struggle
+			// as a real verb." Do NOT make this configurable without revisiting
+			// the design — the Day 30 playtest cascade was caused by barehand
+			// progress being non-zero.
+			ToolType.BareHands => 0,
 			ToolType.Blade => bladeProgress,
 			ToolType.Point => pointProgress,
 			ToolType.Key => keyProgress,
