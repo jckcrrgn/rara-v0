@@ -315,13 +315,13 @@ public class FloorRestraint : RestraintBase
 		if (isScootMode)
 		{
 			hints.Add(new ControlHint("Scoot", "W (hold)"));
-			hints.Add(new ControlHint("Flip to inch", "C"));
+			hints.Add(new ControlHint("Flip Over", "C"));
 			hints.Add(new ControlHint("Kick", "F"));
 		}
 		else
 		{
 			hints.Add(new ControlHint("Inch", "W (hold)"));
-			hints.Add(new ControlHint("Flip to scoot", "C"));
+			hints.Add(new ControlHint("Flip Over", "C"));
 			// Conditional: kick exists in this restraint but is suppressed in inch mode.
 			// Greyed out + parenthetical hint at WHY it's unavailable, teaching the
 			// inch↔scoot relationship.
