@@ -66,7 +66,8 @@ This is a deliberate design pattern: **restraints modulate verbs**. New restrain
 #### Kick — Strike outward with the legs
 - Force scales with leg state. Free legs deliver full force. Floor-bound legs deliver reduced force (~half) — kicking is still possible but takes more reps. Hogtied legs deliver none — the verb is suppressed.
 - Used against **Kickables**: doors that burst open, shelves that topple to drop a tool, guards that go down (finale).
-- **Position-gated** for some Kickables (e.g. the van door). The player must be near the target *and* oriented correctly (back-to-the-door for kicks). Out-of-position kicks land as a "thud" — diegetic feedback that nothing happened.
+- **Posture-gated** in some scenarios (e.g. L4 the van door). When the detective is prone, kicks don't land effectively — the legs can't deliver force face-down. Flipping to supine unlocks kick effectiveness. Out-of-posture kicks land as a "thud" — diegetic feedback that nothing happened.
+- **Position-gating** (must be near AND oriented toward a target) is reserved for Act 2+ Kickables where appropriate.
 - Kicking anything that isn't a Kickable just thuds. The detective can kick the wall of a van out of frustration. It does nothing useful. It feels right.
 
 ### Feign (State, not a Verb)
@@ -101,9 +102,9 @@ Each restraint type changes how the four verbs behave, giving levels distinct fe
 
 ## Character
 
-**The Detective** — unnamed (or player-named). Low-poly, expressive face, trench coat or rumpled suit. Animate for personality: frustrated squirming, exasperated head shakes, smug grin when they figure something out.
+**Cassie** — the detective. Low-poly, expressive face, trench coat or rumpled suit. Animate for personality: frustrated squirming, exasperated head shakes, smug grin when she figures something out.
 
-**Voice / Muttering:** The detective thinks aloud. This serves three purposes:
+**Voice / Muttering:** Cassie thinks aloud. This serves three purposes:
 1. **Personality** — "Tied to a chair. Again. Wonderful."
 2. **Hints** — "That drawer's half open... if I could reach it." (Contextual, triggers after idle time or failed attempts)
 3. **Tonal escalation** — Early levels: calm, annoyed. Mid levels: nervous, talking faster. Late levels: panicked one-liners. "A laser grid. Because of course there's a laser grid."
@@ -123,7 +124,7 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 - **L1 — The Back Room:** Tied to a wooden chair. Room has a nail sticking out of the wall. Move to the wall, Struggle against the nail to cut rope. (Tutorial: Struggle + Move. The nail is an environmental tool — Struggle gates on being adjacent to it.)
 - **L2 — The Storage Unit:** Chair again. A shelf nearby has a box cutter on the edge. Move to the shelf, bump it to knock the cutter down, Pick Up, Struggle to cut free. (Tutorial: Pick Up — tools must be acquired before Struggle works.)
 - **L3 — The Office:** Chair, hands behind back. Desk nearby has a drawer slightly ajar with scissors inside. Move to desk, bump it to jostle the drawer open, Pick Up scissors, Struggle with scissors to cut through rope. (Tutorial: tools have different speeds — scissors are faster than the L1 nail or L2 cutter.)
-- **L4 — The Van:** Duct-taped on the floor of a van. Bonds are unbreakable bare-handed (no tools in scene). The only escape is to kick the back doors open. Inch/roll to the door, orient yourself with your back to it, and Kick — repeatedly. Floor-bound kicks are reduced force, so this takes ~6 reps. Each kick lands as a thud against the door; the sixth bursts it open. (Tutorial: Kick verb. Tutorial: positioning matters — kicking out of position just thuds against the wall.)
+- **L4 — The Van:** Duct-taped on the floor of a van, starting prone (face-down). Bonds are unbreakable bare-handed (no tools in scene). The only escape is to kick the back doors open. The detective must **flip to supine** (face-up) before kicks will land — prone kicks are suppressed (thud, no progress) since the legs can't deliver force face-down. Movement to the door is flexible: inch while prone, or flip first and scoot while supine. Once at the door in supine posture, Kick repeatedly. Floor-bound kicks are reduced force, so this takes ~6 reps. The sixth bursts the door open. (Tutorial: Kick verb. Tutorial: *posture* gates verb effectiveness — same "you tried" suppression pattern as barehand Struggle, but here the gate is body state rather than tool possession.)
 - **L5 — The Basement:** Cuffed to a radiator pipe. Reach radius is limited. Must use objects within range creatively. First real multi-step puzzle combining Struggle, Move, and Pick Up.
 
 ### Act 2 — Thriller (Levels 6–10)
@@ -138,6 +139,11 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 - **Introduce Feign** in one Act 2 level: player frees themselves, hears a guard approaching, must Feign to avoid detection. Guard passes, scene continues. Plants the seed for the finale — Feign and Kick are introduced separately in Act 1 and Act 2 so the finale's combination of them lands.
 - **At least one Kick puzzle that isn't a door:** e.g. floor-restrained, the only tool is on a high shelf. Kick the shelf to knock it down, then Pick Up. Demonstrates that Kick is a verb with general utility, not a one-trick L4 mechanic.
 - At least one "aha moment" where a verb does something unexpected
+
+**Pacing principle:** The antagonist guard is *unseen* in L6 — a voice and footsteps offstage — and only becomes *physically present* in L7/L8. Letting the guard be a threat-as-sound for a full level before becoming a body in the room is the thriller pacing that makes the Feign debut land harder when it arrives.
+
+- **L6 — The Hotel Room** *(threshold into Act 2)*: A cheap hotel room with noir trappings. Cassie is tied to a wooden chair, hands behind back. The detective must escape before the guard returns — but he's never seen in this level. Offstage audio + mutter triggers convey his proximity (footsteps in hall, voice down the corridor, key in lock). Solve path: bump nightstand to knock a tool to the floor → **tip the chair** (debut mechanic) to bring hands within reach → Pick Up tool → Move while tipped → Struggle with tool to cut chair bonds → exit (likely bathroom, away from approaching guard). **Failure loop:** if the timer expires before escape, cut to black + offstage guard mutter (per-character speaker styling debuts here) → fade in with Cassie re-bound, **elbow bond added** (visible second bond), tool returned to start. Second attempt has degraded mechanics — chair-tipping range shorter, Move slower, Struggle harder — but the solve path remains the same, just worse. After second failure: true game over, level restart. **First level with a real fail state.** Tutorials: soft timer, chair-tipping mechanic, failure has consequence, the enemy adapts to your progress. Infrastructure built: runtime bond-state change on `RestraintBase`, per-character mutter styling, game-over flow.
+- **L7 — TBD** *(Feign debut, visible guard)*: Continuation of L6's hotel/thriller setting. The offstage guard from L6 becomes physical — visible model, line-of-sight or proximity awareness, investigation behavior. Cassie escapes initial restraint, hears the guard approaching, must **Feign** (debut) to avoid detection: re-pose into bound posture, drift threshold determines whether guard is fooled or escalates to re-restraint. Pays off the offstage threat seeded in L6. Builds: guard AI, Feign verb + drift/detection mechanic, visible guard model + animations.
 
 ### Act 3 — Absurd (Levels 11–15)
 **Setting:** Full spy-thriller. A villain's study, an underwater base, a room filling with water, a bomb scenario, a volcano lair.
