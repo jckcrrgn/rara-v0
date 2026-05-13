@@ -1038,6 +1038,30 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1772101586974161715, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1772101586974161715, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1772101586974161715, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1772101586974161715, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1772101586974161715, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1772101586974161715, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3381840566022192056, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
       propertyPath: m_SizeDelta.y
       value: 0
@@ -1867,7 +1891,6 @@ MonoBehaviour:
   bondType: 1
   bondStrength: 25
   struggleProgress: 0
-  bareHandsProgress: 0
   bladeProgress: 12
   pointProgress: 0
   keyProgress: 0
@@ -1975,6 +1998,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30d31eb59dcc7a04a81f60271a18406d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  boundLimbs: 13
   hopForce: 3
   turnVerticalImpulse: 2
   turnLateralImpulse: 0.5

@@ -46,6 +46,19 @@ using UnityEngine;
 /// Rigidbody. If turns feel sluggish/locked, decrease it. Try the inspector
 /// value 5-15 range. (Linear drag on the Rigidbody is independent and
 /// affects how fast the chair stops sliding.)
+/// 
+/// BOND-STATE
+/// ----------
+/// Default ChairRestraint instances should be configured with
+/// BoundLimbs = Wrists | Ankles | Knees — Cassie's wrists are tied
+/// behind the chair back and her legs are tied to the chair legs.
+/// This is canon for L1-L3.
+///
+/// Bond effects:
+///   - Elbows: GetMovementModifier 0.65, GetStruggleModifier 0.5
+///     (L6 failure-loop adds this to model tighter re-binding)
+///   - Ankles: GetKickModifier 0 (legs anchored — no kick)
+///     L8 finale will clear Ankles for the gloat-kick payoff
 /// </summary>
 public class ChairRestraint : RestraintBase
 {
@@ -111,8 +124,9 @@ public class ChairRestraint : RestraintBase
 		// transform.right rotates with the chair so "left" and "right" follow
 		// the chair's facing, which is what you want -- A always kicks toward
 		// her left shoulder regardless of which way she's facing the world.
-		Vector3 lateral = player.transform.right * direction * turnLateralImpulse;
-		Vector3 vertical = Vector3.up * turnVerticalImpulse;
+		float mod = GetMovementModifier();
+		Vector3 lateral = player.transform.right * direction * turnLateralImpulse * mod;
+		Vector3 vertical = Vector3.up * turnVerticalImpulse * mod;
 		player.Rb.AddForce(lateral + vertical, ForceMode.Impulse);
 
 		// Angular: Y-axis torque, signed by input direction. Rigidbody's
@@ -120,7 +134,7 @@ public class ChairRestraint : RestraintBase
 		// the natural-feeling settle. We apply this as ForceMode.Impulse on
 		// AddTorque so the units match AddForce above (instantaneous kick,
 		// not continuous force).
-		Vector3 torque = Vector3.up * direction * turnAngularImpulse;
+		Vector3 torque = Vector3.up * direction * turnAngularImpulse * mod;
 		player.Rb.AddTorque(torque, ForceMode.Impulse);
 
 		if (AudioManager.Instance != null && turnHopClip != null)
@@ -131,24 +145,36 @@ public class ChairRestraint : RestraintBase
 
 	private void ForwardHop(PlayerController player)
 	{
+		float mod = GetMovementModifier();
 		Vector3 hopDirection = player.transform.forward + Vector3.up;
-		player.Rb.AddForce(hopDirection * hopForce, ForceMode.Impulse);
+		player.Rb.AddForce(hopDirection * hopForce * mod, ForceMode.Impulse);
 	}
 
 	public override float GetKickModifier()
 	{
-		return 0f; // Chair anchors the legs -- no kick verb in v0.
+		// Chair restraint canonically binds the legs to the chair legs,
+		// which is why kick is suppressed in L1-L3. If a level instance
+		// has Ankles cleared (e.g. L8 finale with Feign + free legs),
+		// kick becomes available at full force.
+		if ((BoundLimbs & BoundLimbs.Ankles) != 0)
+		{
+			return 0f;
+		}
+		return 1f;
 	}
 
 	public override List<ControlHint> GetControlHints()
 	{
+		bool ankleBound = (BoundLimbs & BoundLimbs.Ankles) != 0;
+
 		return new List<ControlHint>
-		{
-			new ControlHint("Hop", "W"),
-			new ControlHint("Turn", "A / D"),
-			new ControlHint("Struggle", "Space"),
-			new ControlHint("Pick Up", "E"),
-		};
+	{
+		new ControlHint("Hop", "W"),
+		new ControlHint("Turn", "A / D"),
+		new ControlHint("Struggle", "Space"),
+		new ControlHint("Kick", "F", ankleBound, ankleBound ? "(legs tied)" : null),
+		new ControlHint("Pick Up", "E"),
+	};
 	}
 
 	public override void OnExit(PlayerController player)
@@ -157,5 +183,59 @@ public class ChairRestraint : RestraintBase
 		// Rigidbody's angular velocity will decay naturally; if a level
 		// transition needs an instant reset, that's the new restraint's
 		// OnEnter responsibility.
+	}
+
+	public override float GetMovementModifier()
+	{
+		// Elbow binding tightens the shoulders to the torso, reducing
+		// the leverage available to drive turn-hops and forward hops.
+		// Wrists alone (default) = no degradation, since chair mechanics
+		// don't recruit the wrists for hopping anyway.
+		if ((BoundLimbs & BoundLimbs.Elbows) != 0)
+		{
+			return 0.65f;
+		}
+		return 1f;
+	}
+
+	public override float GetStruggleModifier()
+	{
+		// Elbow binding = more rope, tighter posture, less range of
+		// motion to work the wrist bond. Struggle gets meaningfully
+		// harder, not easier, despite there being "more to fray."
+		// This is a player-experience call: tighter reads as worse.
+		if ((BoundLimbs & BoundLimbs.Elbows) != 0)
+		{
+			return 0.5f;
+		}
+		return 1f;
+	}
+
+	[ContextMenu("Debug: Add Elbow Bond")]
+	private void DebugAddElbowBond()
+	{
+		AddBondState(BoundLimbs.Elbows);
+		Debug.Log($"[ChairRestraint] Elbow bond added. BoundLimbs = {BoundLimbs}");
+	}
+
+	[ContextMenu("Debug: Remove Elbow Bond")]
+	private void DebugRemoveElbowBond()
+	{
+		RemoveBondState(BoundLimbs.Elbows);
+		Debug.Log($"[ChairRestraint] Elbow bond removed. BoundLimbs = {BoundLimbs}");
+	}
+
+	[ContextMenu("Debug: Free Legs (clear Ankles + Knees)")]
+	private void DebugFreeLegs()
+	{
+		RemoveBondState(BoundLimbs.Ankles | BoundLimbs.Knees);
+		Debug.Log($"[ChairRestraint] Legs freed. BoundLimbs = {BoundLimbs}");
+	}
+
+	[ContextMenu("Debug: Bind Legs (add Ankles + Knees)")]
+	private void DebugBindLegs()
+	{
+		AddBondState(BoundLimbs.Ankles | BoundLimbs.Knees);
+		Debug.Log($"[ChairRestraint] Legs bound. BoundLimbs = {BoundLimbs}");
 	}
 }
