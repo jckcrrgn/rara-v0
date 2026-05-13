@@ -50,15 +50,31 @@ using UnityEngine;
 /// BOND-STATE
 /// ----------
 /// Default ChairRestraint instances should be configured with
-/// BoundLimbs = Wrists | Ankles | Knees — Cassie's wrists are tied
-/// behind the chair back and her legs are tied to the chair legs.
-/// This is canon for L1-L3.
+/// BoundLimbs = Wrists | Ankles | AnkledToChair — Cassie's wrists are
+/// tied behind the chair back, her ankles are bound to each other, AND
+/// her ankles are anchored to the chair legs. This is canon for L1-L3.
+///
+/// The Ankles / AnkledToChair distinction matters: Ankles alone means
+/// her legs are bound together (mermaid-kick — reduced force, not zero),
+/// while AnkledToChair means her legs are also anchored to the chair
+/// (kick is fully suppressed because the legs are furniture). The L6
+/// design uses the gap between these states: she clears AnkledToChair
+/// first, regains mermaid-kick, kicks the wall to tip backward.
+///
+/// Knees and hogtie are ADDITIVE runtime escalations, not part of the
+/// chair default. The L6 failure-loop pattern is the model: a base
+/// restraint state plus runtime AddBondState calls to escalate within
+/// a level. Knees specifically is the leading candidate for "mermaid
+/// kick disabler" — see BoundLimbs.cs and ideas.md.
 ///
 /// Bond effects:
 ///   - Elbows: GetMovementModifier 0.65, GetStruggleModifier 0.5
 ///     (L6 failure-loop adds this to model tighter re-binding)
-///   - Ankles: GetKickModifier 0 (legs anchored — no kick)
-///     L8 finale will clear Ankles for the gloat-kick payoff
+///   - AnkledToChair: GetKickModifier 0 (legs are furniture)
+///   - Ankles without AnkledToChair: GetKickModifier 0.4 (mermaid-kick;
+///     reduced force, used for chair-tip via wall reaction in L6)
+///   - Ankles + Knees: GetKickModifier 0 (hip leverage gone, even
+///     mermaid-kick fails). Reserved for L6 failure escalation.
 /// </summary>
 public class ChairRestraint : RestraintBase
 {
@@ -152,27 +168,51 @@ public class ChairRestraint : RestraintBase
 
 	public override float GetKickModifier()
 	{
-		// Chair restraint canonically binds the legs to the chair legs,
-		// which is why kick is suppressed in L1-L3. If a level instance
-		// has Ankles cleared (e.g. L8 finale with Feign + free legs),
-		// kick becomes available at full force.
-		if ((BoundLimbs & BoundLimbs.Ankles) != 0)
+		// AnkledToChair: legs are furniture. Kick fully suppressed regardless
+		// of what else is going on with the ankles/knees. Default L1-L3 state.
+		if ((BoundLimbs & BoundLimbs.AnkledToChair) != 0)
 		{
 			return 0f;
 		}
+
+		// Ankles + Knees: legs bound together AND hip leverage killed.
+		// Even the mermaid-kick fails — no way to drive the kinetic chain.
+		// Reserved for L6 failure-loop escalation.
+		if ((BoundLimbs & BoundLimbs.Ankles) != 0 && (BoundLimbs & BoundLimbs.Knees) != 0)
+		{
+			return 0f;
+		}
+
+		// Ankles alone: legs bound together but free of the chair. Mermaid-
+		// kick — reduced force from the single-unit constraint, but real.
+		// This is the post-chair-break, pre-Ankles-cut state, and the
+		// "kick the wall to tip" state if she clears AnkledToChair while
+		// still in chair.
+		if ((BoundLimbs & BoundLimbs.Ankles) != 0)
+		{
+			return 0.4f;
+		}
+
+		// Free legs.
 		return 1f;
 	}
 
 	public override List<ControlHint> GetControlHints()
 	{
-		bool ankleBound = (BoundLimbs & BoundLimbs.Ankles) != 0;
+		// Drive the disabled-kick hint off the actual modifier rather than
+		// a specific flag, so the hint stays correct as the kick logic
+		// evolves (AnkledToChair = 0, Ankles+Knees = 0, mermaid-kick = 0.4,
+		// free = 1.0). Only the modifier=0 case reads as "can't kick" to
+		// the player; mermaid-kick produces real force and shouldn't be
+		// marked disabled.
+		bool kickSuppressed = GetKickModifier() <= 0f;
 
 		return new List<ControlHint>
 	{
 		new ControlHint("Hop", "W"),
 		new ControlHint("Turn", "A / D"),
 		new ControlHint("Struggle", "Space"),
-		new ControlHint("Kick", "F", ankleBound, ankleBound ? "(legs tied)" : null),
+		new ControlHint("Kick", "F", kickSuppressed, kickSuppressed ? "(legs tied)" : null),
 		new ControlHint("Pick Up", "E"),
 	};
 	}
@@ -225,17 +265,24 @@ public class ChairRestraint : RestraintBase
 		Debug.Log($"[ChairRestraint] Elbow bond removed. BoundLimbs = {BoundLimbs}");
 	}
 
-	[ContextMenu("Debug: Free Legs (clear Ankles + Knees)")]
-	private void DebugFreeLegs()
+	[ContextMenu("Debug: Break Chair Anchor (clear AnkledToChair, keep Ankles)")]
+	private void DebugBreakChairAnchor()
 	{
-		RemoveBondState(BoundLimbs.Ankles | BoundLimbs.Knees);
-		Debug.Log($"[ChairRestraint] Legs freed. BoundLimbs = {BoundLimbs}");
+		RemoveBondState(BoundLimbs.AnkledToChair);
+		Debug.Log($"[ChairRestraint] Chair anchor cleared (mermaid-kick state). BoundLimbs = {BoundLimbs}");
 	}
 
-	[ContextMenu("Debug: Bind Legs (add Ankles + Knees)")]
-	private void DebugBindLegs()
+	[ContextMenu("Debug: Free Legs Fully (clear Ankles + AnkledToChair)")]
+	private void DebugFreeLegs()
 	{
-		AddBondState(BoundLimbs.Ankles | BoundLimbs.Knees);
-		Debug.Log($"[ChairRestraint] Legs bound. BoundLimbs = {BoundLimbs}");
+		RemoveBondState(BoundLimbs.Ankles | BoundLimbs.AnkledToChair);
+		Debug.Log($"[ChairRestraint] Legs fully freed. BoundLimbs = {BoundLimbs}");
+	}
+
+	[ContextMenu("Debug: Restore Chair Canon (add Ankles + AnkledToChair)")]
+	private void DebugRestoreChairCanon()
+	{
+		AddBondState(BoundLimbs.Ankles | BoundLimbs.AnkledToChair);
+		Debug.Log($"[ChairRestraint] Chair canon restored. BoundLimbs = {BoundLimbs}");
 	}
 }

@@ -84,6 +84,23 @@ Next steps for mutter:
 - Struggle as universal verb (Day 5): Struggle always works against bonds, just at different rates. Pick Up modifies struggle effectiveness via tools (nails, box cutters, etc.). Late-game difficulty comes from stronger bonds requiring stronger tools, plus timers preventing slow bare-hands escape. This is the core mechanic identity.
 - Settings -> Keybinds
 - Diegetic struggle feedback (Day 7): Bond progress should be communicated by the bonds themselves visually degrading — tight rope/zip-tie → frayed → loose → falls away. No HUD bars, no numbers. Immersion is the aim. Currently approximated with a worldspace bond meter above the player as scaffolding; delete and replace once the character model + bond geometry exist. The meter is temporary by design — do not polish.
+- Knees as time-cost flag (Day 35): Currently in the BoundLimbs enum
+  but not part of any default Act 1 restraint after the canon
+  correction. Leading candidate for a job: time-cost flag that adds
+  duration to leg-untie sequences. Distinct from the other bond flags
+  which modify per-attempt action effectiveness (struggle/movement/kick
+  multipliers); Knees would be the first sequence-duration modifier.
+  Sets up the kind of decision gameplay we'd want in a future
+  stealth-adjacent scenario: Cassie's freed her hands, started working
+  on her legs, hears a guard approaching. Untie just Ankles fast and
+  feign-still? Or risk untying both Knees + Ankles and bolt? Genuine
+  stakes from a bound state. Park as the strongest candidate; revisit
+  when stealth-between-escapes prototype lands (post-v0). Other
+  candidates considered and rejected: mermaid-kick disabler (real
+  mermaids kick fine with knees bound — the framing was reaching);
+  gates a stand-and-waddle chair mode (no clear puzzle that needs it).
+  If no time-cost mechanic ships by end of Act 2 design pass, cut
+  Knees from the enum — vestigial flags are debt.
 - Hands-behind as pickup range modifier (Day 13, future iteration):
   For v0, hands-behind is narrative only (mutter + anim). Post-v0, explore
   hands-behind as a real mechanical variant where pickup range is limited
@@ -98,6 +115,37 @@ Next steps for mutter:
 - Body-Part Bonds (Day 19). Currently restraints are package deals; works for v0 but feels rigid. Refactor candidate for sequel.
 - Double-cuffed escape (Day 19): An evolution of Cuffed-to-Pole. Since the Detective is a known escape artiste, the enemy applies 2 handcuffs: wrists around a pole AND elbows. The Detective frees herself from her wrist cuffs and the pole, but her arms remain bound.
 - Stealth-between-escapes (Day 19): The structural innovation that could carry the game beyond "puzzle anthology." Detective escapes a restrained state → enters a stealth navigation segment (warehouse, mansion, etc.) → if caught, doesn't game over but transitions to a new (likely more severe) restraint state in a new escape room. Inverts standard stealth game logic: capture isn't punishment, it's the genre the player is good at. Retroactively justifies escape mechanics as the spine of the game. Implications: needs guard AI, free movement, a hub location, new camera, capture/recapture flow. Probably v1.0 or sequel scope. v0 stays as discrete escape rooms with narrative interstitials. Do not build this in v0. Do not start "just prototyping" it.
+- FloorRestraint Roll (Day 20): Shift+A/D to roll. Faster, but requires space to maneuver.
+- Stand up from FloorRestraint (Day 35): The verb-counterpart to chair-tip.
+  Two branches by leg state:
+    - Free legs: trivial stand-up. Movement becomes a normal walk (new
+      state, not yet designed — probably just "walks like a normal person"
+      since by this point she's mostly free anyway).
+    - Bound legs (Ankles set): requires wall affordance. Back up to a wall,
+      use it to push upright. Once standing, movement is chair-style hops,
+      but with a balance-keypress on landing — hit the hop key (or another
+      key) within a window or fall over. Falling re-enters FloorRestraint
+      AND makes noise (future stealth hook: attracts guard attention).
+  This is a lot mechanically — three discrete features stacked (stand-up
+  verb, wall-affordance detection + back-up-to-wall movement, balance
+  timing input + fall transition). Needs its own level to teach cleanly,
+  per the Day 30 playtest lesson about not introducing multiple novel
+  verbs simultaneously. Candidate spotlight mechanic for L7 (the level
+  after L6's chair-tip teaches the chair → floor transition; L7 then
+  teaches what to do once floor-bound in a room without a tool at
+  floor-level).
+  Notable design properties:
+    - Composes with chair-tip as transition pair: chair-tip is "upright
+      to low," stand-up is "low to upright." Together they make
+      vertical position a real puzzle dimension.
+    - Balance-keypress introduces reactive timing — a verb shape we
+      don't have yet. Distinct from the commit-and-watch-physics texture
+      of every other current verb. Closest the game gets to dexterity
+      gameplay, which is fitting for the bound-and-precarious state.
+    - Fall-makes-noise is the seed of the Day 19 stealth-between-escapes
+      vision. Even without guards in v0, prototyping the noise→consequence
+      chain here de-risks the eventual stealth segments.
+  Park for L7 design pass. Do not build into L6.
 - FloorRestraint Roll (Day 20): Shift+A/D to roll. Faster, but requires space to maneuver.
 - FloorRestraint orientation refactor (Day 21): Currently inch moves
   the detective headfirst (on her belly, prone). For L4 this means
