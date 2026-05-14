@@ -23,11 +23,14 @@ using UnityEngine;
 /// can fire as soon as the player chooses, gated only on IsGrounded so a
 /// chair mid-air doesn't gain free torque.
 ///
-/// This relies on the player Rigidbody having FreezeRotation X and Z set
-/// (or equivalent constraints). Without that, torque around Y will tumble
-/// the chair through other axes. If you start to see chair-wobble in
-/// playtest, that's the symptom -- check the Rigidbody Constraints in
-/// the inspector.
+/// This relies on the player Rigidbody having FreezeRotation X set (or
+/// equivalent constraint). Y rotation is needed for turn-hop torque, and
+/// Z rotation is needed for the rocking verb (Shift+A/D) to tip the chair.
+/// Only X rotation should be frozen — without that, torque could tumble
+/// the chair forward/backward in ways that don't model a bound person on
+/// a chair. If you start to see chair-wobble in playtest (especially
+/// pitching forward/backward), that's the symptom — check the Rigidbody
+/// Constraints in the inspector and confirm only X is frozen.
 ///
 /// TUNING NOTES
 /// ------------
@@ -46,7 +49,33 @@ using UnityEngine;
 /// Rigidbody. If turns feel sluggish/locked, decrease it. Try the inspector
 /// value 5-15 range. (Linear drag on the Rigidbody is independent and
 /// affects how fast the chair stops sliding.)
-/// 
+///
+/// ROCKING DESIGN (Shift+A/D)
+/// --------------------------
+/// Rocking is a SECOND lateral verb, deliberately distinct from turn-hop:
+///   - PURE lateral impulse, NO vertical. Chair stays on the floor and
+///     pivots on its edge. Differentiates audibly and visually from a hop.
+///   - PURE angular impulse around Z-axis (body-relative forward). Rotates
+///     the chair toward the side pressed — that's what "rocking" is:
+///     leaning the chair toward one set of legs.
+///   - No A/D direction-of-input drift on the heading: rocking is a
+///     side-to-side commitment, not a steering tool.
+///
+/// Amplitude is RHYTHM-BASED, not magnitude-based. Each rock adds to the
+/// Rigidbody's existing angularVelocity rather than overwriting it. If the
+/// player times Shift+A → Shift+D → Shift+A in rhythm with the chair's
+/// natural rock-back cadence, the angular velocity accumulates and the
+/// chair tips further on each successive rock. Off-rhythm input fights
+/// the existing velocity and damps the amplitude. The Rigidbody's
+/// angularDrag is what creates the natural cadence — high drag = fast
+/// settle, requires fast rhythm; low drag = slow settle, more forgiving.
+///
+/// Tip detection: a side-marker child GameObject on the chair has a
+/// ChairTipMarker component. When that marker collides with the ground
+/// (or any tip-surface layer), it calls back into ChairRestraint, which
+/// triggers the chair-break sequence: zero velocity, hand off bonds to
+/// FloorRestraint, SetRestraint to the floor instance.
+///
 /// BOND-STATE
 /// ----------
 /// Default ChairRestraint instances should be configured with
@@ -97,6 +126,40 @@ public class ChairRestraint : RestraintBase
 		"the Rigidbody's angularDrag. Tune by feel.")]
 	[SerializeField] private float turnAngularImpulse = 0.2f;
 
+	[Header("Rocking (Shift + A / D)")]
+	[Tooltip("Lateral impulse component, body-relative. Pure horizontal — NO " +
+		"vertical lift, which is what differentiates rocking from turn-hop. " +
+		"The chair pivots on its edge rather than hopping off the floor.")]
+	[SerializeField] private float rockLateralImpulse = 1.5f;
+
+	[Tooltip("Angular impulse around the body-relative FORWARD axis (Z), " +
+		"scaled by direction. This is what tilts the chair side-to-side — " +
+		"leaning toward the set of legs on the input side. Accumulates with " +
+		"existing angular velocity (rhythm-based amplitude), so timing the " +
+		"rocks in sync with the chair's natural rock-back cadence builds " +
+		"toward a tip. Off-rhythm input damps the amplitude.")]
+	[SerializeField] private float rockAngularImpulse = 0.6f;
+
+	[Tooltip("Plays on each rock tap. Wooden creak under load, chair-legs " +
+		"scuffing the floor. Optional — safe to leave empty.")]
+	[SerializeField] private AudioClip rockClip;
+
+	[Header("Chair Tip Detection")]
+	[Tooltip("Reference to the FloorRestraint component pre-placed on the " +
+		"player GameObject. On chair-break, this component's BoundLimbs is " +
+		"configured with the carried bond state (current BoundLimbs minus " +
+		"AnkledToChair) and SetRestraint hands control over. Inspector " +
+		"tuning on the FloorRestraint instance is preserved. Leave empty " +
+		"for levels where the chair shouldn't break (L1-L3 default). " +
+		"The actual collision detection lives on ChairTipMarker components " +
+		"on child GameObjects of the chair; they call back into this " +
+		"restraint via OnSideMarkerHitGround.")]
+	[SerializeField] private FloorRestraint floorRestraintOnBreak;
+
+	[Tooltip("Plays once on chair-break. Wood snapping, rope-creak-release. " +
+		"Optional but recommended — this is a big narrative beat.")]
+	[SerializeField] private AudioClip chairBreakClip;
+
 	[Header("SFX (optional)")]
 	[Tooltip("Plays on each turn-hop tap. Wooden creak, chair scuff, floor " +
 		"thud. Optional -- safe to leave empty until SFX wiring pass.")]
@@ -108,8 +171,33 @@ public class ChairRestraint : RestraintBase
 	// turn-hop because there's nothing to coordinate with.
 	public override bool IsBusy => false;
 
+	// Set true once the tip event has fired and the handoff has begun. Prevents
+	// double-fire from a second side-marker collision in the same frame (the
+	// chair can land on a marker on either side; we only want to break once).
+	private bool isBroken = false;
+
 	public override void HandleMovementInput(PlayerController player)
 	{
+		if (isBroken) return;
+
+		bool shiftHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+
+		// Rocking takes priority over turn-hop on Shift+A/D. Check it first so
+		// Shift+A doesn't also trigger a turn-hop in the same frame.
+		if (shiftHeld)
+		{
+			if (Input.GetKeyDown(KeyCode.A) && player.IsGrounded)
+			{
+				ApplyRock(player, -1f);
+				return;
+			}
+			if (Input.GetKeyDown(KeyCode.D) && player.IsGrounded)
+			{
+				ApplyRock(player, +1f);
+				return;
+			}
+		}
+
 		// Turn taps: A or D, single press, gated on grounded.
 		if (Input.GetKeyDown(KeyCode.A) && player.IsGrounded)
 		{
@@ -157,6 +245,109 @@ public class ChairRestraint : RestraintBase
 		{
 			AudioManager.Instance.PlaySFX(turnHopClip, 1f, Random.Range(0.95f, 1.05f));
 		}
+	}
+
+	/// <summary>
+	/// Apply a single rocking impulse. Pure lateral + pure Z-axis angular,
+	/// no vertical lift. The chair stays on the floor and pivots toward the
+	/// side pressed. Angular impulse ADDS to existing angularVelocity rather
+	/// than overwriting it — that's the rhythm-based amplitude mechanic. Time
+	/// rocks with the chair's natural rock-back cadence (governed by the
+	/// Rigidbody's angularDrag), and amplitude builds toward a tip.
+	///
+	/// Z-axis as the rock axis: in player-local space, +Z is forward and the
+	/// chair "leans toward the legs on the input side" is a rotation around
+	/// that axis. Using transform.forward keeps the rock direction body-relative,
+	/// so a rotated chair still rocks in a way that feels right (left-shoulder
+	/// dip on Shift+A regardless of which direction the chair is facing).
+	/// </summary>
+	private void ApplyRock(PlayerController player, float direction)
+	{
+		float mod = GetMovementModifier();
+
+		// Pure lateral, no vertical. Body-relative right * direction so Shift+A
+		// pushes toward her left, Shift+D toward her right.
+		Vector3 lateral = player.transform.right * direction * rockLateralImpulse * mod;
+		player.Rb.AddForce(lateral, ForceMode.Impulse);
+
+		// Angular: rotate around body-relative forward (Z), signed by direction.
+		// AddTorque with ForceMode.Impulse ADDS to existing angular velocity, which
+		// is what gives rocking its rhythm-based amplitude. We do NOT clamp or
+		// overwrite — natural angular drag handles decay.
+		Vector3 torque = player.transform.forward * -direction * rockAngularImpulse * mod;
+		player.Rb.AddTorque(torque, ForceMode.Impulse);
+
+		if (AudioManager.Instance != null && rockClip != null)
+		{
+			AudioManager.Instance.PlaySFX(rockClip, 1f, Random.Range(0.92f, 1.05f));
+		}
+	}
+
+	/// <summary>
+	/// Called by a ChairTipMarker child when it collides with the ground. This
+	/// is the trigger that fires the chair-break sequence. Idempotent — second
+	/// call (from the other side-marker landing in the same frame) is a no-op.
+	///
+	/// Sequence:
+	///   1. Mark broken so HandleMovementInput stops accepting input.
+	///   2. Zero linear and angular velocity so the player doesn't inherit
+	///      the chair's tumbling momentum.
+	///   3. Capture current yaw — FloorRestraint.OnEnter reads
+	///      player.transform.eulerAngles.y, so the captured heading transfers
+	///      automatically. We don't need to do anything special.
+	///   4. Compute carried bonds: current BoundLimbs with AnkledToChair
+	///      cleared. Everything else her body has on it (Wrists, Ankles,
+	///      Elbows from a failure escalation, Knees from a future hogtie
+	///      escalation) is preserved. This is the fix from today's design
+	///      review — see BoundLimbs.cs invariant comment.
+	///   5. Push the carried bonds into the pre-placed FloorRestraint
+	///      instance, then SetRestraint to hand control over.
+	/// </summary>
+	public void OnSideMarkerHitGround(PlayerController player)
+	{
+		if (isBroken) return;
+
+		if (floorRestraintOnBreak == null)
+		{
+			Debug.LogWarning("[ChairRestraint] Side marker hit ground but no " +
+				"floorRestraintOnBreak is configured. Tip-and-break disabled " +
+				"on this restraint instance.");
+			return;
+		}
+
+		isBroken = true;
+
+		// Zero velocity so the floor-restraint starts from rest. The chair was
+		// mid-tumble; we don't want that momentum carrying into the inch crawl.
+		player.Rb.linearVelocity = Vector3.zero;
+		player.Rb.angularVelocity = Vector3.zero;
+
+		// Bond handoff: drop AnkledToChair, preserve everything else.
+		BoundLimbs carriedBonds = this.BoundLimbs & ~BoundLimbs.AnkledToChair;
+		floorRestraintOnBreak.SetBoundLimbs(carriedBonds);
+
+		if (AudioManager.Instance != null && chairBreakClip != null)
+		{
+			AudioManager.Instance.PlaySFX(chairBreakClip, 1f, 1f);
+		}
+
+		Debug.Log($"[ChairRestraint] Chair broke. Handing off to FloorRestraint " +
+			$"with BoundLimbs = {carriedBonds}");
+
+		player.SetRestraint(floorRestraintOnBreak);
+	}
+
+	[ContextMenu("Debug: Force Tip (test handoff)")]
+	private void DebugForceTip()
+	{
+		PlayerController player = GetComponent<PlayerController>();
+		if (player == null)
+		{
+			Debug.LogWarning("[ChairRestraint] Debug force-tip needs a " +
+				"PlayerController on the same GameObject.");
+			return;
+		}
+		OnSideMarkerHitGround(player);
 	}
 
 	private void ForwardHop(PlayerController player)
@@ -211,6 +402,7 @@ public class ChairRestraint : RestraintBase
 	{
 		new ControlHint("Hop", "W"),
 		new ControlHint("Turn", "A / D"),
+		new ControlHint("Rock", "Shift + A / D"),
 		new ControlHint("Struggle", "Space"),
 		new ControlHint("Kick", "F", kickSuppressed, kickSuppressed ? "(legs tied)" : null),
 		new ControlHint("Pick Up", "E"),

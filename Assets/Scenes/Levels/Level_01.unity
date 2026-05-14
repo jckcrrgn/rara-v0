@@ -2363,6 +2363,22 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: boundLimbs
+      value: 21
+      objectReference: {fileID: 0}
+    - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: rockAngularImpulse
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: turnLateralImpulse
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: floorRestraintOnBreak
+      value: 
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2393,6 +2409,11 @@ MonoBehaviour:
   turnVerticalImpulse: 2
   turnLateralImpulse: 0.5
   turnAngularImpulse: 0.2
+  rockLateralImpulse: 1.5
+  rockAngularImpulse: 0.6
+  rockClip: {fileID: 0}
+  floorRestraintOnBreak: {fileID: 0}
+  chairBreakClip: {fileID: 0}
   turnHopClip: {fileID: 0}
 --- !u!1001 &9189937284300119568
 PrefabInstance:

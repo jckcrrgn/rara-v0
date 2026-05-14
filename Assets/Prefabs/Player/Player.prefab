@@ -1,5 +1,147 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &394032450473193987
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2383845005536782456}
+  - component: {fileID: 8203195037426141613}
+  - component: {fileID: 2546591779584860874}
+  m_Layer: 0
+  m_Name: SideMarker_Right (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2383845005536782456
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 394032450473193987}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.51, y: 0.4, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4709457099200860874}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!135 &8203195037426141613
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 394032450473193987}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.1
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &2546591779584860874
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 394032450473193987}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9dd6d8199844d6e4791209c7fbcf1625, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  chairRestraint: {fileID: 7026241982387864388}
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  player: {fileID: 4118337886289226959}
+--- !u!1 &1236772152603165152
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2066318422714893918}
+  - component: {fileID: 2906611313985519855}
+  - component: {fileID: 5239269700669987701}
+  m_Layer: 0
+  m_Name: SideMarker_Left
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2066318422714893918
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1236772152603165152}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.52, y: 0.4, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4709457099200860874}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!135 &2906611313985519855
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1236772152603165152}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.1
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &5239269700669987701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1236772152603165152}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9dd6d8199844d6e4791209c7fbcf1625, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  chairRestraint: {fileID: 7026241982387864388}
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  player: {fileID: 4118337886289226959}
 --- !u!1 &2795448765098500059
 GameObject:
   m_ObjectHideFlags: 0
@@ -15,6 +157,8 @@ GameObject:
   - component: {fileID: 4118337886289226959}
   - component: {fileID: 7730701606267843005}
   - component: {fileID: 7040638199935036622}
+  - component: {fileID: 7026241982387864388}
+  - component: {fileID: 6255347650362523610}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -34,7 +178,9 @@ Transform:
   m_LocalPosition: {x: 0, y: 0.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 2066318422714893918}
+  - {fileID: 2383845005536782456}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &6311644867716891775
@@ -138,7 +284,7 @@ MonoBehaviour:
   kickEffortClip: {fileID: 8300000, guid: a008ad123a3466b48b9224ff2ab6fcf7, type: 3}
   kickMissThudClip: {fileID: 8300000, guid: ea76216119c12154686919a900143d4c, type: 3}
   kickDuration: 0.5
-  currentRestraint: {fileID: 0}
+  currentRestraint: {fileID: 7026241982387864388}
 --- !u!54 &7730701606267843005
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -164,7 +310,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 80
+  m_Constraints: 16
   m_CollisionDetection: 0
 --- !u!114 &7040638199935036622
 MonoBehaviour:
@@ -184,3 +330,49 @@ MonoBehaviour:
   bladeProgress: 10
   pointProgress: 5
   keyProgress: 0
+--- !u!114 &7026241982387864388
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2795448765098500059}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30d31eb59dcc7a04a81f60271a18406d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  boundLimbs: 1
+  hopForce: 3
+  turnVerticalImpulse: 2
+  turnLateralImpulse: 0.5
+  turnAngularImpulse: 0.2
+  rockLateralImpulse: 1.5
+  rockAngularImpulse: 0.6
+  rockClip: {fileID: 0}
+  floorRestraintOnBreak: {fileID: 0}
+  chairBreakClip: {fileID: 0}
+  turnHopClip: {fileID: 0}
+--- !u!114 &6255347650362523610
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2795448765098500059}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f9faedb81873fe41b905f8954ce1d82, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  boundLimbs: 1
+  moveDistance: 0.4
+  lungeDuration: 0.25
+  settleDuration: 0.35
+  interCycleDelay: 0.08
+  shoulderLeadAngle: 12
+  rotationSpeed: 80
+  modeToggleKey: 99
+  flipDuration: 0.25
+  struggleBonus: 1.2
+  kickModifier: 0.5

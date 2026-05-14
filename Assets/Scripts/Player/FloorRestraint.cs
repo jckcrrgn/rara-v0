@@ -82,7 +82,7 @@ public class FloorRestraint : RestraintBase
 		"Mode persists across the FloorRestraint session — re-entry preserves it.")]
 	[SerializeField] private KeyCode modeToggleKey = KeyCode.C;
 	[Tooltip("Duration of the visual flip animation. W input is locked during the flip.")]
-	[SerializeField] private float flipDuration = 0.25f;
+	[SerializeField] private float flipDuration = 2f;
 
 	[Header("Struggle Tuning")]
 	[Tooltip("Floor-bound struggle uses the whole body — slightly more effective. 1.2 = 20% bonus.")]
@@ -339,5 +339,26 @@ public class FloorRestraint : RestraintBase
 	{
 		// No cleanup needed — steeringYaw/twistOffset reset on next OnEnter.
 		// isScootMode persists by design (see OnEnter note).
+	}
+
+	/// <summary>
+	/// Replace the bond state wholesale. Used by ChairRestraint's chair-break
+	/// handoff to push the carried bond state (everything except AnkledToChair)
+	/// into this FloorRestraint instance before SetRestraint is called.
+	///
+	/// Implemented by clearing all known limb flags then adding the target set,
+	/// rather than direct assignment, so any side-effects in RestraintBase's
+	/// Add/Remove machinery (event firing, validation, etc.) still run. The
+	/// double-pass is slightly redundant but correctness-preserving.
+	///
+	/// Call this BEFORE SetRestraint, so OnEnter sees the correct bond state
+	/// from the start.
+	/// </summary>
+	public void SetBoundLimbs(BoundLimbs target)
+	{
+		// Clear everything currently set.
+		RemoveBondState(BoundLimbs);
+		// Add the target state.
+		AddBondState(target);
 	}
 }

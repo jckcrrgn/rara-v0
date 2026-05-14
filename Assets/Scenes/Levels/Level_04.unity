@@ -2133,6 +2133,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2f9faedb81873fe41b905f8954ce1d82, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  boundLimbs: 13
   moveDistance: 0.4
   lungeDuration: 0.25
   settleDuration: 0.35
@@ -3016,6 +3017,10 @@ PrefabInstance:
       propertyPath: shakeMagnitude
       value: 8
       objectReference: {fileID: 0}
+    - target: {fileID: 4118337886289226959, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: currentRestraint
+      value: 
+      objectReference: {fileID: 8205259987904620298}
     - target: {fileID: 4709457099200860874, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -3056,6 +3061,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6255347650362523610, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: flipDuration
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 7040638199935036622, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       propertyPath: bondType
       value: 2
@@ -3081,6 +3090,17 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 1855412959}
   m_SourcePrefab: {fileID: 100100000, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+--- !u!114 &8205259987904620298 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6255347650362523610, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+  m_PrefabInstance: {fileID: 8205259987904620297}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1855412953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f9faedb81873fe41b905f8954ce1d82, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &9189937284300119568
 PrefabInstance:
   m_ObjectHideFlags: 0
