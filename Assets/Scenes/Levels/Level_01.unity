@@ -2388,7 +2388,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30d31eb59dcc7a04a81f60271a18406d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  boundLimbs: 13
+  boundLimbs: 21
   hopForce: 3
   turnVerticalImpulse: 2
   turnLateralImpulse: 0.5

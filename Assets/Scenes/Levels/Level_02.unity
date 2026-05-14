@@ -1945,8 +1945,8 @@ MonoBehaviour:
   struggleSuccessClip: {fileID: 8300000, guid: 19d6ea88539ef004a91e7ae0eb11a6ae, type: 3}
   struggleFailClip: {fileID: 8300000, guid: a0aefa6ef75a6de4d944e5850b8d260f, type: 3}
   bondBreakClip: {fileID: 0}
-  kickEffortClip: {fileID: 0}
-  kickMissThudClip: {fileID: 0}
+  kickEffortClip: {fileID: 8300000, guid: a008ad123a3466b48b9224ff2ab6fcf7, type: 3}
+  kickMissThudClip: {fileID: 8300000, guid: ea76216119c12154686919a900143d4c, type: 3}
   kickDuration: 0.5
   currentRestraint: {fileID: 1716394342}
 --- !u!65 &1716394338
@@ -1998,7 +1998,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30d31eb59dcc7a04a81f60271a18406d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  boundLimbs: 13
+  boundLimbs: 21
   hopForce: 3
   turnVerticalImpulse: 2
   turnLateralImpulse: 0.5
