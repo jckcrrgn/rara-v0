@@ -31,14 +31,16 @@ using UnityEngine;
 ///
 /// COMPOSING WITH OTHER MUTTERS
 /// ----------------------------
-/// MutterSystem drops new mutters while one is active. If a level has a chain
-/// of mutters that should all fire (e.g. L1's entry-then-cutter-hint), space
-/// the triggers so the player can't enter the second while the first is still
-/// up. In practice that means putting the second trigger somewhere the player
-/// has to move to dismiss-and-traverse to reach.
-///
-/// For mid-mutter-during-mutter cases (Day 28+ feature), MutterSystem will need
-/// a queue. Out of scope for v0.
+/// MutterSystem queues new mutters while one is active (FIFO, cap 3,
+/// drop-newest on overflow; Day 37). Sequential triggers fire cleanly:
+/// the second mutter waits its turn, even if the player walks into both
+/// triggers without dismissing the first. Play() still returns false ONLY
+/// if the queue cap is hit — which is the case the fire-once gate cares
+/// about. Normal level pacing won't fill the queue (cap 3 is generous);
+/// the queue is there to support paired sequences like L6 Beat 6's
+/// guard-then-Cassie. For author-controlled paired mutters, call
+/// MutterSystem.Play() twice in the same frame and they'll play in
+/// order.
 /// </summary>
 [RequireComponent(typeof(SphereCollider))]
 public class MutterTrigger : MonoBehaviour

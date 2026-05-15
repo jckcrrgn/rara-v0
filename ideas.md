@@ -45,6 +45,12 @@ Parked (do not build in v0)
   kick-and-catch as a verb. Kick-and-catch is genuinely novel but is
   a feature not a fix — needs new physics state, timing window, catch
   input, fail feedback. Park for post-v0.
+  **Day 37 update:** Chair-tipping branch is now L6-canonical, not
+  L1-future (see Mechanics → Chair-tip gate Day 37, and GDD L6
+  paragraph). The original L1-cutter narrative-weirdness motivation
+  is also moot: the cutter was removed from L1 in Day 37 audit, so
+  there's no longer a chair-tied-detective-picking-up-floor-cutter
+  situation on L1 to solve. Kick-and-catch remains parked for post-v0.
 
 ## Day 25 Bugs Caught
 - Struggle-shake invisible by default: shakeMagnitude was 0.08 (degrees,
@@ -67,18 +73,23 @@ entryMutter SerializeField on Start. Player presses Space to dismiss;
 all input gated while active.
 
 Next steps for mutter:
-- MutterTrigger component: collider-based fire-on-enter wrapping
-  MutterSystem.Play(). Generalizes to mid-level beats — "...wait,
-  what is this?" approaches, transitional mutters between rooms,
-  enemy-spotting beats in future stealth segments.
-- Mutter queue: currently new Play() during active mutter is dropped.
-  Reconsider once a level wants two mutters back-to-back.
-- Word-boundary refinement: em-dashes and ellipses currently get their
-  own grunts (each non-space starts a "word"). May want to tune. See
-  it run more before deciding.
-- Per-character speakers: when other characters get dialogue (kidnapper,
-  victims), they'll need their own grunt pools and possibly text
-  styling. Probably v1.
+- ✅ MutterTrigger component (Day 30s, shipped): Collider-based fire-on-enter
+  wrapping MutterSystem.Play(). Configurable fire-once vs repeat. Used by L1
+  + L4 teaching chains. Will also drive most of the L6 chain (see GDD L6
+  mutter chain addendum).
+- ⏳ Mutter queue (Day 37, scheduled for L6 infrastructure): Currently new
+  Play() during active mutter is dropped. L6 Beat 6 fires guard-then-Cassie
+  back-to-back; that's the level that needs the queue. Build pairs with
+  per-character styling — neither ships meaningfully alone. Design: FIFO
+  buffer, drain on completion of current mutter, decide on max queue depth
+  and drop-vs-stall on overflow.
+- ⏳ Per-character speakers (Day 37, scheduled for L6 infrastructure): L6
+  debuts the offstage guard, who needs distinct grunt pool and text styling
+  from Cassie. Threaded as Speaker enum/SO through MutterSystem.Play().
+- Word-boundary refinement: em-dashes and ellipses currently get their own
+  grunts (each non-space starts a "word"). May want to tune. See it run
+  more before deciding. Low priority — not blocking any shipped or
+  scheduled work.
 
 ## Mechanics
 - Struggle as universal verb (Day 5): Struggle always works against bonds, just at different rates. Pick Up modifies struggle effectiveness via tools (nails, box cutters, etc.). Late-game difficulty comes from stronger bonds requiring stronger tools, plus timers preventing slow bare-hands escape. This is the core mechanic identity.
@@ -292,68 +303,60 @@ to read as a door. (Building on yesterday's wall-distinction work.)
 - Retro: "Oh I'm stupid. I need to read." (verb card discovery)
 - Retro: laughed at "How do I keep getting myself in these situations?"
 
-### Tier 1 — Must ship before Playtest #2
+### Tier 1 — Must ship before Playtest #2 ✅ (all shipped by Day 37)
 
-Without these, Playtest #2 is poisoned data — every player will hit
-the same cascade.
+All three composite blockers landed. Playtest #2 is not poisoned data.
+Historical record preserved below for retrospective use.
 
-- Barehand struggle does nothing. ChairRestraint, FloorRestraint,
+- ✅ Barehand struggle does nothing. ChairRestraint, FloorRestraint,
   CuffedRestraint: Struggle without a held tool produces zero bond
   progress. Effort SFX/animation still plays for "you tried" feedback
   (same pattern as L4 prone-kick suppression). Keystone fix; the rest
   of the cascade resolves from here. Note: this is a real shift from
   the design-notes framing of "Struggle is the universal verb" — Pick
   Up effectively becomes the gating verb, with Struggle as the closing
-  verb. Update GDD to reflect. Revisiting universal Struggle as a
+  verb. GDD updated to reflect. Revisiting universal Struggle as a
   meaningful verb in its own right is a v1 question (see thumbstick
   prototype note below).
-- MutterTrigger component. Collider-based, fires
+- ✅ MutterTrigger component. Collider-based, fires
   MutterSystem.Play() on enter, configurable fire-once vs repeat.
-  Already designed in the Mutter System notes above; pulled forward
-  by today's findings. Infrastructure for the L1 + L4 teaching chains.
-- L1 teaching mutter chain. Three beats:
-    - Re-tune entry mutter to gesture toward "I need something to cut
-      these"
-    - MutterTrigger near cutter: "...if I could just pick that up."
-    - Optional after N failed barehand struggles: "...too tight. Bare
-      hands won't do it."
-- L4 teaching mutter additions. Existing entry mutter stays (it
-  landed). Add:
-    - MutterTrigger near door for orientation cue: "...need to turn
-      around. Get my feet to it."
-    - Possibly a trigger on first failed face-on kick: "...wrong
-      way."
-
-Treat MutterTrigger + L1 chain as one composite feature — neither is
-useful without the other. Effective max-3 for Playtest #2:
-1. Barehand struggle does nothing
-2. MutterTrigger + L1 teaching chain
-3. L4 teaching mutter additions
+  Infrastructure for the L1 + L4 teaching chains.
+- ✅ L1 teaching mutter chain. Three beats:
+    - Re-tuned entry mutter: "Great. Tied to a chair... These goons
+      really know how to tie a knot. I can't get out without something
+      sharp..."
+    - After 5 failed barehand struggles: "I'm tied too tight. Think,
+      Cass..."
+    - MutterTrigger near nail: "That nail..."
+- ✅ L4 teaching mutter additions. Existing entry mutter retained; added
+  proximity + failed-kick beats.
 
 ### Tier 2 — Polish, log for after Playtest #2
 
-These are real findings but not blocking. Some may auto-resolve once
-Tier 1 lands; resist pre-emptive fixes — the point of waiting is to
-see what's *left* after Tier 1.
+These are real findings but not blocking. L3 auto-resolved exactly as
+predicted — useful evidence for the "don't pre-tune" instinct. The
+remaining three are still outstanding as of Day 37.
 
 - L4 door visual: add line/seam so it reads as a door not a wall.
-  Iterating on yesterday's wall-distinction work.
+  Iterating on yesterday's wall-distinction work. **Still outstanding
+  (Day 37).**
 - Pause menu with controls reference. Molli's debrief suggestion.
   The right long-term home for "what can I do" reference, but only
-  worth building once mutter-as-teaching is validated.
+  worth building once mutter-as-teaching is validated. **Still
+  outstanding (Day 37);** mutter-as-teaching is validated post-Tier-1
+  ship, so this is now unblocked but unprioritized.
 - ControlHintsPanel ultrawide positioning. Anchor verb cards to
   respect ultrawide aspect ratios. Matters less if panel becomes
-  non-load-bearing post-mutter-chain, but still real.
-- L3 bond strength tuning. Molli struggled out without the scissors.
-  Tier 1 #1 (no barehand progress) likely fixes this automatically.
-  Verify after Tier 1; don't pre-tune.
-- L1 cutter placement. The decorative cutter on L1's floor is what
-  enabled Retro's "stand on it and struggle" misread. Tier 1 #1 will
-  make standing-and-spamming-Space produce nothing, which teaches him
-  to try E — but the cutter being there at all is questionable.
-  L1's intended solve is the nail; the cutter is a redundant
-  alternative that *taught a wrong lesson*. Consider removing from L1
-  entirely and letting the nail be the single solve.
+  non-load-bearing post-mutter-chain, but still real. **Still
+  outstanding (Day 37).**
+- ✅ L3 bond strength tuning (Day 37, auto-resolved). Molli's no-tool
+  L3 exit is no longer possible — Tier 1 #1 (barehand struggle does
+  nothing) removed the failure mode entirely without any L3-specific
+  tuning. Evidence for the "wait and see what's left after Tier 1"
+  discipline.
+- L1 cutter placement. **✅ Shipped (Day 37, removed from L1).** The
+  decorative cutter that enabled Retro's "stand on it and struggle"
+  misread was removed; the nail is now L1's single solve.
 
 ### Tier 3 — Notes, not the build
 

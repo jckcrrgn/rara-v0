@@ -305,18 +305,28 @@ MonoBehaviour:
   dismissPrompt: {fileID: 7717223653227178952}
   dismissPromptCanvasGroup: {fileID: 26090276580865892}
   charsPerSecond: 18
-  gruntClips:
-  - {fileID: 8300000, guid: a008ad123a3466b48b9224ff2ab6fcf7, type: 3}
-  - {fileID: 8300000, guid: ca19c88fe5e2f7d4384d40c407a1f849, type: 3}
-  - {fileID: 8300000, guid: ea76216119c12154686919a900143d4c, type: 3}
-  - {fileID: 8300000, guid: 14829eab491caaf42883802551ed2bb6, type: 3}
-  - {fileID: 8300000, guid: 543e56d7e034ea346bf0c74468f51e95, type: 3}
-  - {fileID: 8300000, guid: bae83c06dbe2e664f90a48142d9e4307, type: 3}
-  - {fileID: 8300000, guid: 704eee0fb5a949c47b278ec6032cef6c, type: 3}
-  - {fileID: 8300000, guid: f602ac87038e6da40b383d4ddcc2a554, type: 3}
-  - {fileID: 8300000, guid: 440809d282279634396f57edf3b84786, type: 3}
-  gruntVolume: 0.593
-  gruntPitchRange: {x: 0.92, y: 1.08}
+  speakerConfigs:
+  - speakerName: Cassie
+    gruntClips:
+    - {fileID: 8300000, guid: a008ad123a3466b48b9224ff2ab6fcf7, type: 3}
+    - {fileID: 8300000, guid: ea76216119c12154686919a900143d4c, type: 3}
+    - {fileID: 8300000, guid: ca19c88fe5e2f7d4384d40c407a1f849, type: 3}
+    - {fileID: 8300000, guid: 14829eab491caaf42883802551ed2bb6, type: 3}
+    - {fileID: 8300000, guid: 543e56d7e034ea346bf0c74468f51e95, type: 3}
+    - {fileID: 8300000, guid: bae83c06dbe2e664f90a48142d9e4307, type: 3}
+    - {fileID: 8300000, guid: 704eee0fb5a949c47b278ec6032cef6c, type: 3}
+    - {fileID: 8300000, guid: f602ac87038e6da40b383d4ddcc2a554, type: 3}
+    - {fileID: 8300000, guid: 440809d282279634396f57edf3b84786, type: 3}
+    gruntVolume: 0.59
+    gruntPitchRange: {x: 0.9, y: 1.1}
+    overrideTextColor: 0
+    textColor: {r: 0, g: 0, b: 0, a: 0}
+  - speakerName: Guard
+    gruntClips: []
+    gruntVolume: 0.59
+    gruntPitchRange: {x: 0.7, y: 0.85}
+    overrideTextColor: 1
+    textColor: {r: 0.7, g: 0.4, b: 0.35, a: 0}
   dismissKey: 32
   minVisibleTime: 0.3
   promptMode: 1

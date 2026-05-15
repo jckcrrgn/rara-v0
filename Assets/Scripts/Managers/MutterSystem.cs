@@ -15,7 +15,18 @@ using TMPro;
 ///
 /// Singleton-ish: lives in the scene's Canvas, accessed via Instance. Only
 /// one mutter plays at a time; new Play() calls during an active mutter are
-/// dropped (logged). Could change to queue or interrupt later if v0 needs it.
+/// queued (FIFO, cap 3, drop-newest on overflow). Queue drains on Dismiss().
+/// Added Day 37 to support paired sequences like L6's guard-then-Cassie
+/// failure-loop entry; see GDD L6 mutter chain addendum.
+///
+/// PER-SPEAKER STYLING (Day 37)
+/// ----------------------------
+/// Each mutter is attributed to a Speaker (enum: Cassie, Guard). Each speaker
+/// has its own SpeakerConfig with grunt pool, volume, pitch range, and
+/// optional text color override. Play() defaults speaker to Cassie when not
+/// specified, preserving the existing call signature for callers that don't
+/// need to specify (MutterTrigger, BarehandStuckMutter, LevelManager entry
+/// mutters).
 ///
 /// Input integration: while a mutter is active, IsActive returns true.
 /// PlayerController and FloorRestraint check this and freeze player input
@@ -70,6 +81,73 @@ using TMPro;
 public class MutterSystem : MonoBehaviour
 {
 	/// <summary>
+	/// Speakers in the world. Each one needs a corresponding entry in
+	/// speakerConfigs at the matching array index. Cassie is index 0 and is
+	/// the canonical default for Play() calls that don't specify a speaker.
+	/// Add new entries at the end; do NOT reorder, since that would silently
+	/// remap existing speakerConfigs entries to wrong speakers.
+	///
+	/// Roster:
+	///   Cassie - the player character. Default speaker.
+	///   Guard  - L6 offstage antagonist. Debuts in L6's failure-loop sequence
+	///            (paired with mutter queue, also Day 37).
+	/// </summary>
+	public enum Speaker
+	{
+		Cassie = 0,
+		Guard = 1,
+	}
+
+	/// <summary>
+	/// Per-speaker audio + visual settings. One entry per Speaker enum value,
+	/// stored in speakerConfigs array at the index matching the Speaker int.
+	///
+	/// Text color is OPTIONAL — when overrideTextColor is false, the speaker
+	/// inherits whatever color is already on mutterText (i.e. the
+	/// inspector-default Cassie styling). Guard sets overrideTextColor true
+	/// with a distinct color so the player feels the speaker shift even
+	/// without reading the line.
+	/// </summary>
+	[System.Serializable]
+	public class SpeakerConfig
+	{
+		[Tooltip("Display name for this speaker. Editor-only convenience for " +
+			"inspector legibility; not used at runtime. Match the Speaker enum " +
+			"value at the same array index.")]
+		public string speakerName = "Cassie";
+
+		[Tooltip("Pool of grunt clips for this speaker. One is picked at random " +
+			"per word during reveal. Multiple clips give the gibberish a more " +
+			"lifelike texture; with one clip it sounds machine-like. Cassie " +
+			"uses her existing pool; Guard needs his own (lower pitch, more " +
+			"masculine).")]
+		public AudioClip[] gruntClips;
+
+		[Tooltip("Volume for grunt clips. Quiet — they're punctuation, not " +
+			"speech. Reasonable starting point: 0.4 (Cassie's existing value).")]
+		[Range(0f, 1f)]
+		public float gruntVolume = 0.4f;
+
+		[Tooltip("Random pitch range applied per grunt for variety. Cassie's " +
+			"default is (0.92, 1.08) — a tight band. Guard can use a lower " +
+			"band like (0.7, 0.85) to read masculine without needing distinct " +
+			"clips on day one.")]
+		public Vector2 gruntPitchRange = new Vector2(0.92f, 1.08f);
+
+		[Tooltip("If true, applies textColor to the mutter text when this " +
+			"speaker is talking. If false, the speaker inherits whatever color " +
+			"the mutterText was inspector-configured with (typically Cassie's " +
+			"default white/cream). Leave false for Cassie's entry to preserve " +
+			"existing styling.")]
+		public bool overrideTextColor = false;
+
+		[Tooltip("Text color to apply when overrideTextColor is true. Used to " +
+			"visually distinguish speakers. Guard candidate: muted yellow or " +
+			"desaturated red — reads as 'not Cassie' without screaming menace.")]
+		public Color textColor = Color.white;
+	}
+
+	/// <summary>
 	/// How the dismiss prompt should behave across a session. See class docstring
 	/// for the full rationale; quick guide:
 	///   TieredDelay     - short delay first time, long delay thereafter (default)
@@ -119,17 +197,12 @@ public class MutterSystem : MonoBehaviour
 	[SerializeField] private float charsPerSecond = 18f;
 
 	[Header("Audio")]
-	[Tooltip("Pool of grunt clips. One is picked at random per word during reveal. " +
-		"Multiple clips give the gibberish a more lifelike texture; with one clip " +
-		"it sounds machine-like.")]
-	[SerializeField] private AudioClip[] gruntClips;
-
-	[Tooltip("Volume for grunt clips. Quiet -- they're punctuation, not speech.")]
-	[Range(0f, 1f)]
-	[SerializeField] private float gruntVolume = 0.4f;
-
-	[Tooltip("Random pitch range applied per grunt for variety.")]
-	[SerializeField] private Vector2 gruntPitchRange = new Vector2(0.92f, 1.08f);
+	[Tooltip("Per-speaker configuration. Index of this array maps 1:1 to the " +
+		"Speaker enum order — element 0 is Cassie, element 1 is Guard, etc. " +
+		"Each entry carries that speaker's grunt pool, volume, pitch range, " +
+		"and optional text color override. Cassie's entry should always exist " +
+		"as the canonical default (Play() with no speaker arg defaults to her).")]
+	[SerializeField] private SpeakerConfig[] speakerConfigs;
 
 	[Header("Input")]
 	[Tooltip("Key the player presses to skip-to-end (during reveal) or dismiss " +
@@ -187,6 +260,13 @@ public class MutterSystem : MonoBehaviour
 	// dismiss frame, since Space is shared between dismiss and Struggle.
 	private bool wasJustDismissed;
 
+	// Set true when Dismiss() runs and there's another mutter queued behind
+	// it. Forces the player to release dismissKey before the next mutter
+	// accepts skip-to-end or dismiss input. Cleared in Update() the first
+	// frame we see the key isn't held. Prevents machine-gunning through
+	// paired mutters (e.g. L6 Beat 6 guard-then-Cassie sequence).
+	private bool requireDismissKeyRelease;
+
 	// Set true when the player presses dismissKey during reveal. The reveal
 	// coroutine checks this each iteration and short-circuits if set.
 	private bool skipRequested;
@@ -197,9 +277,12 @@ public class MutterSystem : MonoBehaviour
 
 	/// <summary>
 	/// True if a mutter is currently showing (either revealing characters or waiting
-	/// for the player to dismiss it). Other systems gate input on this.
+	/// for the player to dismiss it) OR if a mutter is queued and pending. Other
+	/// systems gate input on this. Including queued mutters in this check ensures
+	/// PlayerController never gets a one-frame input window between two queued
+	/// mutters in a sequence.
 	/// </summary>
-	public bool IsActive => isRevealing || isWaitingForDismiss;
+	public bool IsActive => isRevealing || isWaitingForDismiss || queuedMutters.Count > 0;
 
 	/// <summary>
 	/// True for one frame after the player dismisses a mutter. Used by
@@ -228,6 +311,21 @@ public class MutterSystem : MonoBehaviour
 
 	void Update()
 	{
+		// Release-before-input gate: when a mutter is dismissed and the queue
+		// has another mutter waiting, that next mutter must NOT accept input
+		// until the dismiss key has been released at least once. Without this,
+		// a rapid double-tap (or held key) on the dismiss key could
+		// machine-gun through paired mutters like L6's Beat 6 guard-then-Cassie
+		// sequence. Cleared the first frame we see the key isn't held.
+		if (requireDismissKeyRelease)
+		{
+			if (!Input.GetKey(dismissKey))
+			{
+				requireDismissKeyRelease = false;
+			}
+			return;
+		}
+
 		if (!Input.GetKeyDown(dismissKey)) return;
 
 		// Skip-to-end: pressed during reveal. The reveal coroutine sees the flag
@@ -250,28 +348,68 @@ public class MutterSystem : MonoBehaviour
 	}
 
 	/// <summary>
-	/// Show a mutter. If one is already active, the new one is dropped (logged
-	/// for now; could change to queue later). Returns true if the mutter started.
+	/// Show a mutter. If one is already active, the new mutter is queued
+	/// (up to QueueCapacity) and will fire when the active mutter is dismissed.
+	/// Returns true if the mutter started immediately OR was successfully
+	/// queued (caller treats both as "the player will see this, consume your
+	/// fire-once charge"). Returns false ONLY if the queue is full and the
+	/// new mutter was dropped — in that case the caller should NOT consume
+	/// its fire-once charge.
+	///
+	/// Speaker defaults to Cassie when not specified, preserving the existing
+	/// Play(content) call signature for all callers that don't need to
+	/// specify a speaker.
 	/// </summary>
-	public bool Play(string content)
+	public bool Play(string content, Speaker speaker = Speaker.Cassie)
 	{
-		if (IsActive)
-		{
-			Debug.Log($"MutterSystem: already active, dropping new mutter \"{content}\".");
-			return false;
-		}
-
 		if (mutterRoot == null || mutterText == null)
 		{
 			Debug.LogError("MutterSystem: UI references not assigned.");
 			return false;
 		}
 
-		StartCoroutine(RevealCycle(content));
+		// Queue if active; fire immediately if idle.
+		if (IsActive)
+		{
+			if (queuedMutters.Count >= QueueCapacity)
+			{
+				Debug.Log($"MutterSystem: queue full ({QueueCapacity}), dropping new mutter \"{content}\".");
+				return false;
+			}
+			queuedMutters.Enqueue(new QueuedMutter(content, speaker));
+			return true;
+		}
+
+		StartCoroutine(RevealCycle(content, speaker));
 		return true;
 	}
 
-	private IEnumerator RevealCycle(string content)
+	/// <summary>
+	/// Cap on the mutter queue. 3 is intentional: the legitimate use case is
+	/// paired mutters (queue depth 2, e.g. L6 Beat 6 guard-then-Cassie), and
+	/// a +1 buffer absorbs accidental overlap without runaway. Drop-newest on
+	/// overflow preserves the integrity of in-progress sequences.
+	/// </summary>
+	private const int QueueCapacity = 3;
+
+	/// <summary>
+	/// FIFO of mutters queued behind the active one. Drains via Dismiss().
+	/// </summary>
+	private readonly System.Collections.Generic.Queue<QueuedMutter> queuedMutters
+		= new System.Collections.Generic.Queue<QueuedMutter>();
+
+	private readonly struct QueuedMutter
+	{
+		public readonly string Content;
+		public readonly Speaker Speaker;
+		public QueuedMutter(string content, Speaker speaker)
+		{
+			Content = content;
+			Speaker = speaker;
+		}
+	}
+
+	private IEnumerator RevealCycle(string content, Speaker speaker)
 	{
 		isRevealing = true;
 		skipRequested = false;
@@ -279,6 +417,17 @@ public class MutterSystem : MonoBehaviour
 		mutterRoot.SetActive(true);
 		if (dismissPrompt != null) dismissPrompt.SetActive(false);
 		mutterText.text = "";
+
+		// Apply per-speaker text color if configured. Cassie's entry leaves
+		// overrideTextColor=false, so her mutters inherit whatever color
+		// mutterText was inspector-configured with. Guard sets the override
+		// so his lines read as a distinct speaker even before the player
+		// parses the words.
+		SpeakerConfig config = GetSpeakerConfig(speaker);
+		if (config != null && config.overrideTextColor)
+		{
+			mutterText.color = config.textColor;
+		}
 
 		// Reveal character-by-character. Grunt SFX fires once per word -- when we
 		// hit the first non-space character of a new word. Loop checks
@@ -306,7 +455,7 @@ public class MutterSystem : MonoBehaviour
 			}
 			else if (startOfWord)
 			{
-				PlayGrunt();
+				PlayGrunt(config);
 				startOfWord = false;
 			}
 
@@ -325,6 +474,23 @@ public class MutterSystem : MonoBehaviour
 		{
 			promptAnimCoroutine = StartCoroutine(PromptAnimCycle(delay));
 		}
+	}
+
+	/// <summary>
+	/// Resolve a Speaker enum value to its SpeakerConfig. Returns null if the
+	/// array index doesn't exist (misconfiguration); callers should fall back
+	/// gracefully (no grunts, no color override) rather than throw.
+	/// </summary>
+	private SpeakerConfig GetSpeakerConfig(Speaker speaker)
+	{
+		int idx = (int)speaker;
+		if (speakerConfigs == null || idx < 0 || idx >= speakerConfigs.Length)
+		{
+			Debug.LogWarning($"MutterSystem: no SpeakerConfig at index {idx} ({speaker}). " +
+				"Check speakerConfigs array length matches Speaker enum.");
+			return null;
+		}
+		return speakerConfigs[idx];
 	}
 
 	/// <summary>
@@ -402,16 +568,17 @@ public class MutterSystem : MonoBehaviour
 		}
 	}
 
-	private void PlayGrunt()
+	private void PlayGrunt(SpeakerConfig config)
 	{
-		if (gruntClips == null || gruntClips.Length == 0) return;
+		if (config == null) return;
+		if (config.gruntClips == null || config.gruntClips.Length == 0) return;
 		if (AudioManager.Instance == null) return;
 
-		AudioClip clip = gruntClips[Random.Range(0, gruntClips.Length)];
+		AudioClip clip = config.gruntClips[Random.Range(0, config.gruntClips.Length)];
 		if (clip == null) return;
 
-		float pitch = Random.Range(gruntPitchRange.x, gruntPitchRange.y);
-		AudioManager.Instance.PlaySFX(clip, gruntVolume, pitch);
+		float pitch = Random.Range(config.gruntPitchRange.x, config.gruntPitchRange.y);
+		AudioManager.Instance.PlaySFX(clip, config.gruntVolume, pitch);
 	}
 
 	void LateUpdate()
@@ -441,5 +608,16 @@ public class MutterSystem : MonoBehaviour
 		if (dismissPrompt != null) dismissPrompt.SetActive(false);
 		if (dismissPromptCanvasGroup != null) dismissPromptCanvasGroup.alpha = 0f;
 		if (mutterText != null) mutterText.text = "";
+
+		// Drain queue: if there's a mutter waiting, start it. Set the
+		// release-required gate so the player has to lift the dismiss key
+		// before the next mutter accepts input. Without the gate, a held or
+		// rapidly-tapped key could machine-gun through paired sequences.
+		if (queuedMutters.Count > 0)
+		{
+			QueuedMutter next = queuedMutters.Dequeue();
+			requireDismissKeyRelease = true;
+			StartCoroutine(RevealCycle(next.Content, next.Speaker));
+		}
 	}
 }
