@@ -61,6 +61,14 @@ using UnityEngine;
 ///   - No A/D direction-of-input drift on the heading: rocking is a
 ///     side-to-side commitment, not a steering tool.
 ///
+/// Rocking is GATED via the rockingEnabled flag, default OFF. Per the
+/// v0 design (Day 37), chair-tipping is L6's canonical debut mechanic —
+/// it does not appear on L1-L3. The gate also keeps L1-L3 from
+/// softlocking on a tip the level has no recovery path for (the
+/// stand-up verb is parked for L7 per ideas.md). When rockingEnabled
+/// is false, Shift+A/D falls through to the regular turn-hop (same as
+/// bare A/D) and the "Rock" hint is omitted from ControlHints.
+///
 /// Amplitude is RHYTHM-BASED, not magnitude-based. Each rock adds to the
 /// Rigidbody's existing angularVelocity rather than overwriting it. If the
 /// player times Shift+A → Shift+D → Shift+A in rhythm with the chair's
@@ -127,6 +135,16 @@ public class ChairRestraint : RestraintBase
 	[SerializeField] private float turnAngularImpulse = 0.2f;
 
 	[Header("Rocking (Shift + A / D)")]
+	[Tooltip("Master gate for the rocking verb. Default OFF — rocking is the " +
+		"canonical L6 debut mechanic, and tipping has no recovery path in v0 " +
+		"(no stand-up verb yet, parked for L7). On levels where the chair " +
+		"shouldn't break (L1-L3), leave this false: Shift+A/D becomes a no-op " +
+		"and the verb doesn't appear in ControlHints. Flip true on L6's " +
+		"ChairRestraint instance, where floorRestraintOnBreak is also wired. " +
+		"Disabling here also keeps L1-L3 from softlocking on a tip the level " +
+		"has no solve path for.")]
+	[SerializeField] private bool rockingEnabled = false;
+
 	[Tooltip("Lateral impulse component, body-relative. Pure horizontal — NO " +
 		"vertical lift, which is what differentiates rocking from turn-hop. " +
 		"The chair pivots on its edge rather than hopping off the floor.")]
@@ -151,6 +169,8 @@ public class ChairRestraint : RestraintBase
 		"AnkledToChair) and SetRestraint hands control over. Inspector " +
 		"tuning on the FloorRestraint instance is preserved. Leave empty " +
 		"for levels where the chair shouldn't break (L1-L3 default). " +
+		"Should be wired together with rockingEnabled=true (L6); leaving " +
+		"one set and not the other is a misconfiguration. " +
 		"The actual collision detection lives on ChairTipMarker components " +
 		"on child GameObjects of the chair; they call back into this " +
 		"restraint via OnSideMarkerHitGround.")]
@@ -184,7 +204,9 @@ public class ChairRestraint : RestraintBase
 
 		// Rocking takes priority over turn-hop on Shift+A/D. Check it first so
 		// Shift+A doesn't also trigger a turn-hop in the same frame.
-		if (shiftHeld)
+		// Gated on rockingEnabled — when disabled (L1-L3 default), Shift+A/D
+		// falls through to the turn-hop block below, same as a bare A/D press.
+		if (shiftHeld && rockingEnabled)
 		{
 			if (Input.GetKeyDown(KeyCode.A) && player.IsGrounded)
 			{
@@ -307,6 +329,24 @@ public class ChairRestraint : RestraintBase
 	{
 		if (isBroken) return;
 
+		// Defense in depth: rockingEnabled is the master gate for the entire
+		// tip-and-break feature. The input path is already gated in
+		// HandleMovementInput; gating the collision path here too means a
+		// misconfigured scene (floorRestraintOnBreak wired but rockingEnabled
+		// left false) can't accidentally break the chair via collision. The
+		// LogWarning is loud on purpose: this branch firing means the scene
+		// is misconfigured in a way the bug will eventually be blamed on
+		// something else (see Day 37 NailProximityTrigger bug for the
+		// motivating case).
+		if (!rockingEnabled)
+		{
+			Debug.LogWarning("[ChairRestraint] Side marker hit ground but " +
+				"rockingEnabled is false. Ignoring. If this fires, the scene " +
+				"likely has floorRestraintOnBreak wired on a level that " +
+				"shouldn't tip — clear that override or flip rockingEnabled.");
+			return;
+		}
+
 		if (floorRestraintOnBreak == null)
 		{
 			Debug.LogWarning("[ChairRestraint] Side marker hit ground but no " +
@@ -398,15 +438,25 @@ public class ChairRestraint : RestraintBase
 		// marked disabled.
 		bool kickSuppressed = GetKickModifier() <= 0f;
 
-		return new List<ControlHint>
+		List<ControlHint> hints = new List<ControlHint>
 	{
 		new ControlHint("Hop", "W"),
 		new ControlHint("Turn", "A / D"),
-		new ControlHint("Rock", "Shift + A / D"),
-		new ControlHint("Struggle", "Space"),
-		new ControlHint("Kick", "F", kickSuppressed, kickSuppressed ? "(legs tied)" : null),
-		new ControlHint("Pick Up", "E"),
 	};
+
+		// Rock is L6-debut; omit the hint entirely on levels where rocking
+		// is gated off. Advertising a verb that does nothing is exactly the
+		// Day 30 legibility failure pattern.
+		if (rockingEnabled)
+		{
+			hints.Add(new ControlHint("Rock", "Shift + A / D"));
+		}
+
+		hints.Add(new ControlHint("Struggle", "Space"));
+		hints.Add(new ControlHint("Kick", "F", kickSuppressed, kickSuppressed ? "(legs tied)" : null));
+		hints.Add(new ControlHint("Pick Up", "E"));
+
+		return hints;
 	}
 
 	public override void OnExit(PlayerController player)

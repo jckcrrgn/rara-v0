@@ -516,7 +516,7 @@ GameObject:
   - component: {fileID: 300691258}
   - component: {fileID: 300691257}
   - component: {fileID: 300691256}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Floor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1308,6 +1308,12 @@ MonoBehaviour:
   turnVerticalImpulse: 2
   turnLateralImpulse: 0.5
   turnAngularImpulse: 0.2
+  rockingEnabled: 0
+  rockLateralImpulse: 1.5
+  rockAngularImpulse: 0.6
+  rockClip: {fileID: 0}
+  floorRestraintOnBreak: {fileID: 0}
+  chairBreakClip: {fileID: 0}
   turnHopClip: {fileID: 0}
 --- !u!1 &1445175850
 GameObject:

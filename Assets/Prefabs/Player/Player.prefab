@@ -69,7 +69,7 @@ MonoBehaviour:
   chairRestraint: {fileID: 7026241982387864388}
   groundLayer:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 8
   player: {fileID: 4118337886289226959}
 --- !u!1 &1236772152603165152
 GameObject:
@@ -140,7 +140,7 @@ MonoBehaviour:
   chairRestraint: {fileID: 7026241982387864388}
   groundLayer:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 8
   player: {fileID: 4118337886289226959}
 --- !u!1 &2795448765098500059
 GameObject:
@@ -347,6 +347,7 @@ MonoBehaviour:
   turnVerticalImpulse: 2
   turnLateralImpulse: 0.5
   turnAngularImpulse: 0.2
+  rockingEnabled: 0
   rockLateralImpulse: 1.5
   rockAngularImpulse: 0.6
   rockClip: {fileID: 0}

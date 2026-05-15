@@ -146,6 +146,19 @@ Next steps for mutter:
       vision. Even without guards in v0, prototyping the noise→consequence
       chain here de-risks the eventual stealth segments.
   Park for L7 design pass. Do not build into L6.
+- Chair-tip gate (Day 37): Chair-tipping is L6-exclusive in v0. The
+  ChairRestraint rocking verb is gated behind a `rockingEnabled` bool
+  (default false); L1-L3 leave it false, L6 flips it true and wires
+  floorRestraintOnBreak. Two reasons: (1) chair-tip is canonically L6's
+  debut mechanic per the GDD, and shipping it on L1 burns L6's spotlight;
+  (2) tipping has no v0 recovery path (stand-up verb is L7), so any
+  level without a floor-bound solve path softlocks on tip. L1
+  specifically softlocks because its intended solve is hop-to-nail and
+  floor-bound Cassie can't reach the nail. When rockingEnabled is false,
+  Shift+A/D falls through to a normal turn-hop and the "Rock" hint is
+  omitted from ControlHints (advertising a no-op verb is the Day 30
+  legibility failure pattern). L6 will need its own mutter chain to
+  teach rocking input cold; queue that for L6 design pass.
 - FloorRestraint Roll (Day 20): Shift+A/D to roll. Faster, but requires space to maneuver.
 - FloorRestraint orientation refactor (Day 21): Currently inch moves
   the detective headfirst (on her belly, prone). For L4 this means
