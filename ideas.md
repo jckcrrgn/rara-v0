@@ -157,6 +157,20 @@ Next steps for mutter:
       vision. Even without guards in v0, prototyping the noise→consequence
       chain here de-risks the eventual stealth segments.
   Park for L7 design pass. Do not build into L6.
+- ChairRestraint back-up verb (Day 38): Reverse-locomotion verb for
+  ChairRestraint, complementing the existing forward hop. Came up
+  during L6 design when we considered whether Cassie could open the
+  nightstand drawer from her seated position. Without back-up, she has
+  to face away from the drawer to reach it with bound hands, which is
+  awkward to choreograph. With back-up, the interaction reads naturally
+  — she backs up, fumbles open the drawer behind her, pulls out the
+  pen. Decided against adding to L6 to keep mechanical scope contained.
+  Revisit when a level needs Cassie to interact with something at
+  chair-height that requires hands-behind-back access — probably L7+
+  alongside Stand Up from FloorRestraint, since both expand the
+  locomotion vocabulary. Implementation: likely Shift+S (or similar)
+  mirroring forward hop. Animation work non-trivial — backward
+  chair-hop is harder to make read clearly than forward.
 - Chair-tip gate (Day 37): Chair-tipping is L6-exclusive in v0. The
   ChairRestraint rocking verb is gated behind a `rockingEnabled` bool
   (default false); L1-L3 leave it false, L6 flips it true and wires
@@ -187,6 +201,25 @@ Next steps for mutter:
   etc. Generalizes well — new verbs and new restraints can opt into
   this gate cleanly. Pattern documented in RestraintBase.IsBusy.
 
+## Camera
+
+- Follow camera mode (Day 38): Camera that tracks Cassie's position
+  instead of staying fixed on the room. L1–L6 all use fixed-camera /
+  whole-room-visible. Considered for L6 specifically because the
+  offstage guard + interior tension might benefit from tighter framing
+  on Cassie. Decided fixed camera is correct for v0 — consistent with
+  prior levels, lets the player see the spatial puzzle clearly, fits
+  "calculating Cassie" who's aware of her whole environment. Revisit
+  if Act 2 levels start feeling spatially distant from the player.
+  Case *for* follow: more cinematic, emphasizes Cassie's POV, makes
+  offstage-ness more felt (you can't see the door from across the room
+  when focus is on Cassie). Case *against*: breaks consistency with
+  Act 1, may obscure spatial puzzle elements, more implementation
+  work. Implementation: standard Cinemachine virtual camera with
+  follow target on player. Could be per-level setting (some fixed,
+  some follow) rather than global mode shift. Boundary-clamped so
+  camera doesn't reveal off-room space.
+
 ## Feedback Patterns
 - Twist shake (Day 12): Rejection feedback reads best as slow windup + snap-past-origin + settle, rotation rather than position. Pattern is reusable for other "wrong tool / wrong action" moments.
 - Physics-as-feedback (Day 25): The Jostleable refactor crystallized
@@ -202,6 +235,54 @@ Next steps for mutter:
 - Chair-tipping to bring hands closer (Day 23): Chair-tipping could be intentional to bring hands closer to an object on the floor.
 - Box cutter lands on Player's head (Day 10): During L2 shelf-bump tuning, the cutter fell directly onto the player cube's head and sat there. Felt authentic to the detective's whole vibe — long-suffering, things land on them. Could be a deliberate bit for L2: shelf bump always puts the cutter on/near the player, not on the floor. Revisit when character model replaces cube.
 - Cutter mass tuning (Day 12): Box-cutter-on-head bit only works if mass is low (~0.1) and shelf fall impulse is tuned. At default mass the cutter crippled hop and killed L2. Emergent charm still needs a tuning pass to stay fun.
+
+## Design Principles
+
+Meta-principles that emerged from specific design sessions. Captured
+here so they don't evaporate by Act 2. When designing future levels,
+re-read.
+
+- Tipping ≠ jostling (Day 38, from L6 design): Tipping is for
+  chair-break + floor-access. Jostling is for physics interaction with
+  objects. Two independent verbs serving two independent purposes.
+  Don't conflate them in future level design — early L6 drafts kept
+  trying to make tipping do double-duty as a puzzle-interaction verb
+  (tip into nightstand to knock lamp off), which muddied both
+  mechanics. Separating them gave the player three clean escape paths
+  instead of one tangled one.
+- Diegetic timer triggers > level-load timers (Day 38, from L6
+  design): L6's timer starts on Cassie's loud actions (lamp smash,
+  chair-tip crash), not on level entry. Pattern: player action causes
+  pressure to begin. Feels stronger than ambient timer pressure and
+  should be the default for future timed levels. Players who play
+  carefully experience the level differently than players who barrel
+  in — that's a level with texture.
+- NPC theory-of-the-player has blind spots (Day 38, from L6 design):
+  L6's guard cleans lamp shards (obvious tool source) but not chair
+  shards (just furniture damage in his perspective). The gap between
+  his theory and Cassie's resourcefulness is where the puzzle lives.
+  Worldbuilding through guard heuristics. Generalize: design NPCs
+  with specific blind spots that become exploitable. Recurring puzzle
+  structure for any future stealth-adjacent scenario.
+- Persistence-of-some-state but not-others is a design knob (Day 38,
+  from L6 design): L6 persists chair shards + lamp damage +
+  pen-if-picked-up; resets chair position + drawer state + Cassie's
+  bonds (to escalated state). This selective persistence makes
+  attempts mechanically distinct without authoring new puzzles. Use
+  deliberately, not by accident. Powerful for failure-loop levels.
+- Indefinite loop with bond cap > hard fail (Day 38, from L6 design):
+  Cassie can take as long as she wants; she just looks dumber the
+  longer it takes. Bonds escalate to a cap, then stay there. No
+  game-over screen needed. Aligns mechanic with character tone
+  (Cassie is unruffled, not panicked). Consider before defaulting to
+  hard-fail states in future levels.
+- NPC reactions track observable actions, not omniscience (Day 38,
+  from L6 design): L6's pen-only-removed-if-picked-up rule. The guard
+  reacts to what he sees Cassie do, not what she could have done.
+  Rewards player observation and creates strategic depth (opening
+  drawer = safe; picking up pen = committing). Generalize: NPC
+  responses should be driven by player-action signals the player can
+  themselves reason about.
 
 ## Session Notes
 - Cut Call Out from v0 (Day 6): Originally planned as the 4th verb, but in a single-room escape game with no stealth/dialogue/guard AI, it had no real job. Reserved for a potential larger sequel where stealth sections + guard personality dialogue (Charm/Intimidate/Beg) would justify it. For v0, three verbs (Struggle, Move, Pick Up) keeps the design tight.
