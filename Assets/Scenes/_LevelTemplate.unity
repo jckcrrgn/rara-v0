@@ -555,7 +555,7 @@ GameObject:
   - component: {fileID: 300691258}
   - component: {fileID: 300691257}
   - component: {fileID: 300691256}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Floor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1079,6 +1079,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   isLevelComplete: 0
   levelCompleteUI: {fileID: 1264245222}
+  gameCompleteUI: {fileID: 0}
+  autoAdvance: 1
+  autoAdvanceDelay: 1.75
+  entryMutter: 
 --- !u!4 &1007953697
 Transform:
   m_ObjectHideFlags: 0
