@@ -255,3 +255,120 @@ This spec is ready to drive Unity work when:
 - [x] At least one playtest-the-spec pass (read it back to yourself, look for gaps)
 
 **Status: DONE. Ready for geometry pass.**
+
+---
+
+## 13. Implementation Notes — LevelTimer + MutterSystem AudioSource Override
+
+Design pass from Day 40 session. These two systems unblock §6 (soft timer) and §8 (diegetic guard mutter routing). Drop-in for a medium-energy session.
+
+### 13.1 MutterSystem AudioSource override
+
+**Decision: per-speaker AudioSource on SpeakerConfig, not per-call parameter.**
+
+Reasoning:
+- The AudioSource for the guard is a property of the *guard*, not of any individual line. One inspector field to update if the guard moves or his source is replaced — not N callers.
+- SpeakerConfig already owns audio routing decisions (grunt pool, volume, pitch). AudioSource fits the existing abstraction.
+- Preserves existing call signature. Every existing caller stays the same. New diegetic speakers just need their AudioSource wired in their SpeakerConfig.
+
+**Implementation:**
+
+Add to `SpeakerConfig`:
+
+```csharp
+[Tooltip("Optional. If set, grunts for this speaker route through this " +
+    "world-positioned AudioSource instead of AudioManager's 2D channel. " +
+    "Use for diegetic speakers (e.g. the offstage guard) where spatial " +
+    "attenuation is the mechanic. Leave null for Cassie / non-diegetic.")]
+public AudioSource audioSourceOverride;
+```
+
+Update `PlayGrunt`:
+
+```csharp
+private void PlayGrunt(SpeakerConfig config)
+{
+    if (config == null) return;
+    if (config.gruntClips == null || config.gruntClips.Length == 0) return;
+
+    AudioClip clip = config.gruntClips[Random.Range(0, config.gruntClips.Length)];
+    if (clip == null) return;
+
+    float pitch = Random.Range(config.gruntPitchRange.x, config.gruntPitchRange.y);
+
+    if (config.audioSourceOverride != null)
+    {
+        config.audioSourceOverride.pitch = pitch;
+        config.audioSourceOverride.PlayOneShot(clip, config.gruntVolume);
+    }
+    else
+    {
+        if (AudioManager.Instance == null) return;
+        AudioManager.Instance.PlaySFX(clip, config.gruntVolume, pitch);
+    }
+}
+```
+
+**Gotcha to note in the code comment:** `PlayOneShot` with `pitch` set on the source applies pitch to all sounds currently playing on that source, not just the one-shot. Fine for sparse, one-at-a-time grunts. If overlap is ever introduced, the routing approach needs revisiting.
+
+**Scene-specific reference:** `SpeakerConfig` is serialized on MutterSystem, which is per-scene. Guard's AudioSource reference is therefore also per-scene, which is correct — different levels can have the guard at different positions, or no guard at all.
+
+### 13.2 LevelTimer component
+
+**Decision: standalone component, not bolted onto LevelManager.**
+
+Reasoning:
+- LevelManager handles level lifecycle (load/complete/restart). Timer is a gameplay system. Mixing them conflates concerns.
+- Not every level has a timer. L1–L5 don't. L7+ might or might not. Keep LevelManager generic; bolt LevelTimer on per-level as needed.
+- Singleton convenience: `LevelTimer.Instance` accessible from anywhere (same pattern as MutterSystem).
+
+**API surface:**
+
+```csharp
+public class LevelTimer : MonoBehaviour
+{
+    public static LevelTimer Instance { get; private set; }
+
+    [SerializeField] private float totalDuration = 120f;
+    [SerializeField] private float[] thresholdsNormalized = { 0.5f };
+
+    public UnityEvent OnTimerStart;
+    public UnityEvent<float> OnThresholdReached; // passes the threshold value
+    public UnityEvent OnTimerExpired;
+
+    public bool IsRunning { get; }
+    public float ElapsedNormalized { get; } // [0..1]
+
+    public void StartTimer();
+    public void StopTimer();
+    public void ResetTimer();
+}
+```
+
+**Three locked design decisions:**
+
+1. **Threshold array, not single 50% callback.** Spec only calls out 50% today, but a 75% "guard getting close" beat is plausible later. Array future-proofs cheaply.
+
+2. **UnityEvents for hookup, not direct method calls.** Lets you wire LevelTimer → MutterSystem.Play in the inspector without LevelTimer having a hard dependency on MutterSystem. Same pattern as existing level wiring.
+
+3. **`StartTimer()` is idempotent.** Calling it while running is a no-op, not a restart. Critical for "lamp smash OR chair-tip crash, first occurrence wins" — both events call `LevelTimer.Instance.StartTimer()`, the first wins, the second is silently ignored. Do NOT expose a `Restart()` method; force callers to `ResetTimer()` + `StartTimer()` explicitly.
+
+**Out of scope for v1:** countdown UI or visual indicator. Spec is diegetic-only. Use `Debug.Log` or inspector runtime values for debug visibility.
+
+### 13.3 Wiring map for L6
+
+- `LampSmashTrigger` → `LevelTimer.Instance.StartTimer()`
+- `ChairTipMarker` (on crash detection) → `LevelTimer.Instance.StartTimer()`
+- `LevelTimer.OnThresholdReached(0.5)` → `MutterSystem.Instance.Play("...", Guard)` (Beat 5)
+- `LevelTimer.OnTimerExpired` → FailureLoopController (does not exist yet — next-after-next system)
+
+Guard's AudioSource: child GameObject of the Door (offstage hallway position), wired into Guard's SpeakerConfig.audioSourceOverride field on the L6 MutterSystem.
+
+### 13.4 Suggested implementation order (next session)
+
+1. Add `audioSourceOverride` to `SpeakerConfig`, update `PlayGrunt`. ~15 min.
+2. Wire temporary AudioSource in L6 (child of Door), set as Guard's override. Test via debug binding calling `MutterSystem.Instance.Play("test", Speaker.Guard)`. ~15 min.
+3. Build `LevelTimer.cs` per §13.2 API. ~25 min.
+4. Wire LevelTimer into L6 with placeholder triggers (debug key starts it, threshold callback `Debug.Log`s). ~10 min.
+
+End state: both systems shipped, guard audio routing verified, L6 ready for failure-loop wiring next.
