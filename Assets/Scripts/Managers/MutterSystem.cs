@@ -134,6 +134,35 @@ public class MutterSystem : MonoBehaviour
 			"clips on day one.")]
 		public Vector2 gruntPitchRange = new Vector2(0.92f, 1.08f);
 
+		[Tooltip("Optional. If set, grunts for this speaker route through this " +
+			"world-positioned AudioSource instead of AudioManager's 2D channel. " +
+			"Use for diegetic speakers (e.g. the offstage guard) where spatial " +
+			"attenuation is the mechanic. Leave null for Cassie / non-diegetic. " +
+			"Gotcha: PlayOneShot with pitch applies pitch to ALL sounds currently " +
+			"playing on the source, not just the one-shot. Fine for sparse grunts; " +
+			"revisit if grunts ever overlap on a single source.")]
+		public AudioSource audioSourceOverride;
+
+		[Tooltip("Optional. If set, this speaker's mutters appear in this panel " +
+			"instead of the default mutterRoot. Use to position a speaker's UI " +
+			"elsewhere on screen (e.g. the offstage guard's text anchored over " +
+			"his hallway position). Must be a sibling of mutterRoot under the " +
+			"same Canvas. Leave null for speakers that use the default panel.")]
+		public GameObject mutterRootOverride;
+
+		[Tooltip("Required if mutterRootOverride is set. The TMP_Text inside " +
+			"the override panel that receives the character-by-character reveal. " +
+			"Leave null if no root override.")]
+		public TMP_Text mutterTextOverride;
+
+		[Tooltip("Optional companion to mutterRootOverride. If set, the override " +
+			"panel's screen position is updated each frame to track this " +
+			"transform's projected position in world space. Use for diegetic " +
+			"speakers whose UI should feel anchored to a world location (e.g. " +
+			"the offstage guard's audio source). Leave null for static-position " +
+			"override panels.")]
+		public Transform worldAnchor;
+
 		[Tooltip("If true, applies textColor to the mutter text when this " +
 			"speaker is talking. If false, the speaker inherits whatever color " +
 			"the mutterText was inspector-configured with (typically Cassie's " +
@@ -189,6 +218,11 @@ public class MutterSystem : MonoBehaviour
 		"Used for fade-in and pulse animations. If null, the prompt just pops in " +
 		"without animation -- still works, just less polished.")]
 	[SerializeField] private CanvasGroup dismissPromptCanvasGroup;
+
+	[Tooltip("Camera used to project world-anchored speaker panels to screen " +
+		"space. If null, falls back to Camera.main. Required only if any " +
+		"SpeakerConfig has a worldAnchor set.")]
+	[SerializeField] private Camera anchorCamera;
 
 	[Header("Reveal Tuning")]
 	[Tooltip("Characters per second during the reveal animation. Lower = slower mutter " +
@@ -275,6 +309,15 @@ public class MutterSystem : MonoBehaviour
 	// Tracked so we can cancel it cleanly on dismiss.
 	private Coroutine promptAnimCoroutine;
 
+	// The root/text actually in use for the current (or most-recently-active)
+	// mutter. Resolved from SpeakerConfig.mutterRootOverride at the start of
+	// RevealCycle; falls back to the default mutterRoot/mutterText. Tracked
+	// so Dismiss() can hide and clear the right pair even when an override
+	// was used. Null between mutters is fine — Dismiss is no-op-safe.
+	private GameObject activeRoot;
+	private TMP_Text activeText;
+	private Transform activeWorldAnchor;
+
 	/// <summary>
 	/// True if a mutter is currently showing (either revealing characters or waiting
 	/// for the player to dismiss it) OR if a mutter is queued and pending. Other
@@ -302,6 +345,20 @@ public class MutterSystem : MonoBehaviour
 
 		if (mutterRoot != null) mutterRoot.SetActive(false);
 		if (dismissPrompt != null) dismissPrompt.SetActive(false);
+
+		// Hide any per-speaker override roots so a speaker's panel isn't left
+		// visible from inspector setup. Scene-authored state shouldn't survive
+		// the first frame.
+		if (speakerConfigs != null)
+		{
+			foreach (var cfg in speakerConfigs)
+			{
+				if (cfg != null && cfg.mutterRootOverride != null)
+				{
+					cfg.mutterRootOverride.SetActive(false);
+				}
+			}
+		}
 	}
 
 	void OnDestroy()
@@ -385,6 +442,12 @@ public class MutterSystem : MonoBehaviour
 	}
 
 	/// <summary>
+	/// UnityEvent-friendly wrapper: plays a guard mutter. Inspector can't pass
+	/// enum arguments, so we expose typed helpers for cross-system wiring.
+	/// </summary>
+	public void PlayAsGuard(string content) => Play(content, Speaker.Guard);
+
+	/// <summary>
 	/// Cap on the mutter queue. 3 is intentional: the legitimate use case is
 	/// paired mutters (queue depth 2, e.g. L6 Beat 6 guard-then-Cassie), and
 	/// a +1 buffer absorbs accidental overlap without runaway. Drop-newest on
@@ -414,19 +477,33 @@ public class MutterSystem : MonoBehaviour
 		isRevealing = true;
 		skipRequested = false;
 		mutterStartTime = Time.time;
-		mutterRoot.SetActive(true);
 		if (dismissPrompt != null) dismissPrompt.SetActive(false);
-		mutterText.text = "";
+
+		// Resolve which root/text to use for this mutter. If the speaker has
+		// an override root configured, use it; otherwise fall back to the
+		// default mutterRoot/mutterText. Stored on instance fields so Dismiss
+		// and LateUpdate can find the right pair without re-resolving.
+		SpeakerConfig config = GetSpeakerConfig(speaker);
+		ResolveActivePanel(config);
+
+		if (activeRoot == null || activeText == null)
+		{
+			Debug.LogError("MutterSystem: no active root/text resolved for speaker " + speaker);
+			isRevealing = false;
+			yield break;
+		}
+
+		activeRoot.SetActive(true);
+		activeText.text = "";
 
 		// Apply per-speaker text color if configured. Cassie's entry leaves
 		// overrideTextColor=false, so her mutters inherit whatever color
-		// mutterText was inspector-configured with. Guard sets the override
+		// activeText was inspector-configured with. Guard sets the override
 		// so his lines read as a distinct speaker even before the player
 		// parses the words.
-		SpeakerConfig config = GetSpeakerConfig(speaker);
 		if (config != null && config.overrideTextColor)
 		{
-			mutterText.color = config.textColor;
+			activeText.color = config.textColor;
 		}
 
 		// Reveal character-by-character. Grunt SFX fires once per word -- when we
@@ -442,12 +519,12 @@ public class MutterSystem : MonoBehaviour
 				// Player asked to skip. Dump the rest of the string in one go.
 				// Skipping forfeits the remaining grunt SFX -- it would feel
 				// noisy to fire all of them at once.
-				mutterText.text = content;
+				activeText.text = content;
 				break;
 			}
 
 			char c = content[i];
-			mutterText.text += c;
+			activeText.text += c;
 
 			if (char.IsWhiteSpace(c))
 			{
@@ -474,6 +551,33 @@ public class MutterSystem : MonoBehaviour
 		{
 			promptAnimCoroutine = StartCoroutine(PromptAnimCycle(delay));
 		}
+	}
+
+	/// <summary>
+	/// Pick the root/text/anchor to use for the speaker, with fallback to the
+	/// default mutterRoot/mutterText. A partially-configured override
+	/// (root set but text not, or vice versa) is treated as misconfiguration:
+	/// log and fall back to the default rather than half-render.
+	/// </summary>
+	private void ResolveActivePanel(SpeakerConfig config)
+	{
+		if (config != null && config.mutterRootOverride != null && config.mutterTextOverride != null)
+		{
+			activeRoot = config.mutterRootOverride;
+			activeText = config.mutterTextOverride;
+			activeWorldAnchor = config.worldAnchor;
+			return;
+		}
+
+		if (config != null && (config.mutterRootOverride != null || config.mutterTextOverride != null))
+		{
+			Debug.LogWarning("MutterSystem: speaker has mutterRootOverride or " +
+				"mutterTextOverride set but not both. Falling back to default panel.");
+		}
+
+		activeRoot = mutterRoot;
+		activeText = mutterText;
+		activeWorldAnchor = null;
 	}
 
 	/// <summary>
@@ -572,13 +676,24 @@ public class MutterSystem : MonoBehaviour
 	{
 		if (config == null) return;
 		if (config.gruntClips == null || config.gruntClips.Length == 0) return;
-		if (AudioManager.Instance == null) return;
 
 		AudioClip clip = config.gruntClips[Random.Range(0, config.gruntClips.Length)];
 		if (clip == null) return;
 
 		float pitch = Random.Range(config.gruntPitchRange.x, config.gruntPitchRange.y);
-		AudioManager.Instance.PlaySFX(clip, config.gruntVolume, pitch);
+
+		if (config.audioSourceOverride != null)
+		{
+			// Diegetic route: world-positioned source handles spatial attenuation.
+			config.audioSourceOverride.pitch = pitch;
+			config.audioSourceOverride.PlayOneShot(clip, config.gruntVolume);
+		}
+		else
+		{
+			// Default route: AudioManager's 2D channel.
+			if (AudioManager.Instance == null) return;
+			AudioManager.Instance.PlaySFX(clip, config.gruntVolume, pitch);
+		}
 	}
 
 	void LateUpdate()
@@ -586,6 +701,30 @@ public class MutterSystem : MonoBehaviour
 		// Clear the dismiss flag at end of frame. By LateUpdate of the dismiss
 		// frame, all other Update() callers have had a chance to see it.
 		wasJustDismissed = false;
+
+		// Track the active panel to a world position if one is set. Runs in
+		// LateUpdate so any camera movement this frame is already applied.
+		// The L6 camera is fixed, so this is essentially constant — but doing
+		// it every frame is cheap and means we don't have to special-case
+		// future levels that move the camera.
+		if (activeWorldAnchor != null && activeRoot != null)
+		{
+			Camera cam = anchorCamera != null ? anchorCamera : Camera.main;
+			if (cam != null)
+			{
+				RectTransform rt = activeRoot.transform as RectTransform;
+				if (rt != null)
+				{
+					Vector3 screenPos = cam.WorldToScreenPoint(activeWorldAnchor.position);
+					// WorldToScreenPoint returns screen coords; we want them
+					// in the same space as the RectTransform's parent canvas.
+					// For an Overlay canvas this is identical to screen coords;
+					// for Camera/World canvas, a conversion would be needed.
+					// L6 uses Overlay, so direct assignment is correct.
+					rt.position = screenPos;
+				}
+			}
+		}
 	}
 
 	private void Dismiss()
@@ -608,6 +747,15 @@ public class MutterSystem : MonoBehaviour
 		if (dismissPrompt != null) dismissPrompt.SetActive(false);
 		if (dismissPromptCanvasGroup != null) dismissPromptCanvasGroup.alpha = 0f;
 		if (mutterText != null) mutterText.text = "";
+
+		// Hide whichever root we actually showed (default or override), and
+		// clear its paired text. activeWorldAnchor is also cleared so
+		// LateUpdate stops trying to track a stale transform. The default
+		// mutterRoot/mutterText are also hidden above for safety; one of these
+		// pairs is redundant per dismiss but the cost is a no-op SetActive.
+		if (activeRoot != null) activeRoot.SetActive(false);
+		if (activeText != null) activeText.text = "";
+		activeWorldAnchor = null;
 
 		// Drain queue: if there's a mutter waiting, start it. Set the
 		// release-required gate so the player has to lift the dismiss key
