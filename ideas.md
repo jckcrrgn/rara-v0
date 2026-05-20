@@ -157,20 +157,31 @@ Next steps for mutter:
       vision. Even without guards in v0, prototyping the noise→consequence
       chain here de-risks the eventual stealth segments.
   Park for L7 design pass. Do not build into L6.
-- ChairRestraint back-up verb (Day 38): Reverse-locomotion verb for
-  ChairRestraint, complementing the existing forward hop. Came up
-  during L6 design when we considered whether Cassie could open the
-  nightstand drawer from her seated position. Without back-up, she has
-  to face away from the drawer to reach it with bound hands, which is
-  awkward to choreograph. With back-up, the interaction reads naturally
-  — she backs up, fumbles open the drawer behind her, pulls out the
-  pen. Decided against adding to L6 to keep mechanical scope contained.
-  Revisit when a level needs Cassie to interact with something at
-  chair-height that requires hands-behind-back access — probably L7+
-  alongside Stand Up from FloorRestraint, since both expand the
-  locomotion vocabulary. Implementation: likely Shift+S (or similar)
-  mirroring forward hop. Animation work non-trivial — backward
-  chair-hop is harder to make read clearly than forward.
+- ChairRestraint back-up verb (Day 38, mechanic refined Day 42):
+  Reverse-locomotion verb for ChairRestraint, complementing the existing
+  forward hop. Came up during L6 design when we considered whether
+  Cassie could open the nightstand drawer from her seated position.
+  Without back-up, she has to face away from the drawer to reach it
+  with bound hands, which is awkward to choreograph. With back-up, the
+  interaction reads naturally — she backs up, fumbles open the drawer
+  behind her, pulls out the pen. Decided against adding to L6 to keep
+  mechanical scope contained. Revisit when a level needs Cassie to
+  interact with something at chair-height that requires hands-behind-
+  back access — probably L7+ alongside Stand Up from FloorRestraint,
+  since both expand the locomotion vocabulary.
+
+  **Day 42 motion model:** Mirror the inch-forward pattern from
+  FloorRestraint. Cassie pushes on the ground in front of her with
+  her bound legs, scooting the chair backwards by small increments.
+  Less travel per cycle than the FloorRestraint inch (the chair's
+  mass + the contact geometry of chair legs vs. flat floor make it
+  inherently less efficient than a prone body's coordinated push).
+  Same discrete-cadence input feel — hold-S with interCycleDelay so
+  it reads as automated rhythm, not smooth gliding. Matches the
+  inch input pattern shipped Day 25. Animation work still non-
+  trivial: backward chair-hop / chair-scoot is harder to make
+  read clearly than forward, and the leg-push contact point will
+  need to be visually legible.
 - Chair-tip gate (Day 37): Chair-tipping is L6-exclusive in v0. The
   ChairRestraint rocking verb is gated behind a `rockingEnabled` bool
   (default false); L1-L3 leave it false, L6 flips it true and wires
@@ -284,6 +295,23 @@ re-read.
   responses should be driven by player-action signals the player can
   themselves reason about.
 
+  ## When to reach for Jostleable vs raw physics
+
+Jostleable is a CUMULATIVE-bump model: bumps accumulate, threshold fires
+a discrete event. Right tool when the thing being "jostled" genuinely
+loosens incrementally (L3 drawer runners shaking free) — there's a
+diegetic story for why bumps add up over time.
+
+WRONG tool for objects whose "falling" is per-bump and emergent (a lamp
+sitting on a surface). Those want non-kinematic Rigidbodies and stacked
+physics propagation. Per-bump chance to topple is whatever the physics
+calculates — emphatically not a Random.value < N check.
+
+Heuristic: if the answer to "why don't earlier bumps just do it?" is
+"because they were below threshold," Jostleable fits. If the answer is
+"because they hit at the wrong angle / didn't tip it past its base /
+it landed back upright," raw physics fits.
+
 ## Session Notes
 - Cut Call Out from v0 (Day 6): Originally planned as the 4th verb, but in a single-room escape game with no stealth/dialogue/guard AI, it had no real job. Reserved for a potential larger sequel where stealth sections + guard personality dialogue (Charm/Intimidate/Beg) would justify it. For v0, three verbs (Struggle, Move, Pick Up) keeps the design tight.
 - L4 narrative redesign (Day 18, post-playable): The detective doesn't
@@ -295,6 +323,25 @@ re-read.
   IsBroken gate — kick should work regardless of bond state on L4 specifically.
   Possibly: a per-door `requiresFreeBonds` bool, default true for
   finale, false for L4.
+- ## L7+ kick model gap (caught Day 42)
+
+PlayerController.Kick currently has two pathways:
+  1. Nearest Kickable in range → Kickable.OnKick → cumulative force →
+     narrative payoff (van door opens). Position-gated, target-aware.
+  2. No Kickable in range → SFX + animation only, no impulse spawned.
+
+The missing third pathway: a physics-impulse zone that runs PARALLEL
+to (1), affecting any Rigidbody in kick reach regardless of whether it's
+a Kickable. This is what L6's nightstand-kick interaction needs —
+mermaid-kick should jostle the nightstand emergently, with impulse
+scaled by GetKickModifier (0.4 for mermaid-kick, 1.0 for free legs).
+
+Likely implementation: forward-projected sphere or capsule cast on
+PlayerController.Kick, find all Rigidbodies, apply impulse at hit point
+scaled by modifier. Kickable system unchanged — it layers narrative
+payoff on top of the physical baseline.
+
+Tuning needs a kickable test scaffold (already on spec §10).
 
 ## Day 30 Playtest
 
