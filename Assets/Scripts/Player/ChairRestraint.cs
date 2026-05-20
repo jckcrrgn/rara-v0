@@ -357,6 +357,15 @@ public class ChairRestraint : RestraintBase
 
 		isBroken = true;
 
+		// Soft timer trigger (§6). Chair-tip crash is one of the two events that
+		// can start the L6 timer; LampSmashTrigger is the other. StartTimer is
+		// idempotent — if the lamp already smashed, this is a silent no-op (first-
+		// occurrence-wins). Null-check guards L1–L3 where no LevelTimer exists.
+		if (LevelTimer.Instance != null)
+		{
+			LevelTimer.Instance.StartTimer();
+		}
+
 		// Zero velocity so the floor-restraint starts from rest. The chair was
 		// mid-tumble; we don't want that momentum carrying into the inch crawl.
 		player.Rb.linearVelocity = Vector3.zero;

@@ -185,7 +185,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f222a2a2521e6b44a89da6503ec10e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  totalDuration: 4
+  totalDuration: 10
   thresholdsNormalized:
   - 0.5
   OnTimerStart:
@@ -902,6 +902,9 @@ GameObject:
   - component: {fileID: 517821758}
   - component: {fileID: 517821757}
   - component: {fileID: 517821756}
+  - component: {fileID: 517821760}
+  - component: {fileID: 517821759}
+  - component: {fileID: 517821761}
   m_Layer: 0
   m_Name: Lamp
   m_TagString: Untagged
@@ -998,6 +1001,63 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 517821754}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &517821759
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 517821754}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a15533451eaaf340b602e6340b87dc3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  smashVelocityThreshold: 2.5
+  smashClip: {fileID: 0}
+  smashVolume: 1
+--- !u!54 &517821760
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 517821754}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!114 &517821761
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 517821754}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36a20a67c13a90d46bb979d70df64677, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  wobbleClip: {fileID: 0}
+  wobbleThreshold: 0.1
+  wobbleVolumeRange: {x: 0.4, y: 0.9}
 --- !u!1 &566487439
 GameObject:
   m_ObjectHideFlags: 0
@@ -2214,6 +2274,8 @@ GameObject:
   - component: {fileID: 1405729927}
   - component: {fileID: 1405729926}
   - component: {fileID: 1405729925}
+  - component: {fileID: 1405729929}
+  - component: {fileID: 1405729928}
   m_Layer: 0
   m_Name: Nightstand
   m_TagString: Untagged
@@ -2310,6 +2372,69 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1405729923}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1405729928
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1405729923}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ff00ec8b39c61a44898662478dcb9bf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  requiredJostle: 8
+  minImpulse: 0.5
+  requirePlayer: 1
+  creakClip: {fileID: 0}
+  creakVolumeRange: {x: 0.3, y: 1}
+  creakPitchRange: {x: 1.05, y: 0.85}
+  OnJostleProgress:
+    m_PersistentCalls:
+      m_Calls: []
+  OnJostleComplete:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 517821761}
+        m_TargetAssemblyTypeName: LampDropOnJostle, Assembly-CSharp
+        m_MethodName: Release
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+--- !u!54 &1405729929
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1405729923}
+  serializedVersion: 4
+  m_Mass: 50
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1 &1416435439
 GameObject:
   m_ObjectHideFlags: 0
