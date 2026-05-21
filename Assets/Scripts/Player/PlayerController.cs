@@ -38,11 +38,46 @@ public class PlayerController : MonoBehaviour
 		"(or a kick-active sub-window of it).")]
 	[SerializeField] private float kickDuration = 0.5f;
 
+	[Tooltip("Child Transform marking where the kick's physics cast originates. " +
+		"Place it at foot height, offset along the body's kick axis (typically " +
+		"local +Z, ~0.3-0.5u in front of player center) so the cast starts " +
+		"outside the player's own collider. The cast DIRECTION comes from the " +
+		"active restraint's GetKickDirection — default is +forward (she kicks " +
+		"the way she faces), FloorRestraint overrides for prone/supine. " +
+		"If left null, falls back to transform.position, which will probably " +
+		"self-hit the player collider on cast.")]
+	[SerializeField] private Transform footAnchor;
+
+	[Tooltip("Sphere radius for the kick cast. Wider = more forgiving aim, but " +
+		"also more likely to catch off-axis props. ~0.4u feels honest for a foot.")]
+	[SerializeField] private float kickCastRadius = 0.4f;
+
+	[Tooltip("Maximum distance along the kick direction the cast reaches. " +
+		"Roughly leg-extension distance from the foot anchor.")]
+	[SerializeField] private float kickCastDistance = 1.2f;
+
+	[Tooltip("Base impulse magnitude applied to a loose Rigidbody on a 1.0-modifier " +
+		"kick. Scaled by the restraint's GetKickModifier — mermaid-kick (0.4) " +
+		"applies kickImpulseScale * 0.4 force. Tune via KickTestScaffold scene. " +
+		"Starting at 8 is a pure guess; calibration is what the scaffold is for.")]
+	[SerializeField] private float kickImpulseScale = 8f;
+
+	[Tooltip("Layers the kick cast considers. Set to include world props, doors, " +
+		"and anything else kickable; exclude the player's own layer to avoid " +
+		"self-collision edge cases on top of the explicit self-Rigidbody filter.")]
+	[SerializeField] private LayerMask kickCastLayers = ~0;
+
 	[Header("Restraint")]
 	[SerializeField] private RestraintBase currentRestraint;
 
 	public Rigidbody Rb { get; private set; }
 	public bool IsGrounded { get; private set; }
+
+	// Read-only accessor for the kick-impulse scale. Exposed so debug/test
+	// scaffolds can display the actual impulse magnitude that would be applied
+	// on the next kick, rather than hard-coding the default. Production code
+	// shouldn't depend on this — it's diagnostic surface only.
+	public float KickImpulseScale => kickImpulseScale;
 
 	// Kick state. Set true when a KickCycle is in flight.
 	private bool isKicking = false;
@@ -258,19 +293,22 @@ public class PlayerController : MonoBehaviour
 
 		if (kickForce > 0f)
 		{
-			// Force-generating kick: route to a Kickable if available, else play miss thud.
-			InteractableBase nearby = FindNearestInteractable();
-
-			if (nearby is Kickable kickable && kickable.CanBeKicked(this))
-			{
-				kickable.OnKick(this, kickForce);
-				// Kickable plays its own impact SFX in OnKickRegistered.
-			}
-			else if (AudioManager.Instance != null && kickMissThudClip != null)
-			{
-				// Miss layer: kicked nothing useful. Plays alongside the grunt.
-				AudioManager.Instance.PlaySFX(kickMissThudClip, 1f, Random.Range(0.92f, 1.05f));
-			}
+			// Force-generating kick. Do a forward sphere cast from the foot anchor
+			// along the restraint's kick direction, partition hits into accepting
+			// Kickables vs. loose Rigidbodies, and resolve in priority order.
+			//
+			// Resolution rules (per Day 43 design):
+			//   1. If any Kickable that returns CanBeKicked=true is in the hit set,
+			//      route the kick to the NEAREST such Kickable. Other hits ignored.
+			//      Preserves all existing Kickable behavior (e.g., L4 door).
+			//   2. Else if any non-Kickable Rigidbody is in the hit set, apply an
+			//      impulse to each scaled by kickForce. This is the emergent
+			//      physics layer — kicks have real presence on world objects.
+			//      Notably: Rigidbodies BELONGING to a Kickable that rejected the
+			//      kick (e.g., L4 door pivots when out of zone) are excluded, so
+			//      off-axis door kicks read as wall-thuds, not partial-feedback.
+			//   3. Else miss thud SFX. Existing behavior.
+			DoKickCast(kickForce);
 		}
 		// else: suppressed kick. Effort grunt already played; no thud, no Kickable.
 
@@ -280,6 +318,109 @@ public class PlayerController : MonoBehaviour
 		yield return new WaitForSeconds(kickDuration);
 
 		isKicking = false;
+	}
+
+	/// <summary>
+	/// Forward sphere cast for the Kick verb. Encapsulated so KickCycle stays
+	/// readable. See KickCycle for the resolution-priority commentary.
+	///
+	/// Partitioning logic:
+	///   - Walk every collider hit by the cast.
+	///   - For each, find the owning Kickable (GetComponentInParent) if any.
+	///   - If a Kickable owns the collider AND CanBeKicked: candidate accepting Kickable.
+	///   - If a Kickable owns the collider AND NOT CanBeKicked: excluded from BOTH
+	///     buckets. The rejected Kickable doesn't receive impulse — wall-thud feel
+	///     is preserved. This is the off-axis L4 door case.
+	///   - If no Kickable owns the collider AND there's a Rigidbody: candidate
+	///     loose Rigidbody.
+	///   - Player's own Rigidbody filtered out explicitly — even with foot anchor
+	///     offset, a cast that overshoots could come back and hit the player from
+	///     behind on edge geometry.
+	///
+	/// Once partitioned, nearest accepting Kickable wins; else all loose Rigidbodies
+	/// receive impulse; else miss thud.
+	/// </summary>
+	private void DoKickCast(float kickForce)
+	{
+		Vector3 origin = footAnchor != null ? footAnchor.position : transform.position;
+		Vector3 direction = currentRestraint.GetKickDirection(this);
+
+		RaycastHit[] hits = Physics.SphereCastAll(
+			origin,
+			kickCastRadius,
+			direction,
+			kickCastDistance,
+			kickCastLayers,
+			QueryTriggerInteraction.Ignore);
+
+		Kickable nearestAcceptingKickable = null;
+		float nearestKickableDist = float.MaxValue;
+		System.Collections.Generic.HashSet<Rigidbody> looseRigidbodies =
+			new System.Collections.Generic.HashSet<Rigidbody>();
+		System.Collections.Generic.HashSet<Rigidbody> kickableOwnedRigidbodies =
+			new System.Collections.Generic.HashSet<Rigidbody>();
+
+		foreach (RaycastHit hit in hits)
+		{
+			if (hit.collider == null) continue;
+
+			Kickable owningKickable = hit.collider.GetComponentInParent<Kickable>();
+			Rigidbody hitRb = hit.collider.attachedRigidbody;
+
+			// Always exclude the player's own Rigidbody from impulse application,
+			// in case a forward cast wraps back through edge geometry. Belt-and-
+			// suspenders alongside the foot anchor offset.
+			if (hitRb == Rb) continue;
+
+			if (owningKickable != null)
+			{
+				if (owningKickable.CanBeKicked(this) && hit.distance < nearestKickableDist)
+				{
+					nearestAcceptingKickable = owningKickable;
+					nearestKickableDist = hit.distance;
+				}
+				// Track Kickable-owned Rigidbodies so we don't double-route them
+				// as loose impulse targets even if they're hit by other colliders
+				// in the same cast.
+				if (hitRb != null) kickableOwnedRigidbodies.Add(hitRb);
+			}
+			else if (hitRb != null && !hitRb.isKinematic)
+			{
+				looseRigidbodies.Add(hitRb);
+			}
+		}
+
+		// Priority 1: accepting Kickable wins. Route force to it; ignore everything else.
+		if (nearestAcceptingKickable != null)
+		{
+			nearestAcceptingKickable.OnKick(this, kickForce);
+			return;
+		}
+
+		// Priority 2: loose Rigidbodies receive impulse. Exclude any Rigidbody owned
+		// by a rejected Kickable (e.g., L4 door pivots when out of zone) — those
+		// stay un-impulsed so the off-axis door read remains "wall thud."
+		looseRigidbodies.ExceptWith(kickableOwnedRigidbodies);
+		if (looseRigidbodies.Count > 0)
+		{
+			float impulse = kickForce * kickImpulseScale;
+			foreach (Rigidbody rb in looseRigidbodies)
+			{
+				// Apply at the closest point on the rigidbody's collider rather
+				// than at center of mass — kicking a tall lamp at the base vs.
+				// at the top produces meaningfully different toppling behavior,
+				// and we want that to come out for free from the physics.
+				Vector3 applyPoint = rb.ClosestPointOnBounds(origin);
+				rb.AddForceAtPosition(direction * impulse, applyPoint, ForceMode.Impulse);
+			}
+			return;
+		}
+
+		// Priority 3: nothing useful in range. Miss thud, same as old behavior.
+		if (AudioManager.Instance != null && kickMissThudClip != null)
+		{
+			AudioManager.Instance.PlaySFX(kickMissThudClip, 1f, Random.Range(0.92f, 1.05f));
+		}
 	}
 
 	System.Collections.IEnumerator ShakeVisual()

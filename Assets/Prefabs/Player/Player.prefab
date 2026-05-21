@@ -181,6 +181,7 @@ Transform:
   m_Children:
   - {fileID: 2066318422714893918}
   - {fileID: 2383845005536782456}
+  - {fileID: 7421102376541338901}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &6311644867716891775
@@ -284,6 +285,13 @@ MonoBehaviour:
   kickEffortClip: {fileID: 8300000, guid: a008ad123a3466b48b9224ff2ab6fcf7, type: 3}
   kickMissThudClip: {fileID: 8300000, guid: ea76216119c12154686919a900143d4c, type: 3}
   kickDuration: 0.5
+  footAnchor: {fileID: 7421102376541338901}
+  kickCastRadius: 0.4
+  kickCastDistance: 1.2
+  kickImpulseScale: 8
+  kickCastLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
   currentRestraint: {fileID: 7026241982387864388}
 --- !u!54 &7730701606267843005
 Rigidbody:
@@ -377,3 +385,34 @@ MonoBehaviour:
   flipDuration: 0.25
   struggleBonus: 1.2
   kickModifier: 0.5
+--- !u!1 &3821897026556788459
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7421102376541338901}
+  m_Layer: 0
+  m_Name: FootAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7421102376541338901
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3821897026556788459}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0.4}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4709457099200860874}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

@@ -136,6 +136,23 @@ public abstract class RestraintBase : MonoBehaviour
 	/// </summary>
 	public virtual float GetMovementModifier() => 1f;
 
-	public virtual Vector3 GetKickDirection(PlayerController player) => -player.transform.forward;
+	/// <summary>
+	/// World-space direction the kick travels. Default: +forward — she kicks
+	/// the way she's facing. Restraints whose body geometry differs from
+	/// "feet point where she faces" override this:
+	///   - FloorRestraint: scoot returns +steeringForward (matches default
+	///     intent: she scoots feet-first toward what she's facing), but inch
+	///     returns -steeringForward because head leads in prone and the
+	///     feet are at the trailing end (academic — kick is suppressed in
+	///     inch anyway, modifier returns 0).
+	///   - Chair, Cuffed, Hanging: inherit the +forward default. She's upright,
+	///     feet point where she looks.
+	///
+	/// Historical note: this used to return -forward, which modeled chair-Cassie
+	/// kicking backward. That was vestigial — there's no scenario in v0 where
+	/// kicking opposite the facing direction is what the player expects.
+	/// Updated Day 43 alongside the kick-impulse physics pathway.
+	/// </summary>
+	public virtual Vector3 GetKickDirection(PlayerController player) => player.transform.forward;
 	public virtual bool IsBusy => false;
 }

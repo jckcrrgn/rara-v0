@@ -119,14 +119,15 @@ public class KickableDoor : Kickable
 	/// toward the door (so a "kick" reads as kicking forward into it from where
 	/// the legs are pointed).
 	///
-	/// Uses the restraint's GetKickDirection rather than -transform.forward directly,
+	/// Uses the restraint's GetKickDirection rather than +transform.forward directly,
 	/// because feet/forward relationship varies by restraint:
-	///   - Inch (FloorRestraint, prone, head-leading): feet = -forward
-	///   - Scoot (FloorRestraint, supine, feet-leading): feet = +forward
-	///   - Chair / Cuffed / Hanging: feet = -forward (default)
+	///   - Chair / Cuffed / Hanging (default): feet = +forward (she kicks the way she faces)
+	///   - FloorRestraint scoot: feet = +steeringForward (visually feet-first)
+	///   - FloorRestraint inch: feet = -steeringForward (prone, head-leading; academic — kick is 0)
 	///
-	/// Note: in inch mode the forward vector includes a small twist offset
-	/// (max ~12° during shoulder-lead). The threshold of 0.7 has slack for that.
+	/// In L4 the player scoots toward the van door, so feet point toward it and
+	/// the dot product is near 1.0. The 0.7 threshold gives ~45° of slack so
+	/// the player doesn't have to be perfectly aligned.
 	/// </summary>
 	public override bool CanBeKicked(PlayerController player)
 	{
@@ -145,7 +146,7 @@ public class KickableDoor : Kickable
 
 		Vector3 feet = player.CurrentRestraint != null
 			? player.CurrentRestraint.GetKickDirection(player)
-			: -player.transform.forward; // Fallback if somehow no restraint is set.
+			: player.transform.forward; // Fallback if somehow no restraint is set.
 
 		float dot = Vector3.Dot(feet, toDoor);
 		return dot >= feetDotThreshold;
