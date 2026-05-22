@@ -59,8 +59,9 @@ public class PlayerController : MonoBehaviour
 	[Tooltip("Base impulse magnitude applied to a loose Rigidbody on a 1.0-modifier " +
 		"kick. Scaled by the restraint's GetKickModifier — mermaid-kick (0.4) " +
 		"applies kickImpulseScale * 0.4 force. Tune via KickTestScaffold scene. " +
-		"Starting at 8 is a pure guess; calibration is what the scaffold is for.")]
-	[SerializeField] private float kickImpulseScale = 8f;
+		"Day 44: bumped 8→10 after scaffold pass — 8 left the lamp prop " +
+		"underpowered on free-kick. Calibration ongoing.")]
+	[SerializeField] private float kickImpulseScale = 10f;
 
 	[Tooltip("Layers the kick cast considers. Set to include world props, doors, " +
 		"and anything else kickable; exclude the player's own layer to avoid " +
@@ -291,6 +292,10 @@ public class PlayerController : MonoBehaviour
 
 		float kickForce = currentRestraint.GetKickModifier();
 
+		Debug.Log($"[Kick] Firing. restraint={currentRestraint.GetType().Name}, " +
+			$"modifier={kickForce:F2}, scale={kickImpulseScale}, " +
+			$"impulse={kickForce * kickImpulseScale:F2}");
+
 		if (kickForce > 0f)
 		{
 			// Force-generating kick. Do a forward sphere cast from the foot anchor
@@ -353,6 +358,17 @@ public class PlayerController : MonoBehaviour
 			kickCastLayers,
 			QueryTriggerInteraction.Ignore);
 
+		Debug.Log($"[KickCast] origin={origin}, dir={direction}, " +
+			$"radius={kickCastRadius}, dist={kickCastDistance}, hits={hits.Length}");
+		foreach (RaycastHit h in hits)
+		{
+			Rigidbody hrb = h.collider != null ? h.collider.attachedRigidbody : null;
+			string rbInfo = hrb != null
+				? $"rb={hrb.name} mass={hrb.mass} kinematic={hrb.isKinematic}"
+				: "rb=<none>";
+			Debug.Log($"[KickCast]   hit: {h.collider?.name} ({rbInfo}) dist={h.distance:F2}");
+		}
+
 		Kickable nearestAcceptingKickable = null;
 		float nearestKickableDist = float.MaxValue;
 		System.Collections.Generic.HashSet<Rigidbody> looseRigidbodies =
@@ -412,6 +428,7 @@ public class PlayerController : MonoBehaviour
 				// and we want that to come out for free from the physics.
 				Vector3 applyPoint = rb.ClosestPointOnBounds(origin);
 				rb.AddForceAtPosition(direction * impulse, applyPoint, ForceMode.Impulse);
+				Debug.Log($"[KickCast] impulse={impulse:F2} → {rb.name} (mass={rb.mass}) at {applyPoint}");
 			}
 			return;
 		}

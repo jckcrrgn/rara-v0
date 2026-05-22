@@ -108,8 +108,10 @@ using UnityEngine;
 ///   - Elbows: GetMovementModifier 0.65, GetStruggleModifier 0.5
 ///     (L6 failure-loop adds this to model tighter re-binding)
 ///   - AnkledToChair: GetKickModifier 0 (legs are furniture)
-///   - Ankles without AnkledToChair: GetKickModifier 0.4 (mermaid-kick;
-///     reduced force, used for chair-tip via wall reaction in L6)
+///   - Ankles without AnkledToChair: GetKickModifier 0.7 (mermaid-kick;
+///     reduced force, used to topple the L6 lamp off the nightstand.
+///     Was 0.4 through Day 43; bumped Day 44 — 0.4 was too weak to
+///     reliably clear the topple threshold)
 ///   - Ankles + Knees: GetKickModifier 0 (hip leverage gone, even
 ///     mermaid-kick fails). Reserved for L6 failure escalation.
 /// </summary>
@@ -428,9 +430,15 @@ public class ChairRestraint : RestraintBase
 		// This is the post-chair-break, pre-Ankles-cut state, and the
 		// "kick the wall to tip" state if she clears AnkledToChair while
 		// still in chair.
+		// Day 44: 0.4 → 0.7. At 0.4 mermaid-kick was too weak to reliably
+		// topple the L6 lamp off the nightstand, which is the canonical
+		// solve path (lamp smash → shard tool + start guard timer). The
+		// gap between free-kick (1.0) and mermaid-kick (0.7) is now ~1.4×
+		// rather than 2.5×; verify in scaffold A/B that the two states
+		// still read as distinct.
 		if ((BoundLimbs & BoundLimbs.Ankles) != 0)
 		{
-			return 0.4f;
+			return 0.7f;
 		}
 
 		// Free legs.
