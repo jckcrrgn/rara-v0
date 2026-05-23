@@ -181,6 +181,20 @@ The guard cleans evidence Cassie could exploit (lamp shards, which scream "tool 
 
 Plus, on attempt 3 floorbound (or any floorbound state): **radiator edge** is always available as a last-ditch tool.
 
+### Why Chair B exists
+
+Chair B is room-consistency insurance for the failure loop. If Cassie tips
+and breaks Chair A on attempt 1, then fails the level, the guard needs
+*something* to re-bind her to. Without Chair B, the room either contradicts
+itself (Chair A magically reappears) or the player gets thrown into a
+floorbound state on attempt 2 that the level isn't designed for as the
+default. Chair B handles this: on failure, if Chair A is broken, the guard
+drags Chair B from the west wall to center and binds Cassie to it. The
+attempt matrix in this section captures the resulting state.
+
+Chair B is also tippable on its own — once it's the "active" chair, the
+chair-tip escape path is back in play.
+
 ### Loop cap behavior
 
 Indefinite retries; bonds cap at max (attempt 3 state). The guard does not reset the scene. Cassie can fail forever in the max-bond state if she chooses. The "stuck" state is recoverable by choosing to escalate strategy (e.g., a pure-drawer-path player who's stuck can choose to break a chair).

@@ -288,7 +288,7 @@ MonoBehaviour:
   footAnchor: {fileID: 7421102376541338901}
   kickCastRadius: 0.4
   kickCastDistance: 1.2
-  kickImpulseScale: 8
+  kickImpulseScale: 12
   kickCastLayers:
     serializedVersion: 2
     m_Bits: 4294967295

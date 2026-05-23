@@ -112,8 +112,10 @@ using UnityEngine;
 ///     reduced force, used to topple the L6 lamp off the nightstand.
 ///     Was 0.4 through Day 43; bumped Day 44 — 0.4 was too weak to
 ///     reliably clear the topple threshold)
-///   - Ankles + Knees: GetKickModifier 0 (hip leverage gone, even
-///     mermaid-kick fails). Reserved for L6 failure escalation.
+///   - Ankles + Knees: GetKickModifier 0.6 (knees-bound reduces hip
+///     leverage, mermaid-kick is weaker but still viable). L6 failure-
+///     loop escalation — separate from "untie time" which is a
+///     struggle-modifier concern, not a kick concern.
 /// </summary>
 public class ChairRestraint : RestraintBase
 {
@@ -412,17 +414,18 @@ public class ChairRestraint : RestraintBase
 	{
 		// AnkledToChair: legs are furniture. Kick fully suppressed regardless
 		// of what else is going on with the ankles/knees. Default L1-L3 state.
+		// This is the ONLY state that fully disables the kick.
 		if ((BoundLimbs & BoundLimbs.AnkledToChair) != 0)
 		{
 			return 0f;
 		}
 
-		// Ankles + Knees: legs bound together AND hip leverage killed.
-		// Even the mermaid-kick fails — no way to drive the kinetic chain.
-		// Reserved for L6 failure-loop escalation.
+		// Ankles + Knees: legs bound together with knees also bound, reducing
+		// hip leverage. Mermaid-kick still works but is weaker than ankles-alone.
+		// L6 failure-loop escalation state: kick remains viable, just harder.
 		if ((BoundLimbs & BoundLimbs.Ankles) != 0 && (BoundLimbs & BoundLimbs.Knees) != 0)
 		{
-			return 0f;
+			return 0.6f;
 		}
 
 		// Ankles alone: legs bound together but free of the chair. Mermaid-
@@ -430,15 +433,13 @@ public class ChairRestraint : RestraintBase
 		// This is the post-chair-break, pre-Ankles-cut state, and the
 		// "kick the wall to tip" state if she clears AnkledToChair while
 		// still in chair.
-		// Day 44: 0.4 → 0.7. At 0.4 mermaid-kick was too weak to reliably
-		// topple the L6 lamp off the nightstand, which is the canonical
-		// solve path (lamp smash → shard tool + start guard timer). The
-		// gap between free-kick (1.0) and mermaid-kick (0.7) is now ~1.4×
-		// rather than 2.5×; verify in scaffold A/B that the two states
-		// still read as distinct.
+		// Day 45: 0.7 → 0.8. At 0.7 with nightstand mass 4 / lamp mass 2,
+		// mermaid-kick took 4 well-timed kicks to dislodge the lamp — edged
+		// toward tedium. 0.8 should land closer to 2-3 kicks. Free-vs-mermaid
+		// gap is now 1.25× — verify the two states still read as distinct.
 		if ((BoundLimbs & BoundLimbs.Ankles) != 0)
 		{
-			return 0.7f;
+			return 0.8f;
 		}
 
 		// Free legs.
@@ -449,7 +450,7 @@ public class ChairRestraint : RestraintBase
 	{
 		// Drive the disabled-kick hint off the actual modifier rather than
 		// a specific flag, so the hint stays correct as the kick logic
-		// evolves (AnkledToChair = 0, Ankles+Knees = 0, mermaid-kick = 0.4,
+		// evolves (AnkledToChair = 0, Ankles+Knees = 0.6, mermaid-kick = 0.8,
 		// free = 1.0). Only the modifier=0 case reads as "can't kick" to
 		// the player; mermaid-kick produces real force and shouldn't be
 		// marked disabled.
@@ -522,6 +523,20 @@ public class ChairRestraint : RestraintBase
 	{
 		RemoveBondState(BoundLimbs.Elbows);
 		Debug.Log($"[ChairRestraint] Elbow bond removed. BoundLimbs = {BoundLimbs}");
+	}
+
+	[ContextMenu("Debug: Add Knee Bond")]
+	private void DebugAddKneeBond()
+	{
+		AddBondState(BoundLimbs.Knees);
+		Debug.Log($"[ChairRestraint] Knee bond added. BoundLimbs = {BoundLimbs}");
+	}
+
+	[ContextMenu("Debug: Remove Knee Bond")]
+	private void DebugRemoveKneeBond()
+	{
+		RemoveBondState(BoundLimbs.Knees);
+		Debug.Log($"[ChairRestraint] Knee bond removed. BoundLimbs = {BoundLimbs}");
 	}
 
 	[ContextMenu("Debug: Break Chair Anchor (clear AnkledToChair, keep Ankles)")]

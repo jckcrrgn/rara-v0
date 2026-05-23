@@ -242,8 +242,10 @@ public class PlayerController : MonoBehaviour
 
 	/// <summary>
 	/// Kick verb entry point. Delegates to KickCycle coroutine, which owns the
-	/// timing of the kick action (wind-up, strike, recovery). Gated on IsBusy:
-	/// can't kick mid-crawl, can't kick mid-flip, can't kick mid-kick.
+	/// timing of the kick action (wind-up, strike, recovery). Gated on IsBusy AND 
+	/// IsGrounded: can't kick mid-crawl, mid-flip, mid-kick,
+	/// or mid-hop. Cassie's kinetic chain depends on having ground under her —
+	/// you can't drive a kick from the air.
 	///
 	/// Why a coroutine instead of a cooldown timer:
 	///   The kick is an action that takes time, not a button with a refractory
@@ -257,6 +259,7 @@ public class PlayerController : MonoBehaviour
 	{
 		if (currentRestraint == null) return;
 		if (IsBusy) return;
+		if (!IsGrounded) return;
 
 		StartCoroutine(KickCycle());
 	}
