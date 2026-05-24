@@ -494,14 +494,19 @@ public class PlayerController : MonoBehaviour
 		}
 
 		InteractableBase nearby = FindNearestInteractable();
-		if (nearby is Pickupable pickupable)
+		if (nearby == null)
 		{
-			pickupable.OnPickUp(this);
+			Debug.Log("Nothing to interact with here.");
+			return;
 		}
-		else
-		{
-			Debug.Log("Nothing to pick up here.");
-		}
+
+		// OnPickUp is the E-key dispatch hook on InteractableBase, not literally
+		// "picking up." Pickupable subclasses use it for the held-item handoff
+		// (player.HoldItem + SetActive(false) on world version). Non-Pickupable
+		// Interactables (Drawer, future doors, etc.) can override OnPickUp to
+		// mean their own E-key verb -- a back-facing drawer opens, a lever
+		// flips, etc. Each subclass decides what E means in its context.
+		nearby.OnPickUp(this);
 	}
 
 	public void HoldItem(Pickupable item)
@@ -517,6 +522,9 @@ public class PlayerController : MonoBehaviour
 
 	InteractableBase FindNearestInteractable()
 	{
+		// Broadphase: gather everything within the global interaction sweep.
+		// interactionCheckRadius is a generous upper bound; the per-instance
+		// filter below is what actually gates which objects accept interaction.
 		Collider[] hits = Physics.OverlapSphere(transform.position, interactionCheckRadius, interactableLayer);
 
 		InteractableBase nearest = null;
@@ -529,6 +537,15 @@ public class PlayerController : MonoBehaviour
 			if (!interactable.gameObject.activeInHierarchy) continue;
 
 			float dist = Vector3.Distance(transform.position, hit.transform.position);
+
+			// Per-instance range filter: each interactable declares its own
+			// reach distance via InteractionRange. The drawer's bound-hands
+			// verb wants a short range (Cassie has to be close, simulating
+			// limited reach behind her back). A pen on a table wants a
+			// normal pickup range. The global interactionCheckRadius is the
+			// broadphase upper bound; this is the per-object tuning knob.
+			if (dist > interactable.InteractionRange) continue;
+
 			if (dist < nearestDist)
 			{
 				nearest = interactable;

@@ -1,9 +1,13 @@
 using System.Collections;
 using UnityEngine;
 
-// Slides forward on local Z when Open() is called. Hook a Jostleable's (or
-// Bumpable's) OnJostleComplete / OnBumped UnityEvent to this component's
-// Open() method in the inspector.
+// Slides forward on local Z when Open() is called. Two ways to trigger:
+//   1. Wire a Jostleable.OnJostleComplete / Bumpable.OnBumped event to Open()
+//      in the inspector (L3 pattern -- desk-bump cumulative jostle).
+//   2. Set requireBackFacing = true and put Drawer on a layer the player's
+//      interaction sweep sees. Player presses E while bound-hands range
+//      reaches the drawer -- diegetic for chair-bound or floor-bound Cassie
+//      whose hands are tied behind her back (L6 pattern).
 //
 // Loose-contents rattle: also exposes OnProgress(float), wired to a
 // Jostleable's OnJostleProgress event. Every bump that registers above
@@ -12,16 +16,33 @@ using UnityEngine;
 // fire-once cue, it stays present and intensifies as the drawer gets closer
 // to popping, mirroring the desk's own creak.
 //
-// Contents (e.g. scissors) are kept disabled until the drawer finishes
+// Contents (e.g. pen, scissors) are kept disabled until the drawer finishes
 // opening, so the player can't pick them up through closed geometry.
-public class Drawer : MonoBehaviour
+public class Drawer : InteractableBase
 {
 	[Header("Slide Settings")]
-	[Tooltip("How far the drawer slides on its local Z axis when opened.")]
+	[Tooltip("How far the drawer slides on the slideAxis when opened.")]
 	[SerializeField] private float slideDistance = 0.35f;
+
+	[Tooltip("Local-space direction the drawer opens. Default (0,0,1) is local +Z. " +
+	         "Use (-1,0,0) for a drawer that opens westward in world space when " +
+	         "the GameObject has no rotation, etc. Will be normalized at use.")]
+	[SerializeField] private Vector3 slideAxis = Vector3.forward;
 
 	[Tooltip("Seconds the tween takes.")]
 	[SerializeField] private float slideDuration = 0.4f;
+
+	[Header("Bound-Hands Interaction (L6+)")]
+	[Tooltip("If true, OnPickUp (E key) opens the drawer only when the player " +
+	         "is facing AWAY from it -- simulating bound hands reaching behind. " +
+	         "Leave false for L3-style bump-to-open drawers, which only respond " +
+	         "to Jostleable/Bumpable event wiring.")]
+	[SerializeField] private bool requireBackFacing = false;
+
+	[Tooltip("Dot product threshold for the back-facing gate. 0.7 ~= 45 degree " +
+	         "cone behind the player. Higher = stricter alignment required.")]
+	[Range(0f, 1f)]
+	[SerializeField] private float backFacingThreshold = 0.7f;
 
 	[Header("Contents")]
 	[Tooltip("Objects (usually a Pickupable) to enable once the drawer is fully open.")]
@@ -61,8 +82,35 @@ public class Drawer : MonoBehaviour
 		}
 	}
 
-	// Public entry point. Wire this to Jostleable.OnJostleComplete (or Bumpable.OnBumped)
-	// in the inspector.
+	// InteractableBase hook. Fires when the player presses E with this as the
+	// nearest interactable. For bump-only drawers (L3), this is a no-op --
+	// they only open via the Jostleable event wiring. For back-facing drawers
+	// (L6+), this is the bound-hands open verb, gated by player facing.
+	//
+	// Note: "OnPickUp" is the player-facing verb (press E), not literally
+	// "pick up." Future refactor candidate: rename to OnInteract on
+	// InteractableBase. Not blocking.
+	public override void OnPickUp(PlayerController player)
+	{
+		if (!requireBackFacing) return;
+		if (isOpen || isOpening) return;
+
+		Vector3 dirToDrawer = (transform.position - player.transform.position).normalized;
+		float backwardness = Vector3.Dot(-player.transform.forward, dirToDrawer);
+
+		if (backwardness < backFacingThreshold)
+		{
+			Debug.Log($"Drawer ({name}): not back-facing (dot={backwardness:F2} < {backFacingThreshold}). " +
+			          $"Cassie's hands can't reach.");
+			return;
+		}
+
+		Debug.Log($"Drawer ({name}): bound-hands open (dot={backwardness:F2}).");
+		Open();
+	}
+
+	// Public entry point. Wire this to Jostleable.OnJostleComplete (or
+	// Bumpable.OnBumped) in the inspector for L3-style bump-to-open.
 	public void Open()
 	{
 		if (isOpen || isOpening) return;
@@ -92,7 +140,7 @@ public class Drawer : MonoBehaviour
 			AudioManager.Instance.PlaySFX(openClip, 1f, Random.Range(0.97f, 1.03f));
 
 		Vector3 start = closedLocalPos;
-		Vector3 end = closedLocalPos + Vector3.forward * slideDistance;
+		Vector3 end = closedLocalPos + slideAxis.normalized * slideDistance;
 
 		float elapsed = 0f;
 		while (elapsed < slideDuration)
@@ -107,7 +155,7 @@ public class Drawer : MonoBehaviour
 
 		transform.localPosition = end;
 
-		// Reveal contents -- scissors become pickupable now.
+		// Reveal contents -- pen / scissors become pickupable now.
 		foreach (GameObject obj in contents)
 		{
 			if (obj != null) obj.SetActive(true);

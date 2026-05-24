@@ -513,3 +513,70 @@ fleshed-out Struggle could re-justify universal barehand struggle as
 a meaningful verb in its own right. Park for v1 / sequel. Worth
 writing up properly — easy thing to forget if it lives only in
 chat.
+
+## Day 46 — L6 patient path shipped
+
+### L3 vs L6 drawer fiction inconsistency
+
+L3 establishes that bumping a desk hard enough opens its drawer
+(cumulative Jostleable mechanic). L6's nightstand has a drawer that
+does NOT open from kicks/bumps, despite kicks being capable of
+toppling the lamp sitting on top of the same nightstand. The L6
+drawer requires the new back-facing bound-hands verb (S to back-scoot
+in, E to open).
+
+This is a real fictional inconsistency: same furniture grammar,
+different rules. The justification is design-internal (loud path vs.
+patient path must be genuinely different verbs), but a playtester
+paying attention might catch it. Acceptable for v0; flag if Playtest
+2 catches it. Potential reconciliations if needed:
+
+- L6 nightstand drawer has a "lock or stuck mechanism" that bumping
+  can't defeat (fictional add).
+- L3 drawer also requires back-facing interaction (would invalidate
+  L3's existing solve flow — bigger change).
+- Accept the inconsistency as a design grammar shift between Act 1
+  and Act 2 (Act 2 introduces bound-hands as a real positioning verb).
+
+Lean: third option. Park.
+
+### Floor-bound back-up verb (parked)
+
+Day 46's back-scoot is ChairRestraint-only. The bound-hands verb
+(`Drawer.requireBackFacing`) works from any state — the dot product
+gate is purely about player facing — but floor-bound Cassie has no
+way to position herself for a back-facing interaction yet. Use case:
+future level where she stands up from FloorRestraint (L7 verb),
+inches forward to a table, then needs to back up to position her
+bound hands over a tool.
+
+When implemented, this should mirror FloorRestraint.Inch's hold-key
+cadence (the existing floor verb grammar is hold-W discrete cycles),
+so it'll be hold-S with cycle-by-cycle backward movement. Smaller
+magnitude than Inch — same reason ChairRestraint back-scoot is
+smaller than ForwardHop. Probably a 30-45 min session of its own
+once L7 design starts to pressure for it.
+
+### InteractableBase.OnPickUp naming
+
+The drawer-open verb routes through `InteractableBase.OnPickUp`,
+which is semantically a stretch (opening a drawer isn't picking up).
+Player-facing this is fine — E is the key, the verb just happens to
+be context-sensitive — but the internal name will get confusing as
+more non-Pickupable interactables are added. Rename candidate:
+`OnInteract` or `OnPress`, with `Pickupable` overriding to do its
+held-item handoff. Refactor when there's a third non-Pickupable
+InteractableBase subclass; not yet.
+
+### InteractableBase.InteractionRange now actually used
+
+The per-instance `interactionRange` field on InteractableBase was
+exposed but ignored — `FindNearestInteractable` gathered everything
+inside PlayerController's global `interactionCheckRadius` and took
+the nearest. As of Day 46, it filters per-instance: each
+interactable's own `InteractionRange` gates whether it's a valid
+candidate. L6 nightstand drawer tuned to 1.3 (pivot-to-pivot,
+geometry has ~1u half-extents on X/Z so 1.3 = ~0.3 outside the
+mesh). Defaults stay at 1.5 across the board, so existing levels
+*should* be unaffected — but the change is a real shift in pickup
+semantics, worth a regression sanity-check on L1–L5 next session.

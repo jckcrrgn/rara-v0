@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -124,6 +125,31 @@ public class ChairRestraint : RestraintBase
 		"Existing forward-hop verb, unchanged.")]
 	[SerializeField] private float hopForce = 3f;
 
+	[Header("Back Scoot (S, hold)")]
+	[Tooltip("How far the chair travels per back-scoot cycle. Smaller than the " +
+		"forward hop's effective distance: backing up with bound legs is a " +
+		"foot-push shimmy, not a lunge. The chair-back prevents the lunge " +
+		"motion that drives the forward hop, so backward motion is patient " +
+		"and small-magnitude. 0.15 is a starting point — tune for feel.")]
+	[SerializeField] private float backScootDistance = 0.15f;
+
+	[Tooltip("Duration of the push phase. Foot pushes off the floor, chair " +
+		"shimmies back.")]
+	[SerializeField] private float backScootLungeDuration = 0.25f;
+
+	[Tooltip("Duration of the settle phase between scoots. Chair re-centers " +
+		"under Cassie's weight before the next push.")]
+	[SerializeField] private float backScootSettleDuration = 0.35f;
+
+	[Tooltip("Pause between back-to-back cycles when S is held. Preserves the " +
+		"discrete-rep cadence — without it, hold-S reads as smooth gliding " +
+		"instead of shimmying.")]
+	[SerializeField] private float backScootInterCycleDelay = 0.08f;
+
+	[Tooltip("Plays on each back-scoot push. Wooden scuff, chair-legs against " +
+		"floor. Optional — safe to leave empty.")]
+	[SerializeField] private AudioClip backScootClip;
+
 	[Header("Turn-Hop (A / D)")]
 	[Tooltip("Vertical impulse component. Lifts the chair off the floor on " +
 		"each tap so the rotation doesn't read as a slide. Tune this first.")]
@@ -189,11 +215,14 @@ public class ChairRestraint : RestraintBase
 		"thud. Optional -- safe to leave empty until SFX wiring pass.")]
 	[SerializeField] private AudioClip turnHopClip;
 
-	// Rotation is impulse-fired and grounded-gated, but doesn't have an
-	// extended busy window -- you tap, the impulse fires, you can tap again.
-	// IsBusy stays false: no other body verb needs to know about an in-flight
-	// turn-hop because there's nothing to coordinate with.
-	public override bool IsBusy => false;
+	// Rotation, forward hop are impulse-fired and grounded-gated; no busy
+	// window. Back-scoot is coroutine-based with a real lunge+settle cycle,
+	// so it DOES set IsBusy true while active — other verbs (turn-hop, forward
+	// hop, kick, rock) shouldn't fire mid-scoot, and a second scoot can't
+	// start until the current one finishes (or its inter-cycle window opens).
+	public override bool IsBusy => isBackScooting;
+
+	private bool isBackScooting = false;
 
 	// Set true once the tip event has fired and the handoff has begun. Prevents
 	// double-fire from a second side-marker collision in the same frame (the
@@ -238,6 +267,22 @@ public class ChairRestraint : RestraintBase
 		if (Input.GetKeyDown(KeyCode.W) && player.IsGrounded)
 		{
 			ForwardHop(player);
+		}
+
+		// Back scoot: S, hold-to-repeat with discrete-cycle cadence (mirrors
+		// FloorRestraint's Inch pattern). Gated on grounded and not-already-
+		// scooting. Hold-S chains cycles automatically at the end of each
+		// MoveCycle iteration; this block only kicks off the first one.
+		//
+		// Shift-gated: if Shift is held we're in rocking-mode input space, so
+		// S should NOT fire scoot. Rocking is an instant impulse (no busy
+		// window), so checking player.IsBusy isn't sufficient — between rocks
+		// IsBusy is false but the player is still committed to rocking input.
+		// Explicit shift check matches the asymmetry the turn-hop block has
+		// with rocking (shift+A/D is rocking; bare A/D is turn-hop).
+		if (!shiftHeld && Input.GetKey(KeyCode.S) && player.IsGrounded && !player.IsBusy)
+		{
+			player.StartCoroutine(BackScootCycle(player));
 		}
 	}
 
@@ -410,6 +455,73 @@ public class ChairRestraint : RestraintBase
 		player.Rb.AddForce(hopDirection * hopForce * mod, ForceMode.Impulse);
 	}
 
+	/// <summary>
+	/// One back-scoot cycle. Cassie pushes off the floor with her feet, and
+	/// the chair shimmies backward a small distance. Mirror of FloorRestraint's
+	/// Inch in cadence (lunge + settle + inter-cycle delay), but:
+	///   - smaller per-cycle distance (foot-push, not full-body lunge)
+	///   - no shoulder lead (foot-push is symmetric; both feet push together)
+	///   - travels along -transform.forward (backward in body-local space)
+	///
+	/// Travel uses MovePosition rather than AddForce — the existing forward
+	/// hop uses physics impulse because it's a single committed lunge with
+	/// natural arc and landing. Back-scoot is a controlled small slide; kinematic
+	/// movement reads cleaner and the grounded gate at cycle start keeps
+	/// physics from fighting the motion.
+	///
+	/// Hold-S chaining: at the end of each cycle, if S is still held and the
+	/// player isn't busy with another body-committing verb, the next cycle
+	/// starts directly. Matches FloorRestraint.Inch's pattern.
+	/// </summary>
+	private IEnumerator BackScootCycle(PlayerController player)
+	{
+		isBackScooting = true;
+
+		float mod = GetMovementModifier();
+		float perCycleDistance = backScootDistance * mod;
+
+		if (AudioManager.Instance != null && backScootClip != null)
+		{
+			AudioManager.Instance.PlaySFX(backScootClip, 1f, Random.Range(0.95f, 1.05f));
+		}
+
+		// Push phase: shimmy back along -transform.forward over lungeDuration.
+		float elapsed = 0f;
+		while (elapsed < backScootLungeDuration)
+		{
+			Vector3 perFrameDelta = -player.transform.forward
+				* (perCycleDistance / backScootLungeDuration) * Time.deltaTime;
+			player.Rb.MovePosition(player.Rb.position + perFrameDelta);
+			elapsed += Time.deltaTime;
+			yield return null;
+		}
+
+		// Settle phase: chair re-centers under Cassie's weight. No motion;
+		// just a beat of dead time so the next push reads as a discrete rep.
+		yield return new WaitForSeconds(backScootSettleDuration);
+
+		// Inter-cycle pause: preserves discrete-rep cadence on hold-S. Without
+		// it, holding S reads as smooth gliding rather than shimmying.
+		if (backScootInterCycleDelay > 0f)
+		{
+			yield return new WaitForSeconds(backScootInterCycleDelay);
+		}
+
+		isBackScooting = false;
+
+		// Hold-S chaining: if S still held AND player isn't busy with any
+		// other body-committing action, start the next cycle directly. Don't
+		// wait for the next Update tick (would add unpredictable frame of dead
+		// time). Grounded check too — a mid-air chair shouldn't keep scooting.
+		// Shift check matches the kickoff gate: shift-held means rocking input
+		// space, so the scoot chain breaks if the player engages shift mid-hold.
+		bool shiftHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+		if (!shiftHeld && Input.GetKey(KeyCode.S) && player.IsGrounded && !player.IsBusy)
+		{
+			player.StartCoroutine(BackScootCycle(player));
+		}
+	}
+
 	public override float GetKickModifier()
 	{
 		// AnkledToChair: legs are furniture. Kick fully suppressed regardless
@@ -459,6 +571,7 @@ public class ChairRestraint : RestraintBase
 		List<ControlHint> hints = new List<ControlHint>
 	{
 		new ControlHint("Hop", "W"),
+		new ControlHint("Back Up", "S (hold)"),
 		new ControlHint("Turn", "A / D"),
 	};
 

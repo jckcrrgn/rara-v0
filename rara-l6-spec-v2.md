@@ -13,16 +13,18 @@ Cassie is bound to a chair in the center of a mid-tier business hotel suite, und
 
 ## 2. New Mechanics Introduced
 
-L6 is Act 2's opening salvo. The chair-tip mechanic, soft timer, offstage guard audio, and failure-loop mutter sequence all debut here. Nightstand interaction and tool-on-floor pickup carry forward from L2/L3 templates.
+L6 is Act 2's opening salvo. The chair-tip mechanic, soft timer, offstage guard audio, and failure-loop mutter sequence all debut here. The ChairRestraint back-scoot verb and the bound-hands drawer-open interaction also debut here — both are general-purpose verbs that will recur in future levels, not L6-exclusive. Tool-on-floor pickup carries forward from L2 template.
 
 | Mechanic | Debut in L6? | Notes |
 | :---- | :---- | :---- |
 | Chair-tip rocking (Shift+A/D) | ✅ first taught here | `rockingEnabled = true` on this level only so far |
+| ChairRestraint back-scoot (hold S) | ✅ first taught here | Hold-S coroutine cadence (lunge + settle + inter-cycle), mirrors FloorRestraint.Inch but smaller magnitude. Foot-push fiction: chair-back prevents lunging backward, so motion is small shimmies. Positioning verb for bound-hands interactions. |
+| Bound-hands drawer open (E, back-facing) | ✅ first taught here | `Drawer.requireBackFacing` gates Open() on player back-facing the drawer (dot product against `backFacingThreshold`, default 0.7). General verb — applies to any back-facing interaction in chair-bound OR floor-bound state. Floor-bound version is parked until a level needs it. |
 | Soft timer | ✅ first taught here | Triggers: lamp smash OR chair-tip crash (first occurrence wins) |
 | Offstage guard audio | ✅ first taught here | Diegetic, stationary, hallway source |
 | Failure-loop mutter sequence | ✅ first taught here | Beat 6: guard sets bond → Cassie reacts |
-| Nightstand interaction | Reused from L3 template | Drawer jostle opens drawer; lamp on top responds to physics impulse |
 | Tool-on-floor pickup | Reused from L2 template | Carries over: lamp shards, chair shards, radiator edge all use this |
+| PointTool struggle progression | Existing system | Pen-on-rope: `pointProgress=5` per Struggle against `bondStrength=25` = 5-press cut |
 
 ---
 
@@ -110,7 +112,7 @@ First-pass coordinates. Adjust in Unity once geometry is in.
 | :---- | :---- | :---- | :---- |
 | 1 | Entry | LevelManager.Start (via `entryMutter`) | None — fires on load |
 | 2 | 5-struggle failure | StruggleSystem counter hits 5 | None — counter-based |
-| 3 | Nightstand proximity (drawer focus) | Player enters trigger near nightstand | Trigger radius: 2u (revisit in playtest) |
+| 3 | Nightstand proximity (drawer focus) | Player enters trigger near nightstand | Trigger radius: 2u. Mutter content nudges Cassie toward the drawer; player has to discover S + back-facing on their own (diegetic teaching, no rhythm or verb explanation) |
 | 4 | First loud event reaction ("...shit") | Lamp smash OR chair-tip crash, whichever fires first | Trigger from either event; timer also starts here |
 | 5 | Offstage guard pressure (~50% timer) | LevelTimer threshold event | Spatial: guard audio cue ramps |
 | 6a | Guard sets bond (failure loop) | Failure-loop trigger (timer expires) | Audio source position drives stereo cue |
@@ -175,7 +177,7 @@ The guard cleans evidence Cassie could exploit (lamp shards, which scream "tool 
 
 ### Three viable escape paths (any attempt)
 
-1. **Patient (drawer path)**: Jostle drawer until it opens, pick up pen, use pen to cut bonds, escape. Timer may never start if no lamp smash and no chair tip.
+1. **Patient (drawer path)**: Back-scoot (hold S) into position with back to the nightstand, press E to open the drawer (gated on back-facing — see `Drawer.requireBackFacing`), press E again to pick up the pen, Struggle (Space) until bond breaks. Pen is a PointTool — `pointProgress=5` against rope `bondStrength=25` = 5 Struggles to cut. Timer never starts if no lamp smash and no chair tip; this is the silent route.
 2. **Loud (lamp smash path)**: Jostle nightstand until lamp falls and smashes, tip chair, crawl to lamp shards, use shard to cut bonds, escape. Timer starts on smash.
 3. **Fast (chair-tip-first path)**: Tip chair immediately, use chair shards from the broken chair to cut bonds, escape. Timer starts on tip-crash.
 
@@ -225,7 +227,9 @@ L6 teaches: rocking/tipping, jostling-the-nightstand-causes-physics-consequences
 | Mechanic | How player learns it |
 | :---- | :---- |
 | Rocking + tipping (Shift+A/D) | Trust panel + physics affordance — chair visibly wobbles on input |
-| Jostling causes physics consequences | Player sees lamp wobble when hopping near nightstand; if they keep going, it falls |
+| ChairRestraint back-scoot (hold S) | ControlHintsPanel exposes the verb; player discovers the discrete-cycle cadence through use |
+| Bound-hands drawer interaction | Drawer sits slightly ajar at scene start, pen visible inside — telegraphs "this opens." Player discovers proximity + E by experimentation. Back-facing requirement is taught through failure feedback (`Cassie's hands can't reach` debug log on wrong angle; promote to diegetic mutter or UI cue in future polish pass) |
+| Kicking the nightstand causes physics consequences | Player kicks the nightstand → lamp wobbles → eventually falls and smashes (Day 44–45 calibration: mermaid-kick at 0.8 modifier, lamp mass 2, nightstand mass 4 yields a 2–3-kick topple) |
 | Soft timer | Beat 4 mutter (Cassie reacts to noise) + Beat 5 mutter (guard pressure) — player infers from context, no UI |
 | Offstage guard | Audio cue ramping at Beat 5; guard mutter through diegetic source on failure |
 | Failure loop | Experienced, not explained — first failure plays Beat 6a/6b, player sees bonds escalate, environmental state shift |
@@ -235,7 +239,6 @@ L6 teaches: rocking/tipping, jostling-the-nightstand-causes-physics-consequences
 ## 10. Open Questions / Risks
 
 - [ ] Lamp physics calibration: mass and impulse threshold for "wobble vs. fall." Use kickable test scaffold (currently parked — promote to next-session if L6 implementation starts).
-- [ ] Drawer-jostle implementation: does this reuse L3's exact mechanic, or is it physics-based like the lamp? Decide before implementing.
 - [ ] Guard-return-on-failure presentation: brief fade-to-black? Audio-only montage? Cut directly? Tonally significant.
 - [ ] First Beat 6 mutter content: needs writing (Jack to author, per character voice precedent).
 - [ ] How many distinct Beat 6 mutter variants to author for failure-count variation (1, 2, 3, max)?
@@ -249,7 +252,7 @@ Things that might tempt you but belong in L7+ or post-v0:
 - [ ] Visible guard sprite/model
 - [ ] Multiple guards
 - [ ] Body-part-specific bonds (parked in ideas.md)
-- [ ] **ChairRestraint back-up verb** (would enable drawer-from-floor; parked to ideas.md)
+- [ ] **Floor-bound back-up verb** (would enable drawer-from-floor; ChairRestraint version shipped Day 46, floor version parked to ideas.md until a level needs it)
 - [ ] **Stand Up from FloorRestraint** (debuts L7)
 - [ ] **Follow camera mode** (parked to ideas.md — revisit if Act 2 tone demands tighter framing)
 - [ ] Combinatorial puzzle paths (e.g., shard + drawer-key combined solution)
