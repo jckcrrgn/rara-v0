@@ -21,7 +21,7 @@ A quirky third-person low-poly escape game where a captured detective uses Strug
 
 You're a detective. You got too close. Now you wake up restrained in a room — tied to a chair, cuffed to a pipe, duct-taped on the floor. Each level is a new room, a new predicament, a new escape.
 
-The game starts grounded and noir. By the end, you're defusing a bomb in a volcano lair. The detective's dry commentary holds it all together — they're annoyed at first, then nervous, then completely out of their depth but still cracking jokes.
+The game starts grounded and noir. By the end, you're defusing a bomb in the villain's study, still bound, the stakes finally external. The detective's dry commentary holds it all together — they're annoyed at first, then nervous, then completely out of their depth but still cracking jokes.
 
 ---
 
@@ -107,13 +107,13 @@ Each restraint type changes how the four verbs behave, giving levels distinct fe
 **Voice / Muttering:** Cassie thinks aloud. This serves three purposes:
 1. **Personality** — "Tied to a chair. Again. Wonderful."
 2. **Hints** — "That drawer's half open... if I could reach it." (Contextual, triggers after idle time or failed attempts)
-3. **Tonal escalation** — Early levels: calm, annoyed. Mid levels: nervous, talking faster. Late levels: panicked one-liners. "A laser grid. Because of course there's a laser grid."
+3. **Tonal escalation** — Early levels: calm, annoyed. Mid levels: nervous, talking faster. Late levels: panicked one-liners. "A bomb. Of course there's a bomb."
 
 Keep lines short. 5–10 words max. No voice acting needed for v0 — text popups near the character's head work fine. Voice can be added later.
 
 ---
 
-## Level Structure (15 Levels)
+## Level Structure (12 Levels)
 
 ### Act 1 — Noir (Levels 1–5)
 **Setting:** Grounded, gritty. Back rooms, storage units, a parked van, a basement office.
@@ -173,16 +173,20 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 
 - **L7 — TBD** *(Feign debut, visible guard)*: Continuation of L6's hotel/thriller setting. The offstage guard from L6 becomes physical — visible model, line-of-sight or proximity awareness, investigation behavior. Cassie escapes initial restraint, hears the guard approaching, must **Feign** (debut) to avoid detection: re-pose into bound posture, drift threshold determines whether guard is fooled or escalates to re-restraint. Pays off the offstage threat seeded in L6. Builds: guard AI, Feign verb + drift/detection mechanic, visible guard model + animations.
 
-### Act 3 — Absurd (Levels 11–15)
-**Setting:** Full spy-thriller. A villain's study, an underwater base, a room filling with water, a bomb scenario, a volcano lair.
-**Tension:** Hard timers. Visible countdown. The room is changing around you (water rising, walls closing, laser grid activating).
-**Restraints:** Creative combinations. Hanging + the floor is electrified. Chair on a conveyor belt. Cuffed inside a slowly tilting room.
-**Detective mood:** Panicked but quipping. "A conveyor belt. Into a pit. Sure. Sure!"
+### Act 3 — Showpiece + Finale (Levels 11–12)
+**Setting:** Confined and personal. The villain's study (L11), then a wider room in the same building (L12). Bookshelves, a desk, framed degrees on the wall, a humidor — the *person* responsible is finally implied by the space, not just by goons offstage. No environmental hazard systems (no rising water, no electrified floors, no tilting rooms, no conveyor belts, no laser grids — all cut from scope).
+**Tension:** Showpiece-puzzle difficulty in L11; hard timer in L12 (the bomb).
+**Restraints:** Layered/showpiece restraint in L11, designed to exercise the full verb vocabulary in sequence. L12 returns to a familiar restraint type to keep the finale's cognitive load on the *Feign* payoff, not on a new puzzle to learn.
+**Detective mood:** Out of depth but quipping. The escalation from Act 2 is *stakes*, not *setting* — the world is the same Acts 1–2 world, but the consequences have gone external.
 
-- Puzzles require 6–10 steps
-- Multiple valid solutions for some rooms (rewards creative thinking)
-- Environmental hazards force prioritization (escape the restraint AND deal with the room)
-- **Level 15 — The Finale: Turn the Tables.** The most complex room. Multiple phases. Uses every restraint type and verb in sequence. The detective escapes a final, layered restraint — and just as the last bond falls, footsteps approach. Phase shift: the player must **Feign** before the guard enters, holding still while he saunters in to gloat over his apparently helpless captive. With Feign active, only Kick is available — and only when the guard is in range. Time the kick: too early, he's out of range and it thuds harmlessly; correctly timed, the detective kicks him, takes his keys (Pick Up), and walks out the door. Satisfying payoff that recontextualizes every verb the player has learned — Move becomes stillness, Struggle becomes patience, Pick Up becomes the keys, Kick becomes the strike.
+- Puzzles in L11 require 6–10 steps and exercise every verb in sequence — the hardest puzzle in the game, but a *puzzle*, not a hazard-management scenario
+- L12 trades puzzle depth for tension: the restraint is solvable in 3–5 steps, but a hard timer + the Feign phase shift create the climactic pressure
+
+- **L11 — The Villain's Study (Showpiece Restraint).** Cassie is finally face-to-face with the antagonist — offscreen-but-present: in another room, on a TV monitor, walking past the door while making tea. The threat is no longer "the goons will come back" but "the person who has been doing this all along is twenty feet away." She's in a layered restraint: multiple bonds, multiple steps to undo, each step a callback to a verb or tool from Acts 1–2. No hard timer, no environmental hazard — *the puzzle is the threat*. The hardest design challenge in the game; the most satisfying solve when it lands.
+
+- **L12 — The Finale: Turn the Tables.** A bomb in the room. Hard timer, visible countdown. The most complex room. Multiple phases. Uses every restraint type and verb in sequence. The detective escapes a final, layered restraint — and just as the last bond falls, footsteps approach. Phase shift: the player must **Feign** before the guard enters, holding still while he saunters in to gloat over his apparently helpless captive. With Feign active, only Kick is available — and only when the guard is in range. Time the kick: too early, he's out of range and it thuds harmlessly; correctly timed, the detective kicks him, takes his keys (Pick Up), and walks out the door. Satisfying payoff that recontextualizes every verb the player has learned — Move becomes stillness, Struggle becomes patience, Pick Up becomes the keys, Kick becomes the strike. The bomb provides hard-timer tension without volcano-lair scaffolding.
+
+**Why Act 3 was cut from 5 levels to 2 (scope decision, Day 40):** The original Act 3 ("Absurd") was a tonal pivot to James Bond — volcano lair, underwater base, rising water, electrified floors, conveyor belts, laser grids. Three problems: (1) the grounded "Cassie in real rooms" premise is the *interesting* thing about Rara, and a spy-pastiche pivot risked reading as the dev getting bored of his own premise; (2) every Act 3 level as originally written was 2–3× the build cost of an Act 1 level due to new environmental hazard systems; (3) the *threat escalation* (from "you'll get caught again" to "people will die") is a real escalation that doesn't require a vibe shift to land — externalizing the stakes via the bomb does the work that "the room is filling with water" was reaching for. Cutting Act 3 to two levels preserves the Feign payoff and the "uses every verb" finale, saves three levels of design/build/polish, and lets Act 2's visual identity extend into Act 3.
 
 ---
 
@@ -190,7 +194,7 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 
 ### Environments
 - Clean low-poly geometry, flat-shaded materials, no complex textures
-- Each room has a distinct color accent (Act 1: muted greens/browns, Act 2: blues/grays, Act 3: reds/oranges/neon)
+- Each room has a distinct color accent (Act 1: muted greens/browns; Act 2: blues/grays; Act 3: Act 2's palette extended darker — the same world, just the lights are lower and the walls are closing in)
 - Lighting tells the story: dim and moody early, harsh fluorescent mid, dramatic colored lighting late
 - Interactive objects are visually distinct — slight glow, brighter color, or subtle animation (a drawer slightly ajar, a blade catching the light, a rope fraying)
 
@@ -224,8 +228,8 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 ### Music
 - Act 1: Low-key jazz or noir ambient. Calm, moody.
 - Act 2: Tension building. Pulsing, minimal. Heartbeat-like.
-- Act 3: Full thriller score. Driving percussion, urgency.
-- Can be 3 tracks total (one per act). Source from free libraries or commission later.
+- Act 3: Act 2's track intensified — the same instrumentation, faster, with the bomb-timer's tick layered in. Reinforces "same world, higher stakes."
+- Can be 2 tracks total (Act 1 + Act 2/3 shared with an intensification pass). Source from free libraries or commission later.
 
 ---
 
@@ -336,7 +340,7 @@ rara-v0/
 ### Weeks 7–8 (Days 43–56): Final Act + Ship Prep
 - [ ] Fourth restraint type (hanging)
 - [ ] Hard timer system
-- [ ] Levels 11–15 designed and playable (Act 3 complete)
+- [ ] Levels 11–12 designed and playable (Act 3 complete)
 - [ ] Title screen, credits
 - [ ] Music integrated (1 track per act)
 - [ ] Mutter lines written and implemented for all levels

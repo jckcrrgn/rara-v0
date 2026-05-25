@@ -210,6 +210,55 @@ public class ChairRestraint : RestraintBase
 		"Optional but recommended — this is a big narrative beat.")]
 	[SerializeField] private AudioClip chairBreakClip;
 
+	[Tooltip("Prefab spawned when the chair breaks. Should be a GameObject " +
+		"with a ChairShard component (PointTool subclass), a collider, and " +
+		"a Rigidbody. Spawned into the active scene at the chair's world " +
+		"position with small random offsets and a brief upward impulse. " +
+		"Per L6 §7 the guard does NOT clean these on failure — they persist " +
+		"across attempts, which is why they're spawned into the scene root " +
+		"rather than parented to the chair (which resets) or the player " +
+		"(which moves). Leave empty on levels where the chair shouldn't " +
+		"break (L1-L3 default); the spawn step is a guarded no-op without it.")]
+	[SerializeField] private GameObject chairShardPrefab;
+
+	[Tooltip("Number of shards to spawn on chair-break. 2-3 is the sweet spot: " +
+		"enough that one is reliably reachable from any post-tip position, " +
+		"few enough that they don't visually clutter the room across multiple " +
+		"failed attempts (shards persist per §7). Default 3.")]
+	[SerializeField] private int shardCount = 3;
+
+	[Tooltip("Horizontal scatter radius for spawned shards, in world units. " +
+		"Each shard's XZ position is offset by a random vector within this " +
+		"radius from the chair's world position. Keeps the shards from " +
+		"stacking on a single point and gives the player a small spread to " +
+		"approach from any angle. 0.4 is a starting point — tune for feel.")]
+	[SerializeField] private float shardScatterRadius = 0.4f;
+
+	[Tooltip("Small upward impulse applied to each shard at spawn. Gives a " +
+		"brief tumble (visual interest) and lets physics resolve any " +
+		"collider overlap with the still-falling chair before the shards " +
+		"settle. Too high and the shards fling across the room; 1.0-2.0 " +
+		"feels right.")]
+	[SerializeField] private float shardSpawnImpulse = 1.5f;
+
+	[Tooltip("Vertical offset from the chair's world position when spawning " +
+		"shards. Negative values spawn LOW (near the floor, next to the " +
+		"player); zero or positive spawns at or above the chair's pivot, " +
+		"which on a center-pivoted player cube reads as 'shards rain down " +
+		"from where Cassie is sitting' — wrong fiction. Tune to put the " +
+		"shards visibly on the floor next to her, not on top of her. " +
+		"-0.4 is a starting point for a ~1-unit-tall player cube with " +
+		"center pivot; adjust per scene.")]
+	[SerializeField] private float shardSpawnYOffset = -0.4f;
+
+	[Tooltip("Scale randomization range applied to each spawned shard. Each " +
+		"axis is independently scaled by a value in this range, so shards " +
+		"end up at visibly different sizes and proportions. Identical " +
+		"rectangles read as 'three of the same object spawned'; varied " +
+		"sizes read as 'pieces of something that broke.' Min should be " +
+		"<1, max should be >1. Range 0.6-1.4 is a reasonable spread.")]
+	[SerializeField] private Vector2 shardScaleRange = new Vector2(0.6f, 1.4f);
+
 	[Header("SFX (optional)")]
 	[Tooltip("Plays on each turn-hop tap. Wooden creak, chair scuff, floor " +
 		"thud. Optional -- safe to leave empty until SFX wiring pass.")]
@@ -424,6 +473,23 @@ public class ChairRestraint : RestraintBase
 		BoundLimbs carriedBonds = this.BoundLimbs & ~BoundLimbs.AnkledToChair;
 		floorRestraintOnBreak.SetBoundLimbs(carriedBonds);
 
+		// Spawn chair shards (§7 persistence: scene-rooted, not parented to chair).
+		// Each shard gets a small random XZ offset + slight +Y lift + upward impulse
+		// for a brief tumble. Guarded on prefab presence so misconfigured scenes
+		// (e.g. an early ChairRestraint instance whose shard wiring hasn't been done
+		// yet) fail loudly without blocking the rest of the break sequence.
+		if (chairShardPrefab != null)
+		{
+			SpawnChairShards(player.transform.position);
+		}
+		else
+		{
+			Debug.LogWarning("[ChairRestraint] Chair broke but no chairShardPrefab " +
+				"is configured. Skipping shard spawn. The fast/chair-shard solve " +
+				"path requires shards — if this level needs that path, wire the " +
+				"prefab; if not (debug/test chair), this warning is expected.");
+		}
+
 		if (AudioManager.Instance != null && chairBreakClip != null)
 		{
 			AudioManager.Instance.PlaySFX(chairBreakClip, 1f, 1f);
@@ -433,6 +499,70 @@ public class ChairRestraint : RestraintBase
 			$"with BoundLimbs = {carriedBonds}");
 
 		player.SetRestraint(floorRestraintOnBreak);
+	}
+
+	/// <summary>
+	/// Spawn shardCount shards around the given world position. Each shard
+	/// is positioned with a small random XZ offset within shardScatterRadius,
+	/// lifted slightly above the floor, and given a small upward impulse for
+	/// a brief tumble.
+	///
+	/// Shards are spawned UNPARENTED (scene root). This is deliberate:
+	///   - Parented to chair: chair resets on failure, shards would vanish.
+	///   - Parented to player: player moves, shards would follow.
+	///   - Scene root: shards stay exactly where they landed across attempts,
+	///     which is what §7 calls for ("guard does not clean chair shards").
+	///
+	/// Rigidbody is required on the prefab so the upward impulse + gravity
+	/// settle pass works. If the prefab lacks one, the impulse silently
+	/// fails and the shards spawn-and-rest at their initial Y — still
+	/// functional, just less satisfying visually.
+	/// </summary>
+	private void SpawnChairShards(Vector3 originWorldPos)
+	{
+		for (int i = 0; i < shardCount; i++)
+		{
+			// Radial-outward placement on the unit circle (not insideUnitCircle):
+			// guarantees each shard lands AT shardScatterRadius from the player,
+			// not somewhere between 0 and shardScatterRadius. Stops shards from
+			// spawning under the player cube, which read as "the chair smashed
+			// onto Cassie's head" rather than "the chair broke apart next to her."
+			Vector2 offset2D = Random.insideUnitCircle.normalized * shardScatterRadius;
+			Vector3 spawnPos = originWorldPos
+				+ new Vector3(offset2D.x, shardSpawnYOffset, offset2D.y);
+
+			// Random Y rotation only — shards look more natural lying flat in
+			// varied orientations than tumbling with random pitch/roll baked in.
+			Quaternion spawnRot = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+
+			GameObject shard = Instantiate(chairShardPrefab, spawnPos, spawnRot);
+
+			// Per-axis scale randomization: three identical rectangles read as
+			// "three copies of the same object spawned"; visibly different sizes
+			// read as "pieces of something that broke." Each axis varies
+			// independently so shards differ in proportion (thin/fat) as well
+			// as overall size. Multiplies the prefab's base scale, so changes
+			// to the prefab's authored proportions are preserved.
+			float scaleX = Random.Range(shardScaleRange.x, shardScaleRange.y);
+			float scaleY = Random.Range(shardScaleRange.x, shardScaleRange.y);
+			float scaleZ = Random.Range(shardScaleRange.x, shardScaleRange.y);
+			shard.transform.localScale = Vector3.Scale(
+				shard.transform.localScale,
+				new Vector3(scaleX, scaleY, scaleZ));
+
+			// Brief upward impulse for tumble + collider-overlap resolution.
+			// Mostly vertical with a tiny horizontal component so they spread
+			// a bit rather than landing perfectly atop their spawn point.
+			Rigidbody shardRb = shard.GetComponent<Rigidbody>();
+			if (shardRb != null)
+			{
+				Vector3 impulseDir = (Vector3.up + Random.insideUnitSphere * 0.3f).normalized;
+				shardRb.AddForce(impulseDir * shardSpawnImpulse, ForceMode.Impulse);
+			}
+		}
+
+		Debug.Log($"[ChairRestraint] Spawned {shardCount} chair shards at " +
+			$"{originWorldPos} (scatter {shardScatterRadius}, impulse {shardSpawnImpulse}).");
 	}
 
 	[ContextMenu("Debug: Force Tip (test handoff)")]

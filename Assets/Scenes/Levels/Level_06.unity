@@ -4124,12 +4124,36 @@ PrefabInstance:
       value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: chairBreakClip
+      value: 
+      objectReference: {fileID: 8300000, guid: fddabc2407dcd894581edd3721615984, type: 3}
+    - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       propertyPath: rockingEnabled
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: chairShardPrefab
+      value: 
+      objectReference: {fileID: 15743928798064051, guid: 544ac91a3cd900d48a21e45c089fce05, type: 3}
+    - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: shardScaleRange.y
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: shardSpawnImpulse
+      value: 0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: shardSpawnYOffset
+      value: -0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       propertyPath: rockAngularImpulse
       value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: shardScatterRadius
+      value: 0.8
       objectReference: {fileID: 0}
     - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       propertyPath: floorRestraintOnBreak
