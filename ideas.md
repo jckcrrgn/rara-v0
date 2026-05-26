@@ -580,3 +580,44 @@ geometry has ~1u half-extents on X/Z so 1.3 = ~0.3 outside the
 mesh). Defaults stay at 1.5 across the board, so existing levels
 *should* be unaffected — but the change is a real shift in pickup
 semantics, worth a regression sanity-check on L1–L5 next session.
+
+## Day 48 — L6 failure loop shipped
+
+### RestraintBase API consolidation (small cleanup, not blocking)
+
+Session 1 promoted `SetBoundLimbs` from FloorRestraint to RestraintBase
+so ChairRestraint and any future subclass inherit it; FloorRestraint's
+duplicate was removed. Worth a sweep of other Add/Remove-pattern
+methods that may have drifted between restraints — anything where a
+method body is essentially "RemoveX then AddX" or other shape-matching
+duplication is a candidate. Not urgent; promote-as-found is fine.
+
+### §7 persistence — deferred items from failure-loop v2
+
+Chair-B swap shipped in session 2. Still outstanding from spec §7:
+
+- Lamp-state persistence: smashed lamp should NOT respawn on attempt
+  restart. Currently the lamp object presumably gets re-instantiated
+  with scene reset patterns (or doesn't — needs verification).
+- Pen-state persistence: pen is gone if picked up before failure,
+  persists in drawer if not. Implementation likely needs a small
+  per-scene "PersistentSceneState" object that the failure loop
+  consults rather than blanket-resetting.
+- Chair-shard persistence verification under the Chair-B swap path:
+  shards are scene-rooted per Day 47's spawn architecture, which
+  should already handle this correctly — but worth a deliberate test
+  with attempt 1 chair-tip → fail → attempt 2 chair-tip → fail to
+  confirm both shard sets persist on the floor through the swap.
+
+These probably ship together as one "spec §7 compliance" pass.
+~45-60 min depending on whether the PersistentSceneState pattern
+turns out to be heavyweight.
+
+### Spec/GDD attempt matrix bond-ladder update
+
+The spec §7 attempt matrix (and any GDD reference to it) still shows
+the old bond escalation ladder: Wrists → Wrists+Elbows → Wrists+
+Elbows+Ankles+Knees. Day 48 revised this to Wrists → +Ankles →
++Elbows → +Knees, putting the ELBOWS line on attempt 2→3 where elbows
+are actually added. Update the matrix table and any prose references
+on the next low-energy doc-pass session.
