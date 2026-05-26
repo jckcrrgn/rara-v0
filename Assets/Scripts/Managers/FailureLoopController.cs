@@ -9,53 +9,38 @@ using UnityEngine;
 /// the guard's verdict mutter (Beat 6a), then fades back in to Cassie's
 /// reaction (Beat 6b) and the level reset state.
 ///
-/// SCOPE — v1 (Day 48)
-/// -------------------
-/// Ships the SPINE of the failure loop:
-///   - LevelTimer.OnTimerExpired hookup
-///   - Input lockout (PlayerController.enabled = false during the sequence)
-///   - Cut-to-black via a CanvasGroup fade (no separate ScreenFade system yet)
-///   - Configurable rebind SFX sequence (per-level clip array)
-///   - Bond escalation: Wrists → +Ankles → +Elbows → +Knees (cap at attempt 4+)
-///   - Cassie repositioned to her current chair (or floorbound if she's already
-///     on the floor); chair-B physical swap is DEFERRED to v2
-///   - Drawer reset (closed) — wired via UnityEvent so this controller doesn't
-///     have a hard dependency on the drawer component
-///   - Timer reset (NOT restarted; restart is triggered by lamp-smash or
-///     chair-tip on the new attempt, same as attempt 1)
-///   - Beat 6a (Guard) mutter over black, then fade-in, then Beat 6b (Cassie)
-///     auto-queued via MutterSystem's queue
+/// SCOPE — v2 (Day 48 session 2)
+/// ------------------------------
+/// Ships v1 spine PLUS chair management:
+///   - Chair B swap: if Chair A is broken at failure time, hide Chair B from
+///     its stored position and re-engage the ChairRestraint, returning Cassie
+///     to a chair. Single-use per level (chairBSwapped guards repeated swaps).
+///   - Three-case state machine in HandleChairManagement: in-chair (no swap),
+///     on-floor-with-chair-B-available (swap), on-floor-with-chair-B-used
+///     (stay floorbound).
 ///
-/// DEFERRED to a follow-up session (next pass):
-///   - Chair-B physical swap when Chair A is broken (spec §7 row 2)
+/// DEFERRED to a follow-up session (still):
 ///   - Lamp-state persistence (smashed lamp does NOT respawn)
 ///   - Pen-state persistence (pen is gone if picked up before failure)
-///   - Chair-shard persistence on the floor across attempts
-///   - Beat 6 mutter variation per attempt (1→2 vs 2→3 vs cap) — single
-///     mutter pair used for all attempts in v1; spec §6 explicitly marks
-///     this as content authoring, not engineering
+///   - Chair-shard persistence — already partially handled by yesterday's
+///     scene-rooted shard spawning; needs verification under the new swap path
+///   - Beat 6 mutter variation per attempt (single mutter pair for all attempts)
 ///
-/// SEQUENCE (per spec §7, confirmed Day 48)
-/// ---------------------------------------
+/// SEQUENCE (per spec §7)
+/// ---------------------
 ///   1. LevelTimer.OnTimerExpired fires
-///   2. Lock input (player.enabled = false)
-///   3. Fade to black (fadeDuration)
-///   4. Play rebind SFX sequence (clips fire in order, black holds throughout)
-///   5. Mutate state: bonds escalate, position reset, drawer event fires,
-///      timer resets
-///   6. Beat 6a (Guard) mutter fires — diegetic, over black
-///   7. Player dismisses 6a
-///   8. Fade in from black (fadeDuration)
-///   9. Beat 6b (Cassie) mutter fires — auto-queued behind 6a
-///  10. Player dismisses 6b
-///  11. Release input — timer will re-trigger via lamp/chair-tip on this attempt
-///
-/// ORDERING NOTE on step 6 vs step 8:
-///   Beat 6a fires while still black. This is intentional — the guard delivers
-///   his verdict line over the black, then we fade in TO Cassie's reaction.
-///   The MutterSystem queue means we Play() both back-to-back here; the
-///   visibility timing is controlled by when we start the fade-in coroutine
-///   relative to the first dismiss. See PlaySequence() for the gating mechanism.
+///   2. Force-dismiss any active mutter (clears 50% pressure mutter etc.)
+///   3. Lock input (player.enabled = false)
+///   4. Fade to black (fadeDuration)
+///   5. Play rebind SFX sequence (clips fire in order, black holds throughout)
+///   6. Mutate state: chair management → bond escalation → position reset →
+///      onStateReset UnityEvent → timer reset
+///   7. Beat 6a (Guard) mutter fires — diegetic, over black
+///   8. Player dismisses 6a
+///   9. Fade in from black (fadeDuration)
+///  10. Beat 6b (Cassie) mutter fires — auto-queued behind 6a
+///  11. Player dismisses 6b
+///  12. Release input — timer will re-trigger via lamp/chair-tip on this attempt
 ///
 /// SINGLETON
 /// ---------
@@ -117,9 +102,28 @@ public class FailureLoopController : MonoBehaviour
 	[Header("Position Reset")]
 	[Tooltip("Transform marking where Cassie respawns at the start of each " +
 		"failed-attempt restart. Inspector-authored, typically the center of " +
-		"the room. The chair (if intact) should be at this position too — for " +
-		"v1, Cassie just snaps here regardless of chair state.")]
+		"the room.")]
 	[SerializeField] private Transform respawnPoint;
+
+	[Header("Chair Management")]
+	[Tooltip("The ChairRestraint component on the Player prefab — i.e. " +
+		"\"Chair A\" in the spec's terminology. There's no separate Chair A " +
+		"scene object; the chair is conceptually part of the player. Required " +
+		"if this level has a chair-tip path that can lead to floorbound state " +
+		"on failure. Drag the Player's ChairRestraint component here.")]
+	[SerializeField] private ChairRestraint playerChairRestraint;
+
+	[Tooltip("Chair B scene object — the spare chair stored against the wall, " +
+		"swapped in on failure if Chair A is broken. Per spec §7, this is " +
+		"room-consistency insurance: without it, the room would either " +
+		"contradict itself or force the player into a floorbound attempt 2 " +
+		"that the level isn't designed for as the default. Hidden when " +
+		"swapped in (Architecture A from the design discussion — the player's " +
+		"chair model handles the at-center visual; Chair B at the wall just " +
+		"disappears, reading as \"the guard moved it\"). Leave null on levels " +
+		"that don't need a swap (Cassie permanently floorbound after first " +
+		"break is fine for those).")]
+	[SerializeField] private GameObject chairBObject;
 
 	[Header("State Reset Hooks")]
 	[Tooltip("UnityEvent fired during state mutation, after bonds escalate and " +
@@ -142,6 +146,12 @@ public class FailureLoopController : MonoBehaviour
 	// timer somehow fires again mid-sequence (it shouldn't, but defense in
 	// depth), we ignore the second trigger.
 	private bool isRunning;
+
+	// Tracks whether Chair B has already been swapped in on a prior failure.
+	// Once true, Chair B is "used up" — subsequent failures that find Cassie
+	// floorbound will keep her floorbound (no chair to swap in). This matches
+	// spec §7 row 3 ("or floorbound if both broken").
+	private bool chairBSwapped;
 
 	// Cached reference to the player. Resolved lazily on first failure trigger
 	// so we don't depend on scene load order.
@@ -396,8 +406,14 @@ public class FailureLoopController : MonoBehaviour
 
 	/// <summary>
 	/// Apply all state changes that happen during the cut-to-black:
-	/// bond escalation, Cassie's position reset, scene-specific resets via
-	/// UnityEvent, timer reset.
+	/// chair management (un-break or Chair-B swap if applicable), bond
+	/// escalation, position reset, scene-specific resets via UnityEvent,
+	/// timer reset.
+	///
+	/// ORDERING: chair management runs BEFORE bond escalation, because if we're
+	/// swapping back into a chair, the escalation should land on the chair's
+	/// RestraintBase, not the floor's. Position reset runs after both, so we
+	/// snap Cassie into place once she's in the right restraint.
 	/// </summary>
 	private void MutateState()
 	{
@@ -407,6 +423,28 @@ public class FailureLoopController : MonoBehaviour
 			Debug.LogWarning("FailureLoopController.MutateState: no PlayerController found.");
 			return;
 		}
+
+		// --- Chair management ---
+		// Three cases, decided by current restraint and chair-B availability:
+		//
+		//   1. Cassie is in ChairRestraint → she didn't tip her chair this
+		//      attempt. Stay in chair, bond escalation will land on it.
+		//      No chair swap needed.
+		//
+		//   2. Cassie is in FloorRestraint AND Chair B is available → her
+		//      chair broke this attempt, but Chair B is still usable.
+		//      Hide Chair B (the guard "drags" it to center, which mechanically
+		//      means it disappears from the wall — the player's chair model
+		//      handles the at-center visual), un-break the ChairRestraint, and
+		//      swap player back to chair. Bond escalation will land on chair.
+		//
+		//   3. Cassie is in FloorRestraint AND Chair B is used → both chairs
+		//      have been broken across prior attempts. Cassie stays floorbound.
+		//      Bond escalation lands on floor restraint.
+		//
+		// Levels without a wired playerChairRestraint or chairBObject default
+		// to "no swap available" — case 1 if in chair, case 3 if on floor.
+		HandleChairManagement(player);
 
 		// --- Bond escalation ---
 		// EscalationAdditions is 0-indexed. attempt 1 → 2 uses index 0.
@@ -424,7 +462,8 @@ public class FailureLoopController : MonoBehaviour
 				// clear-and-reapply so any event side effects fire correctly.
 				BoundLimbs newBonds = r.BoundLimbs | toAdd;
 				r.SetBoundLimbs(newBonds);
-				Log($"Bond escalation: added {toAdd}. New BoundLimbs = {r.BoundLimbs}");
+				Log($"Bond escalation: added {toAdd}. New BoundLimbs = {r.BoundLimbs} " +
+					$"(on {r.GetType().Name})");
 			}
 		}
 		else
@@ -433,9 +472,9 @@ public class FailureLoopController : MonoBehaviour
 		}
 
 		// --- Position reset ---
-		// Snap Cassie back to the respawnPoint. The chair (if intact) is
-		// authored to be at this position; if she's on the floor, she snaps
-		// here too. v2 will handle chair-B swap-in if Chair A is broken.
+		// Snap Cassie back to the respawnPoint. Done AFTER chair management so
+		// the player is in the correct restraint first; some restraints' OnEnter
+		// reads transform state to set up internal references (steeringYaw, etc.).
 		if (respawnPoint != null)
 		{
 			player.transform.position = respawnPoint.position;
@@ -448,7 +487,10 @@ public class FailureLoopController : MonoBehaviour
 		}
 
 		// --- Scene-specific resets via UnityEvent ---
-		// Wire NightstandDrawer.Close(), future chair-B swap, etc. here.
+		// Wire NightstandDrawer.Close() and other scene-specific resets here.
+		// Per spec §7 persistence rules, lamp/pen/shard state PERSISTS across
+		// attempts — so these resets should be careful to only touch things
+		// that should reset (drawer, etc.).
 		if (onStateReset != null)
 		{
 			onStateReset.Invoke();
@@ -463,6 +505,79 @@ public class FailureLoopController : MonoBehaviour
 			LevelTimer.Instance.ResetTimer();
 			Log("LevelTimer reset.");
 		}
+	}
+
+	/// <summary>
+	/// Decide and apply the chair-state change for this failure attempt.
+	/// See the three cases documented in MutateState. Idempotent: safe to
+	/// call when nothing needs to change (case 1, case 3 with no chairBObject
+	/// wired).
+	/// </summary>
+	private void HandleChairManagement(PlayerController player)
+	{
+		RestraintBase current = player.CurrentRestraint;
+
+		// Case 1: still in chair. Nothing to do here — bond escalation will
+		// land on the chair restraint and that's correct.
+		if (current is ChairRestraint)
+		{
+			Log("Chair management: still in chair, no swap needed.");
+			return;
+		}
+
+		// Case 2 or 3: on the floor. Decide based on Chair B availability.
+		if (current is FloorRestraint)
+		{
+			bool canSwap = !chairBSwapped
+				&& playerChairRestraint != null
+				&& chairBObject != null;
+
+			if (canSwap)
+			{
+				// Case 2: Chair B swap.
+				Log("Chair management: swapping Chair B in (Chair A was broken this attempt).");
+
+				// Hide Chair B from its stored position. The visual is "the guard
+				// dragged it to center" — the player's chair model handles the
+				// at-center appearance, so we just need Chair B to disappear from
+				// the wall. SetActive(false) is cleaner than physically moving it
+				// because moving introduces risk of overlapping the player's chair
+				// geometry.
+				chairBObject.SetActive(false);
+
+				// Un-break the ChairRestraint so it accepts the player again.
+				playerChairRestraint.ResetBrokenState();
+
+				// Hand the player back to ChairRestraint. SetRestraint fires
+				// OnExit on the floor restraint and OnEnter on the chair, which
+				// is the correct lifecycle.
+				player.SetRestraint(playerChairRestraint);
+
+				chairBSwapped = true;
+
+				Log("Chair management: Chair B swap complete. Player is now in ChairRestraint.");
+			}
+			else
+			{
+				// Case 3: stay floorbound. Either chairBSwapped is true (both
+				// chairs used) or the level isn't configured with a swap (chairs
+				// not wired). Either way, bond escalation lands on the floor.
+				if (chairBSwapped)
+				{
+					Log("Chair management: both chairs used. Cassie stays floorbound.");
+				}
+				else
+				{
+					Log("Chair management: no chair swap configured. Cassie stays floorbound.");
+				}
+			}
+			return;
+		}
+
+		// Defensive: an unrecognized restraint type. Shouldn't happen in v0,
+		// but log loudly if it does so the misconfiguration surfaces fast.
+		Debug.LogWarning($"FailureLoopController.HandleChairManagement: unrecognized " +
+			$"restraint type {current?.GetType().Name ?? "null"}. No chair management applied.");
 	}
 
 	/// <summary>

@@ -502,6 +502,25 @@ public class ChairRestraint : RestraintBase
 	}
 
 	/// <summary>
+	/// Reset the broken flag, allowing the chair to function as a restraint
+	/// again. Called by FailureLoopController during the Chair-B swap path:
+	/// when Cassie's chair broke this attempt but Chair B is available, we
+	/// "un-break" the ChairRestraint and re-attach the player to it, with
+	/// Chair B (the scene object) hidden to read as "the guard dragged it
+	/// to center."
+	///
+	/// Does NOT respawn shards or reverse other side effects of Break() —
+	/// per spec §7, chair shards persist across attempts (the guard doesn't
+	/// clean furniture damage). This method only flips the internal flag
+	/// so the restraint accepts new struggle/movement input.
+	/// </summary>
+	public void ResetBrokenState()
+	{
+		isBroken = false;
+		Debug.Log("[ChairRestraint] Broken state reset. Restraint is active again.");
+	}
+
+	/// <summary>
 	/// Spawn shardCount shards around the given world position. Each shard
 	/// is positioned with a small random XZ offset within shardScatterRadius,
 	/// lifted slightly above the floor, and given a small upward impulse for

@@ -801,6 +801,8 @@ MonoBehaviour:
   beat6aGuard: That ought to hold you.
   beat6bCassie: My ELBOWS? Really? Good thing I stretched.
   respawnPoint: {fileID: 1417661562}
+  playerChairRestraint: {fileID: 1333935380}
+  chairBObject: {fileID: 1416435439}
   onStateReset:
     m_PersistentCalls:
       m_Calls: []
@@ -2647,6 +2649,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2f9faedb81873fe41b905f8954ce1d82, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1333935380 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+  m_PrefabInstance: {fileID: 8205259987904620297}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30d31eb59dcc7a04a81f60271a18406d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &1405729923
