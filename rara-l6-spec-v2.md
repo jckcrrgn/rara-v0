@@ -148,9 +148,9 @@ First-pass coordinates. Adjust in Unity once geometry is in.
 | Attempt | Cassie's chair | Lamp | Pen in drawer | Chair A shards | Chair B shards | Bonds |
 | :---- | :---- | :---- | :---- | :---- | :---- | :---- |
 | 1 | Chair A (center) | Intact, on nightstand | Yes | — | — | Wrists |
-| 2 | Whichever chair is intact (center) | Smashed-state persists; not respawned | Persists only if **not** picked up on attempt 1 | Persists if A was broken | Persists if B was broken (rare on attempt 2) | Wrists + Elbows |
-| 3 | Whichever chair is intact, or floorbound if both broken | Same persistence rule | Same persistence rule | Persists | Persists | Wrists + Elbows + Ankles + Knees |
-| 4+ | Same as attempt 3 (max state) | Same | Same | Same | Same | Cap: Wrists + Elbows + Ankles + Knees |
+| 2 | Whichever chair is intact (center) | Smashed-state persists; not respawned | Persists only if **not** picked up on attempt 1 | Persists if A was broken | Persists if B was broken (rare on attempt 2) | Wrists + Ankles |
+| 3 | Whichever chair is intact, or floorbound if both broken | Same persistence rule | Same persistence rule | Persists | Persists | Wrists + Ankles + Elbows |
+| 4+ | Same as attempt 3 + knees | Same | Same | Same | Same | Cap: Wrists + Ankles + Elbows + Knees |
 
 ### Persistence rules (what carries over, what resets)
 

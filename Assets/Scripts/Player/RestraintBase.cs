@@ -85,6 +85,24 @@ public abstract class RestraintBase : MonoBehaviour
 	}
 
 	/// <summary>
+	/// Replace the bond state wholesale with `target`. Implemented as
+	/// Remove-then-Add so OnBondStateChanged fires correctly (and only once,
+	/// from the Add — Remove fires it too if the bond actually changed, but
+	/// the typical use case is a single state replacement and the double-fire
+	/// is benign because hint refresh is idempotent).
+	///
+	/// Used by FailureLoopController on failure-loop entry to escalate Cassie's
+	/// bonds without depending on what's currently set. Also called by
+	/// ChairRestraint's chair-break handoff to push carried bonds into the
+	/// FloorRestraint before SetRestraint.
+	/// </summary>
+	public void SetBoundLimbs(BoundLimbs target)
+	{
+		RemoveBondState(boundLimbs);
+		AddBondState(target);
+	}
+
+	/// <summary>
 	/// Called when bond state actually changes (no-op adds/removes don't fire).
 	/// Default implementation fires RaiseHintsChanged, since most bond changes
 	/// affect which verbs are conditionally available.

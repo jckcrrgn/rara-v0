@@ -448,6 +448,43 @@ public class MutterSystem : MonoBehaviour
 	public void PlayAsGuard(string content) => Play(content, Speaker.Guard);
 
 	/// <summary>
+	/// Immediately close any active mutter and drain the queue. Used by
+	/// systems that need to interrupt the mutter flow with their own
+	/// sequence — e.g. FailureLoopController on timer expiry, where the
+	/// in-progress 50% pressure mutter is rendered moot by the failure
+	/// happening. Narratively: whatever was being said matters less than
+	/// what's about to be said.
+	///
+	/// Differs from a regular Dismiss() in that it skips the
+	/// requireDismissKeyRelease gate (the caller is in control of timing,
+	/// not the player) and cancels any in-flight reveal coroutine. After
+	/// this call, IsActive is false and the queue is empty — safe to
+	/// immediately Play() a new mutter.
+	///
+	/// No-op if nothing is active.
+	/// </summary>
+	public void ForceDismissAndClear()
+	{
+		if (!IsActive) return;
+
+		// Cancel any in-flight reveal so we don't get stray characters
+		// appearing after we've torn down the UI.
+		StopAllCoroutines();
+		isRevealing = false;
+		isWaitingForDismiss = false;
+		skipRequested = false;
+		requireDismissKeyRelease = false;
+
+		// Drain the queue first so no further mutters fire on Dismiss().
+		queuedMutters.Clear();
+
+		// Reuse Dismiss for the rest of the teardown (panel hide, text clear,
+		// prompt cancellation, hasEverDismissed bookkeeping, etc.). Since the
+		// queue is now empty, Dismiss won't start anything new.
+		Dismiss();
+	}
+
+	/// <summary>
 	/// Cap on the mutter queue. 3 is intentional: the legitimate use case is
 	/// paired mutters (queue depth 2, e.g. L6 Beat 6 guard-then-Cassie), and
 	/// a +1 buffer absorbs accidental overlap without runaway. Drop-newest on
