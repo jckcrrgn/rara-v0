@@ -192,6 +192,33 @@ public class MutterSystem : MonoBehaviour
 		Never,
 	}
 
+	/// <summary>
+	/// How a mutter interacts with the input gate and dismiss flow.
+	///
+	///   Blocking   - default. Reveals, waits for player dismiss, freezes input
+	///                while active (IsActive returns true). Queues if another
+	///                blocking mutter is showing. The narrative-beat mode: every
+	///                pre-L6 mutter, the failure-loop Beat 6 sequence, etc.
+	///
+	///   Background - ambient pressure mode. Reveals, auto-dismisses after
+	///                backgroundHoldDuration, does NOT count toward IsActive,
+	///                shows no dismiss prompt, drops (does not queue) if another
+	///                background mutter is already showing. Coexists visually
+	///                with a concurrent blocking mutter as long as the speaker's
+	///                panel is different.
+	///
+	/// Debuts in L6 Beat 5 — the 50% timer threshold fires a guard pressure
+	/// mutter that must NOT freeze the player (the level is a time-pressure
+	/// beat; blocking input there would be the opposite of what the design
+	/// wants). The Beat 6a/6b failure-loop guard+Cassie sequence remains
+	/// Blocking — the player is meant to read those.
+	/// </summary>
+	public enum MutterMode
+	{
+		Blocking,
+		Background,
+	}
+
 	public static MutterSystem Instance { get; private set; }
 
 	// Static so it persists across MutterSystem instances within a session.
@@ -229,6 +256,12 @@ public class MutterSystem : MonoBehaviour
 		"(she's gagged and labored). 15-20 is in the right zone for this character. " +
 		"30+ feels too snappy.")]
 	[SerializeField] private float charsPerSecond = 18f;
+
+	[Tooltip("Background mutters only. Seconds the fully-revealed text stays on " +
+		"screen before auto-dismissing. No dismiss prompt is shown — the mutter " +
+		"appears, reveals, holds, vanishes. 3.0 is enough to read a short " +
+		"pressure beat; tune in playtest. Ignored for Blocking mutters.")]
+	[SerializeField] private float backgroundHoldDuration = 3.0f;
 
 	[Header("Audio")]
 	[Tooltip("Per-speaker configuration. Index of this array maps 1:1 to the " +
@@ -312,11 +345,24 @@ public class MutterSystem : MonoBehaviour
 	// The root/text actually in use for the current (or most-recently-active)
 	// mutter. Resolved from SpeakerConfig.mutterRootOverride at the start of
 	// RevealCycle; falls back to the default mutterRoot/mutterText. Tracked
-	// so Dismiss() can hide and clear the right pair even when an override
+	// so Dismiss and LateUpdate can find the right pair even when an override
 	// was used. Null between mutters is fine — Dismiss is no-op-safe.
 	private GameObject activeRoot;
 	private TMP_Text activeText;
 	private Transform activeWorldAnchor;
+
+	// Background mutter state. Runs in parallel to the blocking pipeline above
+	// (different state vars, different coroutine, different panel — guard's
+	// override panel in current use, but in principle any panel that isn't the
+	// blocking-active one). Background mutters do NOT contribute to IsActive,
+	// so the player retains input control while a background mutter is on
+	// screen. There is at most one background mutter at a time; subsequent
+	// Background Play() calls drop while one is already running.
+	private bool isBackgroundActive;
+	private Coroutine backgroundCoroutine;
+	private GameObject backgroundActiveRoot;
+	private TMP_Text backgroundActiveText;
+	private Transform backgroundActiveWorldAnchor;
 
 	/// <summary>
 	/// True if a mutter is currently showing (either revealing characters or waiting
@@ -416,8 +462,15 @@ public class MutterSystem : MonoBehaviour
 	/// Speaker defaults to Cassie when not specified, preserving the existing
 	/// Play(content) call signature for all callers that don't need to
 	/// specify a speaker.
+	///
+	/// Mode defaults to Blocking (existing behavior). Background mutters
+	/// bypass the queue entirely: they fire immediately on a separate parallel
+	/// pipeline, do not affect IsActive, auto-dismiss after backgroundHoldDuration,
+	/// and DROP rather than queue if another background mutter is already on
+	/// screen. Background returns true on fire, false on drop.
 	/// </summary>
-	public bool Play(string content, Speaker speaker = Speaker.Cassie)
+	public bool Play(string content, Speaker speaker = Speaker.Cassie,
+		MutterMode mode = MutterMode.Blocking)
 	{
 		if (mutterRoot == null || mutterText == null)
 		{
@@ -425,7 +478,22 @@ public class MutterSystem : MonoBehaviour
 			return false;
 		}
 
-		// Queue if active; fire immediately if idle.
+		// Background path: parallel pipeline. Does not interact with the
+		// blocking queue or IsActive. Drops if another background mutter is
+		// already running — background mutters are ambient pressure, not
+		// narrative beats; queueing them would create stale-pressure bugs.
+		if (mode == MutterMode.Background)
+		{
+			if (isBackgroundActive)
+			{
+				Debug.Log($"MutterSystem: background already active, dropping new background mutter \"{content}\".");
+				return false;
+			}
+			backgroundCoroutine = StartCoroutine(BackgroundRevealCycle(content, speaker));
+			return true;
+		}
+
+		// Blocking path: existing queue-or-fire semantics.
 		if (IsActive)
 		{
 			if (queuedMutters.Count >= QueueCapacity)
@@ -442,10 +510,18 @@ public class MutterSystem : MonoBehaviour
 	}
 
 	/// <summary>
-	/// UnityEvent-friendly wrapper: plays a guard mutter. Inspector can't pass
-	/// enum arguments, so we expose typed helpers for cross-system wiring.
+	/// UnityEvent-friendly wrapper: plays a guard mutter (Blocking mode).
+	/// Inspector can't pass enum arguments, so we expose typed helpers for
+	/// cross-system wiring.
 	/// </summary>
-	public void PlayAsGuard(string content) => Play(content, Speaker.Guard);
+	public void PlayAsGuard(string content) => Play(content, Speaker.Guard, MutterMode.Blocking);
+
+	/// <summary>
+	/// UnityEvent-friendly wrapper: plays a guard mutter in Background mode.
+	/// L6 wires LevelTimer.OnThresholdReached(0.5) to this so the offstage
+	/// guard pressure beat doesn't freeze input on a time-pressure level.
+	/// </summary>
+	public void PlayAsGuardBackground(string content) => Play(content, Speaker.Guard, MutterMode.Background);
 
 	/// <summary>
 	/// Immediately close any active mutter and drain the queue. Used by
@@ -458,17 +534,19 @@ public class MutterSystem : MonoBehaviour
 	/// Differs from a regular Dismiss() in that it skips the
 	/// requireDismissKeyRelease gate (the caller is in control of timing,
 	/// not the player) and cancels any in-flight reveal coroutine. After
-	/// this call, IsActive is false and the queue is empty — safe to
-	/// immediately Play() a new mutter.
+	/// this call, IsActive is false, the queue is empty, and any background
+	/// mutter has been torn down — safe to immediately Play() a new mutter.
 	///
-	/// No-op if nothing is active.
+	/// No-op if nothing (blocking or background) is active.
 	/// </summary>
 	public void ForceDismissAndClear()
 	{
-		if (!IsActive) return;
+		bool anythingActive = IsActive || isBackgroundActive;
+		if (!anythingActive) return;
 
 		// Cancel any in-flight reveal so we don't get stray characters
-		// appearing after we've torn down the UI.
+		// appearing after we've torn down the UI. StopAllCoroutines also
+		// kills the background coroutine if one was running.
 		StopAllCoroutines();
 		isRevealing = false;
 		isWaitingForDismiss = false;
@@ -478,10 +556,33 @@ public class MutterSystem : MonoBehaviour
 		// Drain the queue first so no further mutters fire on Dismiss().
 		queuedMutters.Clear();
 
-		// Reuse Dismiss for the rest of the teardown (panel hide, text clear,
-		// prompt cancellation, hasEverDismissed bookkeeping, etc.). Since the
-		// queue is now empty, Dismiss won't start anything new.
+		// Tear down background state explicitly. StopAllCoroutines killed the
+		// coroutine but we still own the UI teardown — hide the panel, clear
+		// the text, clear the flag. backgroundCoroutine handle is stale now.
+		TearDownBackground();
+
+		// Reuse Dismiss for the rest of the blocking teardown (panel hide,
+		// text clear, prompt cancellation, hasEverDismissed bookkeeping, etc.).
+		// Since the queue is now empty, Dismiss won't start anything new.
+		// Safe even if no blocking mutter was active — Dismiss is no-op-safe
+		// on already-cleared state.
 		Dismiss();
+	}
+
+	/// <summary>
+	/// Tear down the background mutter's UI and flag, without touching the
+	/// coroutine handle (caller is expected to have stopped the coroutine).
+	/// Safe to call when no background mutter is active.
+	/// </summary>
+	private void TearDownBackground()
+	{
+		if (backgroundActiveRoot != null) backgroundActiveRoot.SetActive(false);
+		if (backgroundActiveText != null) backgroundActiveText.text = "";
+		backgroundActiveRoot = null;
+		backgroundActiveText = null;
+		backgroundActiveWorldAnchor = null;
+		isBackgroundActive = false;
+		backgroundCoroutine = null;
 	}
 
 	/// <summary>
@@ -588,6 +689,99 @@ public class MutterSystem : MonoBehaviour
 		{
 			promptAnimCoroutine = StartCoroutine(PromptAnimCycle(delay));
 		}
+	}
+
+	/// <summary>
+	/// Background-mode reveal. Runs on its own state pipeline parallel to
+	/// RevealCycle. No dismiss prompt, no input gating, auto-dismisses after
+	/// backgroundHoldDuration. Uses the speaker's override panel if present
+	/// (the Guard's hallway-anchored panel for the L6 50% pressure beat);
+	/// falls back to the default panel otherwise — but note that "default
+	/// panel for a background mutter" would visually collide with any
+	/// concurrent blocking mutter on the same panel. Speakers used in
+	/// Background mode SHOULD have a panel override configured.
+	/// </summary>
+	private IEnumerator BackgroundRevealCycle(string content, Speaker speaker)
+	{
+		isBackgroundActive = true;
+
+		SpeakerConfig config = GetSpeakerConfig(speaker);
+
+		// Resolve panel for background. Mirrors ResolveActivePanel logic but
+		// writes to the background state fields, leaving the blocking pipeline's
+		// activeRoot/activeText untouched. A partially-configured override is
+		// treated as misconfiguration and falls back, matching the blocking path.
+		GameObject root;
+		TMP_Text text;
+		Transform anchor;
+		if (config != null && config.mutterRootOverride != null && config.mutterTextOverride != null)
+		{
+			root = config.mutterRootOverride;
+			text = config.mutterTextOverride;
+			anchor = config.worldAnchor;
+		}
+		else
+		{
+			if (config != null && (config.mutterRootOverride != null || config.mutterTextOverride != null))
+			{
+				Debug.LogWarning("MutterSystem (background): speaker has partial override " +
+					"configuration. Falling back to default panel — note this may visually " +
+					"collide with a concurrent blocking mutter.");
+			}
+			root = mutterRoot;
+			text = mutterText;
+			anchor = null;
+		}
+
+		if (root == null || text == null)
+		{
+			Debug.LogError("MutterSystem: no root/text resolved for background speaker " + speaker);
+			isBackgroundActive = false;
+			yield break;
+		}
+
+		backgroundActiveRoot = root;
+		backgroundActiveText = text;
+		backgroundActiveWorldAnchor = anchor;
+
+		root.SetActive(true);
+		text.text = "";
+
+		if (config != null && config.overrideTextColor)
+		{
+			text.color = config.textColor;
+		}
+
+		// Character-by-character reveal. No skip support — background mutters
+		// aren't dismissable, so skipRequested has no meaning here. No grunt
+		// pool change: PlayGrunt routes through the speaker's audioSourceOverride
+		// if set, which for the guard means his diegetic source.
+		bool startOfWord = true;
+		float secondsPerChar = 1f / Mathf.Max(charsPerSecond, 0.01f);
+
+		for (int i = 0; i < content.Length; i++)
+		{
+			char c = content[i];
+			text.text += c;
+
+			if (char.IsWhiteSpace(c))
+			{
+				startOfWord = true;
+			}
+			else if (startOfWord)
+			{
+				PlayGrunt(config);
+				startOfWord = false;
+			}
+
+			yield return new WaitForSeconds(secondsPerChar);
+		}
+
+		// Hold the fully-revealed text on screen, then auto-dismiss. No prompt,
+		// no input — this is ambient pressure, not a beat that demands attention.
+		yield return new WaitForSeconds(backgroundHoldDuration);
+
+		TearDownBackground();
 	}
 
 	/// <summary>
@@ -739,29 +933,33 @@ public class MutterSystem : MonoBehaviour
 		// frame, all other Update() callers have had a chance to see it.
 		wasJustDismissed = false;
 
-		// Track the active panel to a world position if one is set. Runs in
+		// Track the active panel(s) to a world position if one is set. Runs in
 		// LateUpdate so any camera movement this frame is already applied.
 		// The L6 camera is fixed, so this is essentially constant — but doing
 		// it every frame is cheap and means we don't have to special-case
-		// future levels that move the camera.
-		if (activeWorldAnchor != null && activeRoot != null)
-		{
-			Camera cam = anchorCamera != null ? anchorCamera : Camera.main;
-			if (cam != null)
-			{
-				RectTransform rt = activeRoot.transform as RectTransform;
-				if (rt != null)
-				{
-					Vector3 screenPos = cam.WorldToScreenPoint(activeWorldAnchor.position);
-					// WorldToScreenPoint returns screen coords; we want them
-					// in the same space as the RectTransform's parent canvas.
-					// For an Overlay canvas this is identical to screen coords;
-					// for Camera/World canvas, a conversion would be needed.
-					// L6 uses Overlay, so direct assignment is correct.
-					rt.position = screenPos;
-				}
-			}
-		}
+		// future levels that move the camera. Background and blocking pipelines
+		// each get their own anchor tracking so a guard background mutter can
+		// be world-anchored to the hallway while a Cassie blocking mutter sits
+		// center-screen.
+		Camera cam = anchorCamera != null ? anchorCamera : Camera.main;
+		if (cam == null) return;
+
+		TrackPanelToAnchor(activeRoot, activeWorldAnchor, cam);
+		TrackPanelToAnchor(backgroundActiveRoot, backgroundActiveWorldAnchor, cam);
+	}
+
+	/// <summary>
+	/// Project a world anchor to screen space and apply to the panel's
+	/// RectTransform. No-op if anchor or root is null. Assumes an Overlay
+	/// canvas (direct screen-coord assignment); Camera/World canvas would
+	/// need a conversion. L6 uses Overlay.
+	/// </summary>
+	private void TrackPanelToAnchor(GameObject root, Transform anchor, Camera cam)
+	{
+		if (anchor == null || root == null) return;
+		RectTransform rt = root.transform as RectTransform;
+		if (rt == null) return;
+		rt.position = cam.WorldToScreenPoint(anchor.position);
 	}
 
 	private void Dismiss()

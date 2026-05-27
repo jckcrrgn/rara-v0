@@ -520,6 +520,29 @@ public class PlayerController : MonoBehaviour
 		return heldItem;
 	}
 
+	/// <summary>
+	/// Forcibly remove the player's held item without restoring it to the world.
+	/// Used by FailureLoopController to model the guard confiscating a tool
+	/// (e.g. the L6 pen) when re-binding Cassie. Distinct from Pickupable's
+	/// DropFromPlayer flow, which re-enables the world version — confiscation
+	/// is one-way: the item is gone.
+	///
+	/// The Pickupable's GameObject was already SetActive(false) on pickup
+	/// (see Pickupable.OnPickUp); we defensively re-disable it here in case
+	/// some future code path put it back. We do NOT Destroy it — same
+	/// rationale as ChairRestraint's broken-chair handling: scene-rooted,
+	/// inactive, available for debug inspection without scene reload.
+	///
+	/// No-op if nothing is held.
+	/// </summary>
+	public void ConfiscateHeldItem()
+	{
+		if (heldItem == null) return;
+		Debug.Log($"[PlayerController] Confiscating held item: {heldItem.ItemName}.");
+		if (heldItem.gameObject.activeSelf) heldItem.gameObject.SetActive(false);
+		heldItem = null;
+	}
+
 	InteractableBase FindNearestInteractable()
 	{
 		// Broadphase: gather everything within the global interaction sweep.

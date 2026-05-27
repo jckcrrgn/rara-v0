@@ -220,7 +220,7 @@ MonoBehaviour:
         m_CallState: 2
       - m_Target: {fileID: 198000082}
         m_TargetAssemblyTypeName: MutterSystem, Assembly-CSharp
-        m_MethodName: PlayAsGuard
+        m_MethodName: PlayAsGuardBackground
         m_Mode: 5
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1153,7 +1153,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 4550c3ec7c2c7ba4683a0ee6b3e457b4, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1196,7 +1196,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   smashVelocityThreshold: 2.5
-  smashClip: {fileID: 0}
+  lampShardPrefab: {fileID: 15743928798064051, guid: 5f704a78c1f814d4a8bc889b71b9e8cc, type: 3}
+  shardCount: 3
+  shardScatterRadius: 0.4
+  shardSpawnImpulse: 0.6
+  shardSpawnYOffset: -0.1
+  shardScaleRange: {x: 0.6, y: 1.4}
+  smashClip: {fileID: 8300000, guid: 5eb078129e6b87e4fac4c94347dccb33, type: 3}
   smashVolume: 1
 --- !u!54 &517821760
 Rigidbody:
