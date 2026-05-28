@@ -4333,6 +4333,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 15743928798064051, guid: 544ac91a3cd900d48a21e45c089fce05, type: 3}
     - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: backScootDistance
+      value: 0.28
+      objectReference: {fileID: 0}
+    - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       propertyPath: shardScaleRange.y
       value: 2
       objectReference: {fileID: 0}
@@ -4356,6 +4360,18 @@ PrefabInstance:
       propertyPath: floorRestraintOnBreak
       value: 
       objectReference: {fileID: 1333935379}
+    - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: backScootLungeDuration
+      value: 0.35
+      objectReference: {fileID: 0}
+    - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: backScootSettleDuration
+      value: 0.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: backScootInterCycleDelay
+      value: 0.25
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
