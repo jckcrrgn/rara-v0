@@ -1,0 +1,17 @@
+Playtest notes (5/28/2026)
+Pen Path
+-it's unclear that there's anything in the nightstand drawer, or even that the nightstand HAS an interactable drawer. Perhaps we set the pen as active the whole time? Right now Pen is inactive and therefore invisible until the drawer fully opens. My intent had been that the drawer would be slightly ajar, revealing the pen within, but right now it's not reading as such.
+-the Back Up in ChairRestraint is both too fast in tempo and too small in magnitude. The magnitude makes it tedious, and the tempo makes it not read as the fiction
+-the drawer itself probably needs to be revised such that it's a drawer with a cavity. At present it's a gray box that slides out of the nightstand, and we've placed the pen atop said box so it'll be visible. It reads more as a shelf than a drawer. If it was more drawer-like, the first point would read better.
+-Patient Path (pen) time to solve: 23s
+
+Chair Shards Path
+-Time to solve: 15s
+-Picking up Chair Shards is a little fiddly. I'm not sure where exactly the interaction ranges are starting from. I have to wiggle around and search with E a bit before I pick up a shard. This could use some tightening, especially once we have a character model. Ideally we'll add a Roll verb to FloorRestraint and an interaction sphere around Cass's hands, allowing her to Roll her hands onto/near a shard before she picks it up. Tactile. Readable. For now, defer.
+
+Lamp Shards Path
+-Time to solve: 10s IF the kick successfully dislodges the lamp
+-The lamp dislodge remains fiddly. Depending on the angle of the kick, the lamp could cleanly fall to the floor, or it could fall onto Cass and require her to wiggle out from under it before it falls to the floor (it feels heavy and impedes Cass's hops), OR the nightstand becomes wedged between the bed and the wall, losing the wiggle room that allows the lamp to fall at all. Feels very luck-based, which isn't necessarily bad.
+
+Deliberate Failure Loop
+-Right now the failure mutters are all the same: "That ought to hold you", "My ELBOWS". The mutter SYSTEM is working, but obviously we need to write more mutters and line them up with the fiction. Otherwise the failure loop appears to be working as advertised.

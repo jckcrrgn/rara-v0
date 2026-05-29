@@ -38,6 +38,19 @@ using UnityEngine;
 /// cut), making them the fastest cut in the level — paid for with the loudest
 /// trigger and longest floor-crawl.
 ///
+/// SHARD FLOOR SEATING
+/// -------------------
+/// Shards are seated on the floor via a downward raycast, NOT by a blind Y
+/// offset from the smash point. The smash fires on impact, and that impact can
+/// happen at floor level (the lamp topples and the qualifying hit is against
+/// the floor, not the nightstand). A blind negative Y offset from a low smash
+/// point spawns shards BELOW the floor collider, where they land on the wrong
+/// side and fall into the void. Raycasting down against the ground layer and
+/// seating each shard a small clearance above the hit guarantees shards always
+/// spawn on top of the floor, regardless of how high or low the smash occurred.
+/// Shard Rigidbodies are also set to Continuous Speculative collision detection
+/// so a small, fast fragment can't tunnel a thin floor on its first bounce.
+///
 /// LAMP DISAPPEARS POST-SMASH
 /// --------------------------
 /// Per design call: the lamp body is consumed into shards. Cleaner visually
@@ -86,19 +99,30 @@ public class LampSmashTrigger : MonoBehaviour
 		"1.0-2.0 is the sweet spot.")]
 	[SerializeField] private float shardSpawnImpulse = 1.5f;
 
-	[Tooltip("Vertical offset applied to the spawn position relative to the " +
-		"lamp's world position at impact. Lamps tend to be tall objects whose " +
-		"transform pivot sits above the floor; a negative offset drops shards " +
-		"to floor level so they read as fallen glass rather than mid-air debris. " +
-		"Tune per lamp model.")]
-	[SerializeField] private float shardSpawnYOffset = -0.1f;
-
 	[Tooltip("Scale randomization range applied to each spawned shard. Each " +
 		"axis is independently scaled by a value in this range, so shards " +
 		"differ in proportion (thin/long shards vs squat ones) as well as " +
 		"overall size. Identical shards read as 'three copies'; varied " +
 		"shards read as 'pieces of one broken thing.'")]
 	[SerializeField] private Vector2 shardScaleRange = new Vector2(0.6f, 1.4f);
+
+	[Header("Shard Floor Seating")]
+	[Tooltip("Layers treated as floor for shard seating. Leave at 0/Nothing to " +
+		"auto-resolve to the \"Ground\" layer in Awake (same pattern as " +
+		"ChairTipMarker, so a 0 mask doesn't silently mean 'hit everything'). " +
+		"Each shard raycasts down against this to find the floor to rest on.")]
+	[SerializeField] private LayerMask groundLayer;
+
+	[Tooltip("How high above the scatter point the seating raycast starts, in " +
+		"world units. Must exceed the largest gap between a possible smash " +
+		"height and the floor; 2.0 covers a nightstand-height smash comfortably.")]
+	[SerializeField] private float shardRaycastHeight = 2.0f;
+
+	[Tooltip("How far above the detected floor each shard spawns. Small positive " +
+		"value so shards rest on the floor without spawning inside it. Replaces " +
+		"the old blind shardSpawnYOffset, which could drop shards BELOW the floor " +
+		"when the lamp smashed low — they'd land on the wrong side and fall away.")]
+	[SerializeField] private float shardSpawnClearance = 0.05f;
 
 	[Header("SFX (optional)")]
 	[Tooltip("Glass-break sound, played once on smash. Routed through " +
@@ -111,6 +135,15 @@ public class LampSmashTrigger : MonoBehaviour
 	[SerializeField] private float smashVolume = 1.0f;
 
 	private bool hasSmashed;
+
+	void Awake()
+	{
+		// A 0 mask means "everything", which would let the seating ray hit the
+		// player, props, or trigger volumes instead of the floor. Resolve to the
+		// Ground layer explicitly — same convention as ChairTipMarker.
+		if (groundLayer == 0)
+			groundLayer = LayerMask.GetMask("Ground");
+	}
 
 	void OnCollisionEnter(Collision collision)
 	{
@@ -183,10 +216,12 @@ public class LampSmashTrigger : MonoBehaviour
 	/// is the only parent that survives the failure loop intact (chair
 	/// resets, lamp disappears, player moves).
 	///
-	/// Rigidbody is required on the prefab so the upward impulse + gravity
-	/// settle pass works. If the prefab lacks one, the impulse silently
-	/// fails and shards spawn-and-rest at their initial Y — still
-	/// functional, just less satisfying visually.
+	/// Each shard is seated on the floor via a downward raycast rather than a
+	/// blind Y offset from the (possibly low) smash point — see the class-level
+	/// SHARD FLOOR SEATING note for why. Rigidbody is required on the prefab so
+	/// the upward settle impulse works; it's also forced to Continuous
+	/// Speculative collision detection so a small fast fragment can't tunnel a
+	/// thin floor.
 	/// </summary>
 	private void SpawnLampShards(Vector3 originWorldPos)
 	{
@@ -198,8 +233,29 @@ public class LampSmashTrigger : MonoBehaviour
 			// ChairRestraint's choice — keeps shards from spawning stacked
 			// inside one another at the exact impact point.
 			Vector2 offset2D = Random.insideUnitCircle.normalized * shardScatterRadius;
-			Vector3 spawnPos = originWorldPos
-				+ new Vector3(offset2D.x, shardSpawnYOffset, offset2D.y);
+			Vector3 scatterXZ = originWorldPos + new Vector3(offset2D.x, 0f, offset2D.y);
+
+			// Seat the shard on the floor instead of blindly offsetting down from
+			// the smash height. The smash can occur low (lamp hits floor, not
+			// nightstand); a negative Y offset then spawns the shard below the
+			// floor collider, where it falls into the void. Raycast down to the
+			// ground so the shard always spawns on top of the floor.
+			Vector3 rayStart = scatterXZ + Vector3.up * shardRaycastHeight;
+			Vector3 spawnPos;
+			if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit floorHit,
+				    shardRaycastHeight * 2f, groundLayer, QueryTriggerInteraction.Ignore))
+			{
+				spawnPos = floorHit.point + Vector3.up * shardSpawnClearance;
+			}
+			else
+			{
+				// No floor under the scatter point (shouldn't happen in a sealed
+				// room). Fall back to the smash height + clearance — never below it.
+				Debug.LogWarning($"[LampSmashTrigger] No ground found under shard " +
+					$"scatter point {scatterXZ}. Check the floor is on the " +
+					$"groundLayer. Falling back to smash-height spawn.");
+				spawnPos = scatterXZ + Vector3.up * shardSpawnClearance;
+			}
 
 			// Random Y rotation only — shards look more natural lying flat in
 			// varied orientations than tumbling with random pitch/roll baked in.
@@ -226,13 +282,20 @@ public class LampSmashTrigger : MonoBehaviour
 			Rigidbody shardRb = shard.GetComponent<Rigidbody>();
 			if (shardRb != null)
 			{
+				// Speculative CCD: small, fast bodies are exactly what tunnel
+				// thin floor colliders. Forcing it here means it can't be
+				// forgotten on the prefab. (If you prefer, set it on the prefab
+				// Rigidbody instead and drop this line — they're equivalent.)
+				shardRb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+
 				Vector3 impulseDir = (Vector3.up + Random.insideUnitSphere * 0.3f).normalized;
 				shardRb.AddForce(impulseDir * shardSpawnImpulse, ForceMode.Impulse);
 			}
 		}
 
-		Debug.Log($"[LampSmashTrigger] Spawned {shardCount} lamp shards at " +
-			$"{originWorldPos} (scatter {shardScatterRadius}, impulse {shardSpawnImpulse}).");
+		Debug.Log($"[LampSmashTrigger] Spawned {shardCount} lamp shards near " +
+			$"{originWorldPos} (scatter {shardScatterRadius}, impulse {shardSpawnImpulse}, " +
+			$"seated on groundLayer).");
 	}
 
 	[ContextMenu("Debug: Force Smash")]

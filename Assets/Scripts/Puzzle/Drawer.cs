@@ -66,13 +66,30 @@ public class Drawer : InteractableBase
 	[Tooltip("Volume at progress=0 and progress=1. Linear interpolation between.")]
 	[SerializeField] private Vector2 rattleVolumeRange = new Vector2(0.5f, 1.0f);
 
+	[Header("Gated Pickup (L6+)")]
+	[Tooltip("Interactable that stays VISIBLE from scene start (signpost) but is NOT " +
+		 "pickupable until the drawer finishes opening. Unlike 'contents' (hidden " +
+		 "entirely via SetActive until open), the gated pickup's mesh shows the whole " +
+		 "time -- only its interaction collider is toggled. L6 pen: visible peeking out " +
+		 "of the ajar drawer, but the drawer must be opened to fish it out. Null on L3.")]
+	[SerializeField] private Collider gatedPickupCollider;
+
+	[Header("Ajar State (L6+)")]
+	[Tooltip("How far the drawer is already slid open at scene start, along slideAxis. " +
+		 "The position you place this GameObject at in the scene IS the ajar resting " +
+		 "position; this value tells Awake how far back the *true* closed position is, " +
+		 "so Open() slides the full slideDistance from closed rather than from ajar. " +
+		 "0 = starts fully closed (L3 behaviour). Set > 0 on L6 so the pen shows.")]
+	[SerializeField] private float ajarOffset = 0f;
+
 	private Vector3 closedLocalPos;
 	private bool isOpen = false;
 	private bool isOpening = false;
 
 	void Awake()
 	{
-		closedLocalPos = transform.localPosition;
+		// closedLocalPos = transform.localPosition;   // old
+		closedLocalPos = transform.localPosition - slideAxis.normalized * ajarOffset;
 
 		// Make sure contents start hidden. Belt-and-braces -- you should also
 		// disable them in the scene, but this guarantees it.
@@ -80,6 +97,11 @@ public class Drawer : InteractableBase
 		{
 			if (obj != null) obj.SetActive(false);
 		}
+
+		// Gated pickup (L6 pen): visible from the start, interaction collider off so it
+		// can't be targeted until the drawer opens. Mesh untouched.
+		if (gatedPickupCollider != null)
+			gatedPickupCollider.enabled = false;
 	}
 
 	// InteractableBase hook. Fires when the player presses E with this as the
@@ -160,6 +182,10 @@ public class Drawer : InteractableBase
 		{
 			if (obj != null) obj.SetActive(true);
 		}
+
+		// Drawer's open now -- pen becomes fishable.
+		if (gatedPickupCollider != null)
+			gatedPickupCollider.enabled = true;
 
 		isOpen = true;
 		isOpening = false;
