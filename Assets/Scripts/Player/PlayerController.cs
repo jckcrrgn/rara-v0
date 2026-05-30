@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
@@ -37,6 +38,16 @@ public class PlayerController : MonoBehaviour
 		"character model arrives, replace with the actual kick animation length " +
 		"(or a kick-active sub-window of it).")]
 	[SerializeField] private float kickDuration = 0.5f;
+
+	[Header("Hands")]
+	[Tooltip("Child Transform marking where Cassie's bound hands sit. Place it on her " +
+	"DORSAL (back) side — the surface that faces UP when prone and DOWN when " +
+	"supine — roughly at the small of the back, offset out to the body surface. " +
+	"Because it's a child of the player it rides bodyRoll automatically: prone it's " +
+	"up in the air, rolled supine it drops to the floor. That geometry is what makes " +
+	"'roll onto your back over the tool' the grab posture for hands-behind binding. " +
+	"Used by AreHandsOver for the floor-tool pickup gate (#2).")]
+	[SerializeField] private Transform handAnchor;
 
 	[Tooltip("Child Transform marking where the kick's physics cast originates. " +
 		"Place it at foot height, offset along the body's kick axis (typically " +
@@ -98,6 +109,25 @@ public class PlayerController : MonoBehaviour
 	/// aim, not body-committing motion.
 	/// </summary>
 	public bool IsBusy => isKicking || (currentRestraint != null && currentRestraint.IsBusy);
+
+	/// <summary>
+	/// True if the bound hands (handAnchor) are within `radius` of a world point.
+	/// 3D distance, so it implicitly gates posture: with hands-behind binding the
+	/// anchor only reaches floor level when she's rolled supine, so a prone player's
+	/// anchor (a body-thickness up) fails against a floor tool with no explicit
+	/// belly check. Used by Pickupable's floor-access gate (#2). Returns false (with
+	/// a warning) if no handAnchor is wired.
+	/// </summary>
+	public bool AreHandsOver(Vector3 worldPos, float radius)
+	{
+		if (handAnchor == null)
+		{
+			Debug.LogWarning("[PlayerController] AreHandsOver called but no handAnchor " +
+				"is assigned — floor-tool pickup will never succeed. Wire the hand anchor.");
+			return false;
+		}
+		return Vector3.Distance(handAnchor.position, worldPos) <= radius;
+	}
 
 	// Read-only accessor so other systems (e.g. Kickable orientation gates) can
 	// query restraint state without owning a reference.

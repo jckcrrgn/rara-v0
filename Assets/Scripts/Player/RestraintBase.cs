@@ -140,6 +140,10 @@ public abstract class RestraintBase : MonoBehaviour
 	public virtual bool CanStruggle() => true;
 	public virtual float GetStruggleModifier() => 1f;
 	public virtual float GetKickModifier() => 1f;
+	// Whether this restraint lets Cassie reach tools lying on the floor. Default
+	// false (chair-bound, standing, etc.); FloorRestraint overrides true. Pickupables
+	// flagged requiresFloorAccess consult this. (#1 floor-access gate.)
+	public virtual bool CanReachFloorTools() => false;
 
 	/// <summary>
 	/// Multiplier on the restraint's primary movement (hop force, orbit step,

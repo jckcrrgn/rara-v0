@@ -5,50 +5,70 @@ using UnityEngine;
 /// <summary>
 /// Floor restraint: player is bound on the floor (duct tape, hands tied, etc.).
 ///
-/// Movement has two modes, toggled by C:
-///   - INCH (default): hold W to lunge headfirst (prone, on belly), one inch
-///     at a time with alternating shoulder lead. Releasing W mid-cycle lets
-///     the current inch finish; no new one starts.
-///   - SCOOT: hold W to push feet-first (supine, on back). Same cadence as
-///     inch but symmetric (no shoulder lead).
+/// STATE MODEL (decoupled — Day 60 refactor)
+/// -----------------------------------------
+/// Two INDEPENDENT axes describe the body on the floor, where before a single
+/// isScootMode bool conflated them:
+///   - bodyRoll      : rotation about the heading-forward axis. 0 = belly-down
+///                     (prone), 180 = belly-up (supine). Continuous. SOURCE OF
+///                     TRUTH for belly orientation. Driven by Roll (Shift+A/D)
+///                     and, as a convenience, by the C flip.
+///   - leadYawOffset : 0 = head leads the heading, 180 = feet lead. Independent
+///                     of belly. Driven by the C flip.
 ///
-/// Hold-W rather than tap-W: tap-mashing was tedious on L4 (long stretch of
-/// floor between spawn and door). Hold-W preserves the per-inch cadence —
-/// the inchworm rhythm is doing real character work — but takes the carpal
-/// tunnel out of it. Each inch is still a discrete cycle: lunge, settle,
-/// brief inter-cycle pause, then if W is still held, another cycle starts
-/// with the opposite shoulder lead. Speed is identical to perfect tap-mashing.
+/// Why decouple: a log roll (Shift+A/D) changes belly ONLY — your head stays
+/// your head. The old isScootMode coupled belly+lead into a single diagonal
+/// (prone-headfirst <-> supine-feetfirst), so a plain roll had nowhere to live.
+/// And the things isScootMode actually gated turned out to be belly conditions
+/// wearing a mode-bool costume:
+///   - Kick is suppressed prone because you can't kick off your stomach with
+///     bound legs — that's belly-DOWN, not head-first. GetKickModifier now
+///     reads IsBellyUp.
+///   - The inch shoulder-lead twist is a prone tell — MoveCycle now applies it
+///     when IsBellyDown.
+/// Kick DIRECTION (which way the feet point) is the one genuinely lead-end
+/// thing, so GetKickDirection reads the lead axis (IsFeetFirst), not belly.
 ///
-/// Travel direction = +transform.forward in both modes — the C-toggle only
-/// flips visual orientation, not travel direction.
+/// REGRESSION INVARIANT (verify on L4): belly-down + head-first must feel like
+/// old inch (twist + kick suppressed); belly-up + feet-first like old scoot
+/// (no twist + kick enabled, +forward); and one C press must still toggle
+/// directly between those two.
 ///
-/// Why "visual flip only": the player is steering the detective toward something
-/// (a door, a tool, an enemy). Pressing W should consistently push toward that
-/// thing. Toggling C is a re-orientation of the body around the same heading —
-/// head and feet swap visual positions, but "where the detective is going" stays
-/// the same. So W travels along +forward in both modes, and the C-toggle animates
-/// a 180° visual spin (and a Z-flip belly-up/belly-down) that's purely cosmetic.
+/// MOVEMENT (W) — unchanged feel
+/// -----------------------------
+/// Hold W to travel along +heading in either belly. Belly-down applies the
+/// alternating shoulder-lead twist (inchworm); belly-up is symmetric (scoot).
+/// Travel direction is the steering vector, never transform.forward (which now
+/// carries the roll + lead + twist visual offsets).
 ///
-/// Visual flip is animated on a separate "flipOffset" applied on top of steeringYaw,
-/// so the underlying steering vector doesn't change. The flip takes flipDuration
-/// seconds, during which W input is locked (so we can't move mid-spin and end up
-/// with travel/visual desync).
+/// ROLL (Shift+A/D) — the third mode, now implemented
+/// --------------------------------------------------
+/// Each Shift+A or Shift+D is one discrete roll cycle: the body log-rolls
+/// rollAnglePerCycle degrees about the heading-forward axis AND translates one
+/// rollLateralDistance sideways (left for A, right for D). Rolling both flips
+/// belly (down<->up through the side) and walks her laterally — which is how she
+/// brings her bound hands down onto a tool on the floor. The hand-over-tool
+/// pickup gate is a SEPARATE component that keys off a hand anchor whose world
+/// position tracks bodyRoll; this script just owns the locomotion. "Fast,
+/// noisy" per the original reservation: short duration + roll SFX.
 ///
-/// On a cube, only the Y portion of the flip is observable (cubes are Y-asymmetric
-/// in steering yaw if you've rotated with A/D); the Z-flip is invisible because
-/// cubes are Z-symmetric. The Z animation is wired anyway so when the character
-/// model lands, the belly-down → belly-up transition is already in place.
+/// C FLIP — kept as a coupled convenience
+/// --------------------------------------
+/// C still does the old one-press inch<->scoot in a single action: it animates
+/// bodyRoll to the opposite belly AND leadYawOffset to the opposite lead end at
+/// once. It is no longer the ONLY way to change belly (Shift+A/D does that
+/// independently); it's a shortcut that preserves L1–L5 muscle memory so the
+/// refactor doesn't regress shipped levels' controls. To make C a lead-end-only
+/// flip and let Roll own belly entirely, drop the bodyRoll line in FlipCycle
+/// (see the "ONE-LINE DECOUPLE" marker).
 ///
-/// Roll (Shift+A/D) is reserved as a third mode — lateral, fast, noisy.
-/// Not implemented yet (see ideas.md Day 20).
-///
-/// Kick: legs are bound but mobile enough to deliver a reduced-force kick —
-/// but ONLY in scoot mode. Prone (inch) kicks are suppressed entirely:
-/// anatomically you can't generate force kicking from your stomach with bound
-/// legs, and design-wise this couples the verb to the mode (inch = position,
-/// scoot = apply force). PlayerController still plays the effort grunt on a
-/// suppressed kick, so the player gets feedback that they tried — the absence
-/// of impact is the cue to try scoot.
+/// VISUALS ON A CUBE
+/// -----------------
+/// bodyRoll is applied as a true roll about the heading-forward axis. On the
+/// placeholder cube the belly portion is near-invisible (roughly symmetric
+/// about that axis); the observable signals are the lateral translation, the
+/// kick becoming available when belly-up, and the debug logs. When the
+/// character model lands the roll reads literally.
 /// </summary>
 public class FloorRestraint : RestraintBase
 {
@@ -68,63 +88,128 @@ public class FloorRestraint : RestraintBase
 	[Header("Inch Shoulder Lead")]
 	[Tooltip("Degrees of Y-rotation tilt during an inch lunge. Alternates sign per inch — " +
 		"reads as alternating shoulder lead, like an actual inchworm. " +
-		"Inch is asymmetric (one shoulder, then the other); scoot is symmetric (both legs " +
-		"push together) so this doesn't apply to scoot mode.")]
+		"Applies when BELLY-DOWN (prone); belly-up (scoot) is symmetric (both legs " +
+		"push together) so this doesn't apply there.")]
 	[SerializeField] private float shoulderLeadAngle = 12f;
 
 	[Header("Rotation (steering)")]
+	[Tooltip("A/D steering speed (deg/sec). Note: Shift+A/D is intercepted for " +
+		"Roll and does NOT steer — plain A/D steers, Shift+A/D rolls.")]
 	[SerializeField] private float rotationSpeed = 80f;
 
-	[Header("Mode Toggle")]
-	[Tooltip("Key to toggle between inch (headfirst, prone) and scoot (feet-first, supine). " +
-		"Visually flips the body 180° on Y (head/feet swap) and 180° on Z (belly up/down). " +
-		"World-space travel direction does NOT change — W still moves along +forward in both modes. " +
-		"Mode persists across the FloorRestraint session — re-entry preserves it.")]
+	[Header("Mode Toggle (C) — coupled convenience flip")]
+	[Tooltip("Key for the one-press inch<->scoot flip. Animates BOTH belly " +
+		"(bodyRoll 180) and lead end (leadYawOffset 180) together, reproducing " +
+		"the old single-press behaviour. World-space travel direction does NOT " +
+		"change. State persists across the FloorRestraint session.")]
 	[SerializeField] private KeyCode modeToggleKey = KeyCode.C;
-	[Tooltip("Duration of the visual flip animation. W input is locked during the flip.")]
+	[Tooltip("Duration of the C flip animation. W input is locked during the flip.")]
 	[SerializeField] private float flipDuration = 2f;
+
+	[Header("Roll (Shift+A/D)")]
+	[Tooltip("Modifier key that turns A/D into a roll instead of a steer.")]
+	[SerializeField] private KeyCode rollModifier = KeyCode.LeftShift;
+	[Tooltip("Second accepted modifier (right shift) so either Shift works.")]
+	[SerializeField] private KeyCode rollModifierAlt = KeyCode.RightShift;
+	[Tooltip("Degrees of roll about the heading-forward axis per Shift+A/D press. " +
+		"180 = a full barrel roll to the opposite belly (back<->front) in one go, " +
+		"matching 'roll to the side and end up facedown'. Drop to 90 for finer " +
+		"belly/hand positioning (down -> side -> up in two presses).")]
+	[SerializeField] private float rollAnglePerCycle = 180f;
+	[Tooltip("How far she translates sideways per roll cycle (left for Shift+A, " +
+		"right for Shift+D). Roughly a body width — this is what walks her hands " +
+		"laterally onto a tool. Tune against moveDistance.")]
+	[SerializeField] private float rollLateralDistance = 0.5f;
+	[Tooltip("Duration of one roll cycle. 'Fast' per the original reservation — " +
+		"snappier than the C flip.")]
+	[SerializeField] private float rollDuration = 0.5f;
+	[Tooltip("Roll SFX ('noisy'). Played once at the start of each roll cycle " +
+		"through AudioManager. Leave null until a clip is wired.")]
+	[SerializeField] private AudioClip rollClip;
+	[Tooltip("Volume for the roll clip.")]
+	[SerializeField] private float rollVolume = 1f;
+
+	[Header("Belly Classification")]
+	[Tooltip("Half-width (deg) of the belly-down and belly-up bands. Within this " +
+		"of 0 counts as belly-DOWN (twist applies); within this of 180 counts as " +
+		"belly-UP (kick enabled). 60 leaves a neutral band around the sides (90) " +
+		"where she's neither — can't kick, no twist. Lower = stricter postures.")]
+	[Range(0f, 90f)]
+	[SerializeField] private float bellyOrientationThreshold = 60f;
 
 	[Header("Struggle Tuning")]
 	[Tooltip("Floor-bound struggle uses the whole body — slightly more effective. 1.2 = 20% bonus.")]
 	[SerializeField] private float struggleBonus = 1.2f;
 
 	[Header("Kick Tuning")]
-	[Tooltip("Kick force scalar while floor-bound AND in scoot mode. 0.5 = half the force of a free-legged kick. " +
+	[Tooltip("Kick force scalar while floor-bound AND belly-up. 0.5 = half the force of a free-legged kick. " +
 		"Means floor-bound players need ~2x the reps to break the same Kickable. " +
-		"Inch (prone) mode returns 0 — kick is suppressed entirely until the player flips to scoot.")]
+		"Belly-down (and the neutral side band) returns 0 — kick is suppressed until she rolls belly-up.")]
 	[SerializeField] private float kickModifier = 0.5f;
 
 	// --- Internal state ---
-	private float steeringYaw;
-	private float twistOffset;
-	private float visualYawOffset;   // 0 in inch, 180 in scoot. Animated during flip.
-	private float visualRoll;        // 0 in inch (belly-down), 180 in scoot (belly-up). Animated during flip.
+	// bodyRoll and leadYawOffset are the decoupled body state and PERSIST across
+	// re-entry (the old isScootMode persisted; these are its two halves).
+	private float bodyRoll;          // 0 = belly-down (prone), 180 = belly-up (supine). Source of truth.
+	private float leadYawOffset;     // 0 = head leads, 180 = feet lead.
+	private float steeringYaw;       // heading (A/D). Persists across re-entry.
+	private float twistOffset;       // transient per-inch shoulder lead.
 	private bool isMoving = false;
 	private bool isFlipping = false;
+	private bool isRolling = false;
 	private bool nextLeadIsRight = true;
-	private bool isScootMode = false;
+	private bool hasInitializedHeading = false;
 
-	// Inch cycle, scoot cycle, and flip cycle all commit the body to a motion.
-	// Steering (A/D) does NOT — that's aim adjustment, not body-committing motion.
-	public override bool IsBusy => isMoving || isFlipping;
+	// --- Derived posture queries ---
+	// Belly conditions read bodyRoll. These are what used to hide behind isScootMode.
+	private bool IsBellyUp => Mathf.Abs(Mathf.DeltaAngle(bodyRoll, 180f)) <= bellyOrientationThreshold;
+	private bool IsBellyDown => Mathf.Abs(Mathf.DeltaAngle(bodyRoll, 0f)) <= bellyOrientationThreshold;
+	// Lead end reads leadYawOffset. The one genuinely non-belly thing kick needs.
+	private bool IsFeetFirst => Mathf.Abs(Mathf.DeltaAngle(leadYawOffset, 180f)) < 90f;
+
+	// Inch cycle, scoot cycle, flip cycle, and roll cycle all commit the body to
+	// a motion. Steering (plain A/D) does NOT — that's aim, not body-committing.
+	public override bool IsBusy => isMoving || isFlipping || isRolling;
 
 	public override void OnEnter(PlayerController player)
 	{
-		steeringYaw = player.transform.eulerAngles.y;
+		// Initialize heading from the transform only the FIRST time we enter —
+		// after that, steeringYaw/bodyRoll/leadYawOffset are authoritative and
+		// recovering yaw from eulerAngles would be wrong once a roll has been
+		// applied (the composed rotation is no longer pure yaw).
+		if (!hasInitializedHeading)
+		{
+			steeringYaw = player.transform.eulerAngles.y;
+			bodyRoll = 0f;        // start belly-down (prone / inch)
+			leadYawOffset = 0f;   // start head-first
+			hasInitializedHeading = true;
+		}
 		twistOffset = 0f;
 		nextLeadIsRight = true;
-		// isScootMode persists across re-entry (see class comment). Sync visual offsets
-		// to whatever mode we're currently in so the cube doesn't snap.
-		visualYawOffset = isScootMode ? 180f : 0f;
-		visualRoll = isScootMode ? 180f : 0f;
 	}
 
 	public override void HandleMovementInput(PlayerController player)
 	{
-		// Steering still works during a flip — the detective can technically course-correct
-		// her heading mid-spin. Feels natural and prevents input-locked frustration.
-		float rotateInput = Input.GetAxis("Horizontal");
-		steeringYaw += rotateInput * rotationSpeed * Time.deltaTime;
+		bool rollHeld = Input.GetKey(rollModifier) || Input.GetKey(rollModifierAlt);
+
+		if (rollHeld)
+		{
+			// Shift+A/D rolls; suppress steering this frame so a roll input
+			// doesn't also turn the heading.
+			if (!player.IsBusy)
+			{
+				if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow))
+					player.StartCoroutine(RollCycle(player, -1));   // roll left
+				else if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow))
+					player.StartCoroutine(RollCycle(player, +1));   // roll right
+			}
+		}
+		else
+		{
+			// Plain A/D steers the heading. Works during a flip/roll (course-correct).
+			float rotateInput = Input.GetAxis("Horizontal");
+			steeringYaw += rotateInput * rotationSpeed * Time.deltaTime;
+		}
 
 		if (Input.GetKeyDown(modeToggleKey) && !player.IsBusy)
 		{
@@ -136,84 +221,148 @@ public class FloorRestraint : RestraintBase
 			player.StartCoroutine(MoveCycle(player));
 		}
 
-		// Apply: steering yaw + per-inch twist + visual flip offset on Y, plus Z roll for belly orientation.
-		player.transform.rotation = Quaternion.Euler(visualRoll, steeringYaw + twistOffset + visualYawOffset, 0f);
+		// Compose the visual: heading (steering + per-inch twist + lead-end offset)
+		// on Y, then a true roll about the resulting forward axis for belly.
+		Quaternion heading = Quaternion.Euler(0f, steeringYaw + twistOffset + leadYawOffset, 0f);
+		Vector3 forwardAxis = heading * Vector3.forward;
+		player.transform.rotation = Quaternion.AngleAxis(bodyRoll, forwardAxis) * heading;
 	}
 
 	/// <summary>
-	/// Visual flip: animate Y by 180° and Z by 180° over flipDuration.
-	/// Travel direction (steeringYaw) is untouched — only the visual offsets change.
-	/// W input is locked during the flip; steering remains active so the player can
-	/// keep adjusting heading mid-spin if they want.
+	/// One roll cycle (Shift+A/D). Log-rolls rollAnglePerCycle about the heading-
+	/// forward axis and translates rollLateralDistance sideways. dir = -1 left
+	/// (Shift+A), +1 right (Shift+D). This is the locomotion that lets her bring
+	/// her bound hands down onto a floor tool — both the belly flip (hands swing
+	/// from up to down) and the lateral walk (hands move over the target) come
+	/// out of the same motion.
 	///
-	/// Both Y and Z are animated together. On a cube the Z portion is invisible
-	/// (Z-symmetric), but it's wired so the character-model transition is in place.
+	/// Physics is set kinematic during the roll so the cube doesn't fight the
+	/// floor mid-rotation (same reason as FlipCycle). Lateral motion is written
+	/// straight to transform.position, NOT via MovePosition: HandleMovementInput
+	/// assigns transform.rotation every frame, and that direct transform write
+	/// re-syncs the Rigidbody and discards any pending MovePosition target — so
+	/// a kinematic MovePosition here silently does nothing. A direct position
+	/// write isn't disturbed by the rotation write.
 	///
-	/// Hint refresh: fire RaiseHintsChanged at the start of the flip so the UI
-	/// updates the W label ("Inch (hold)" → "Scoot (hold)") and the F-kick
-	/// conditional state immediately when the player commits to the toggle,
-	/// rather than waiting for the animation to finish. Feels more responsive
-	/// and there's no race — the new mode is committed before the animation runs.
+	/// Roll/lateral sign pairing: a positive bodyRoll about forward reads as a
+	/// LEFT roll in Unity's convention, so the roll delta is negated against dir
+	/// to keep "Shift+D = roll right AND move right" consistent.
+	///
+	/// Hints refresh at the start because a roll can cross the belly-up threshold,
+	/// flipping the Kick conditional state immediately.
+	///
+	/// Per-press (discrete) for positioning control. To hold-chain like W, mirror
+	/// MoveCycle's tail check on the roll key.
+	/// </summary>
+	private IEnumerator RollCycle(PlayerController player, int dir)
+	{
+		isRolling = true;
+		RaiseHintsChanged();
+
+		if (AudioManager.Instance != null && rollClip != null)
+			AudioManager.Instance.PlaySFX(rollClip, rollVolume, Random.Range(0.96f, 1.04f));
+
+		Debug.Log($"FloorRestraint: ROLL {(dir < 0 ? "left" : "right")} " +
+			$"(bodyRoll {bodyRoll:F0} -> {bodyRoll - rollAnglePerCycle * dir:F0}).");
+
+		bool wasKinematic = player.Rb.isKinematic;
+		player.Rb.isKinematic = true;
+
+		// Lateral direction is perpendicular to the heading (steering only, not
+		// the visual offsets): Shift+D (dir +1) -> her right, Shift+A -> her left.
+		Vector3 lateralDir = (Quaternion.Euler(0f, steeringYaw, 0f) * Vector3.right) * dir;
+
+		float startRoll = bodyRoll;
+		// Negated against dir: +bodyRoll rolls LEFT, so D (+1) must DECREASE
+		// bodyRoll to roll right and match the rightward lateral motion.
+		float endRoll = bodyRoll - rollAnglePerCycle * dir;
+
+		float elapsed = 0f;
+		while (elapsed < rollDuration)
+		{
+			float t = elapsed / rollDuration;
+			float eased = t * t * (3f - 2f * t); // smoothstep
+			bodyRoll = Mathf.Lerp(startRoll, endRoll, eased);
+
+			// Direct transform write (see method doc): MovePosition would be
+			// clobbered by HandleMovementInput's per-frame rotation assignment.
+			Vector3 perFrameDelta = lateralDir * (rollLateralDistance / rollDuration) * Time.deltaTime;
+			player.transform.position += perFrameDelta;
+
+			elapsed += Time.deltaTime;
+			yield return null;
+		}
+
+		bodyRoll = Mathf.Repeat(endRoll, 360f);
+
+		player.Rb.isKinematic = wasKinematic;
+		isRolling = false;
+		RaiseHintsChanged();
+	}
+
+	/// <summary>
+	/// C flip: the coupled convenience toggle. Animates bodyRoll to the opposite
+	/// belly AND leadYawOffset to the opposite lead end together, reproducing the
+	/// old one-press inch<->scoot. Travel (steeringYaw) is untouched. W is locked
+	/// during the flip; steering stays active so the player can course-correct.
+	///
+	/// Hint refresh fires at the start so the W label and F-kick conditional
+	/// update the moment the player commits, not when the animation ends.
 	/// </summary>
 	private IEnumerator FlipCycle(PlayerController player)
 	{
 		isFlipping = true;
-		isScootMode = !isScootMode;
-		RaiseHintsChanged();
 
-		// Debug.Log scaffolding — replace with mutter line / UI cue once those exist.
-		Debug.Log(isScootMode ? "Floor mode: SCOOT (feet-first)" : "Floor mode: INCH (headfirst)");
+		// Snapshot targets at commit time (reading the derived queries once).
+		float startRoll = bodyRoll;
+		float endRoll = IsBellyUp ? 0f : 180f;          // ONE-LINE DECOUPLE: delete this pair + the bodyRoll lerp below to make C lead-only.
+		float startYaw = leadYawOffset;
+		float endYaw = IsFeetFirst ? 0f : 180f;
+
+		RaiseHintsChanged();
+		Debug.Log($"FloorRestraint: C FLIP (belly {startRoll:F0}->{endRoll:F0}, lead {startYaw:F0}->{endYaw:F0}).");
 
 		// Disable physics during the flip so the cube can rotate cleanly without
-		// the collider fighting the floor. Re-enabled on exit. When the character
-		// model lands this can probably go away — a humanoid rolling on its back
-		// won't have the same floor-collision issue a cube has.
+		// the collider fighting the floor. Re-enabled on exit.
 		bool wasKinematic = player.Rb.isKinematic;
 		player.Rb.isKinematic = true;
-
-		float startYaw = visualYawOffset;
-		float endYaw = isScootMode ? 180f : 0f;
-		float startRoll = visualRoll;
-		float endRoll = isScootMode ? 180f : 0f;
 
 		float elapsed = 0f;
 		while (elapsed < flipDuration)
 		{
 			float t = elapsed / flipDuration;
 			float eased = t * t * (3f - 2f * t); // smoothstep
-			visualYawOffset = Mathf.LerpAngle(startYaw, endYaw, eased);
-			visualRoll = Mathf.LerpAngle(startRoll, endRoll, eased);
+			bodyRoll = Mathf.LerpAngle(startRoll, endRoll, eased);
+			leadYawOffset = Mathf.LerpAngle(startYaw, endYaw, eased);
 			elapsed += Time.deltaTime;
 			yield return null;
 		}
 
-		visualYawOffset = endYaw;
-		visualRoll = endRoll;
+		bodyRoll = endRoll;
+		leadYawOffset = endYaw;
 
 		player.Rb.isKinematic = wasKinematic;
 		isFlipping = false;
+		RaiseHintsChanged();
 	}
 
 	/// <summary>
-	/// One movement cycle. Always travels along +transform.forward — the C-toggle
-	/// changes only the visual offset, not the steering yaw, so the world-space
-	/// direction of W is consistent across both modes.
-	/// Inch applies an alternating shoulder-lead twist; scoot is symmetric (both legs
-	/// pushing together) so no twist is applied.
+	/// One movement cycle. Always travels along the steering vector — the visual
+	/// offsets (roll, lead, twist) don't affect travel, so W is consistent in any
+	/// posture. Belly-DOWN applies the alternating shoulder-lead twist (inchworm);
+	/// belly-up (and the neutral side band) is symmetric.
 	///
-	/// Hold-W behavior: at the end of each cycle, if W is still held, the next
-	/// cycle is started directly (no Update tick required). The interCycleDelay
-	/// in the middle preserves the discrete-rep cadence — without it, holding W
-	/// reads as smooth gliding rather than inching. Releasing W mid-cycle lets
-	/// the current cycle finish; no new one starts.
+	/// Hold-W: at the end of each cycle, if W is still held and nothing else is
+	/// busy, the next cycle starts directly. interCycleDelay preserves the
+	/// discrete-rep cadence. Releasing W mid-cycle lets the current one finish.
 	/// </summary>
 	private IEnumerator MoveCycle(PlayerController player)
 	{
 		isMoving = true;
 
-		// Inch only: pick this cycle's shoulder-lead direction and flip for next time.
+		// Shoulder-lead twist only when belly-down (prone). Belly-up / on-side: symmetric.
 		float targetTwist = 0f;
-		if (!isScootMode)
+		if (IsBellyDown)
 		{
 			float leadSign = nextLeadIsRight ? 1f : -1f;
 			nextLeadIsRight = !nextLeadIsRight;
@@ -226,15 +375,14 @@ public class FloorRestraint : RestraintBase
 			float t = elapsed / lungeDuration;
 			float eased = 1f - (1f - t) * (1f - t);
 
-			// Travel along the steering vector, NOT transform.forward — transform.forward
-			// includes the visual flip offset, which would invert travel in scoot mode.
-			// We want world-space travel to stay consistent.
+			// Travel along the steering vector, NOT transform.forward — the latter
+			// carries roll/lead/twist offsets and would corrupt world-space travel.
 			Vector3 steeringForward = Quaternion.Euler(0f, steeringYaw, 0f) * Vector3.forward;
 			Vector3 perFrameDelta = steeringForward
 				* (moveDistance / lungeDuration) * Time.deltaTime;
 			player.Rb.MovePosition(player.Rb.position + perFrameDelta);
 
-			// Twist is a no-op in scoot mode (targetTwist stays 0).
+			// No-op when belly-up/on-side (targetTwist stays 0).
 			twistOffset = Mathf.Lerp(0f, targetTwist, eased);
 
 			elapsed += Time.deltaTime;
@@ -254,10 +402,6 @@ public class FloorRestraint : RestraintBase
 
 		twistOffset = 0f;
 
-		// Inter-cycle pause: brief beat between reps. Preserves the discrete-rep
-		// cadence so hold-W reads as automated rhythm, not smooth gliding. Also
-		// gives the player a frame-perfect window to release W if they want to
-		// stop exactly here.
 		if (interCycleDelay > 0f)
 		{
 			yield return new WaitForSeconds(interCycleDelay);
@@ -265,12 +409,6 @@ public class FloorRestraint : RestraintBase
 
 		isMoving = false;
 
-		// Hold-W chaining: if W is still held and the player isn't busy with
-		// any other body-committing action (flip, kick), start the next cycle
-		// directly. Don't wait for the next Update tick — that would add an
-		// unpredictable extra frame of dead time. Checking player.IsBusy here
-		// rather than just local state means future busy states (new restraint
-		// types, additional verbs) automatically gate this chain correctly.
 		if (Input.GetKey(KeyCode.W) && !player.IsBusy)
 		{
 			player.StartCoroutine(MoveCycle(player));
@@ -282,52 +420,51 @@ public class FloorRestraint : RestraintBase
 		return struggleBonus;
 	}
 
-	// Floor-bound legs can still kick, but ONLY in scoot mode.
-	// Inch (prone) returns 0 — anatomically can't generate force kicking from your
-	// stomach with bound legs, and couples the kick verb to scoot mode so the
-	// C-toggle becomes a meaningful tactical choice (position vs. apply force).
-	// PlayerController still plays the effort grunt on a 0-force kick attempt, so
-	// the player gets "you tried, it didn't work" feedback — the cue to try scoot.
+	// Floor-bound legs can kick only when BELLY-UP (was: only in scoot mode).
+	// Belly-down — and the neutral side band — return 0: you can't generate force
+	// kicking off your stomach with bound legs, and this keeps "roll belly-up to
+	// kick" a meaningful tactical choice. PlayerController still plays the effort
+	// grunt on a 0-force kick, so "you tried, it didn't work" still reads.
 	public override float GetKickModifier()
 	{
-		return isScootMode ? kickModifier : 0f;
+		return IsBellyUp ? kickModifier : 0f;
 	}
 
+	// On the floor = can reach floor tools. The #1 gate; #2 adds the hand-over-tool
+	// proximity check on top of this.
+	public override bool CanReachFloorTools() => true;
+
 	/// <summary>
-	/// Feet point along the steering vector in scoot mode (visual feet at +forward
-	/// since the body has visually flipped) and against it in inch mode.
-	///
-	/// Note: we use the steering yaw, NOT transform.forward, because transform.forward
-	/// includes the visual flip offset. Kickable orientation gates care about world-space
-	/// foot direction, which depends on which body-end is currently the "lead" end.
+	/// Feet point along the steering vector when feet-first, against it when
+	/// head-first. Reads the LEAD axis (not belly) — which way the feet point is
+	/// a head/feet question, independent of which way she's rolled. Uses steering
+	/// yaw, not transform.forward, because the latter carries the visual offsets.
 	/// </summary>
 	public override Vector3 GetKickDirection(PlayerController player)
 	{
 		Vector3 steeringForward = Quaternion.Euler(0f, steeringYaw, 0f) * Vector3.forward;
-		return isScootMode ? steeringForward : -steeringForward;
+		return IsFeetFirst ? steeringForward : -steeringForward;
 	}
 
 	public override List<ControlHint> GetControlHints()
 	{
-		// Mode-aware hints. The W label and F conditional state both flip with the mode.
+		// Posture-aware hints. W label tracks belly; Kick conditional tracks belly-up.
 		List<ControlHint> hints = new List<ControlHint>();
 
-		if (isScootMode)
+		if (IsBellyUp)
 		{
 			hints.Add(new ControlHint("Scoot", "W (hold)"));
-			hints.Add(new ControlHint("Flip Over", "C"));
 			hints.Add(new ControlHint("Kick", "F"));
 		}
 		else
 		{
-			hints.Add(new ControlHint("Inch", "W (hold)"));
-			hints.Add(new ControlHint("Flip Over", "C"));
-			// Conditional: kick exists in this restraint but is suppressed in inch mode.
-			// Greyed out + parenthetical hint at WHY it's unavailable, teaching the
-			// inch↔scoot relationship.
-			hints.Add(new ControlHint("Kick", "F", conditional: true, conditionalSuffix: "flip first"));
+			hints.Add(new ControlHint(IsBellyDown ? "Inch" : "Crawl", "W (hold)"));
+			// Kick exists but is suppressed until belly-up. Greyed + why.
+			hints.Add(new ControlHint("Kick", "F", conditional: true, conditionalSuffix: "roll belly-up"));
 		}
 
+		hints.Add(new ControlHint("Roll", "Shift + A / D"));
+		hints.Add(new ControlHint("Flip Over", "C"));
 		hints.Add(new ControlHint("Turn", "A / D"));
 		hints.Add(new ControlHint("Struggle", "Space"));
 		hints.Add(new ControlHint("Pick Up", "E"));
@@ -337,7 +474,7 @@ public class FloorRestraint : RestraintBase
 
 	public override void OnExit(PlayerController player)
 	{
-		// No cleanup needed — steeringYaw/twistOffset reset on next OnEnter.
-		// isScootMode persists by design (see OnEnter note).
+		// No cleanup needed — twistOffset resets on next OnEnter; bodyRoll,
+		// leadYawOffset, and steeringYaw persist by design.
 	}
 }

@@ -151,3 +151,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   interactionRange: 0.8
   itemName: Chair Shard
+  requiresFloorAccess: 1

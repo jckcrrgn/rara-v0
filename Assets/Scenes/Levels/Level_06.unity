@@ -185,7 +185,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f222a2a2521e6b44a89da6503ec10e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  totalDuration: 10
+  totalDuration: 60
   thresholdsNormalized:
   - 0.5
   OnTimerStart:
@@ -688,6 +688,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   interactionRange: 1.5
   itemName: Pen
+  requiresFloorAccess: 0
 --- !u!23 &320689846
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1286,8 +1287,12 @@ MonoBehaviour:
   shardCount: 3
   shardScatterRadius: 0.4
   shardSpawnImpulse: 0.6
-  shardSpawnYOffset: -0.1
   shardScaleRange: {x: 0.6, y: 1.4}
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  shardRaycastHeight: 2
+  shardSpawnClearance: 0.05
   smashClip: {fileID: 8300000, guid: 5eb078129e6b87e4fac4c94347dccb33, type: 3}
   smashVolume: 1
 --- !u!54 &517821760
