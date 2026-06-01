@@ -185,7 +185,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f222a2a2521e6b44a89da6503ec10e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  totalDuration: 60
+  totalDuration: 5
   thresholdsNormalized:
   - 0.5
   OnTimerStart:

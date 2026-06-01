@@ -101,7 +101,8 @@ public class FloorRestraint : RestraintBase
 	[Tooltip("Key for the one-press inch<->scoot flip. Animates BOTH belly " +
 		"(bodyRoll 180) and lead end (leadYawOffset 180) together, reproducing " +
 		"the old single-press behaviour. World-space travel direction does NOT " +
-		"change. State persists across the FloorRestraint session.")]
+		"change. The flipped state holds for the rest of this floor stint " +
+		"(but resets to prone/head-first on re-entry — see ResetPosture).")]
 	[SerializeField] private KeyCode modeToggleKey = KeyCode.C;
 	[Tooltip("Duration of the C flip animation. W input is locked during the flip.")]
 	[SerializeField] private float flipDuration = 2f;
@@ -148,17 +149,20 @@ public class FloorRestraint : RestraintBase
 	[SerializeField] private float kickModifier = 0.5f;
 
 	// --- Internal state ---
-	// bodyRoll and leadYawOffset are the decoupled body state and PERSIST across
-	// re-entry (the old isScootMode persisted; these are its two halves).
+	// bodyRoll, leadYawOffset, and steeringYaw persist WITHIN a single floor stint
+	// (her rolls, flips, and steering carry frame-to-frame) but are RESET on every
+	// OnEnter — see ResetPosture. So crossing exit->re-enter (re-tipping a chair,
+	// or a stay-floorbound failure re-bind) starts a fresh prone bind, not a resume
+	// of the old belly. (This reverses the old isScootMode "persist across re-entry"
+	// behaviour by design: the guard binds her facedown each time.)
 	private float bodyRoll;          // 0 = belly-down (prone), 180 = belly-up (supine). Source of truth.
 	private float leadYawOffset;     // 0 = head leads, 180 = feet lead.
-	private float steeringYaw;       // heading (A/D). Persists across re-entry.
+	private float steeringYaw;       // heading (A/D). Re-derived from transform on each OnEnter.
 	private float twistOffset;       // transient per-inch shoulder lead.
 	private bool isMoving = false;
 	private bool isFlipping = false;
 	private bool isRolling = false;
 	private bool nextLeadIsRight = true;
-	private bool hasInitializedHeading = false;
 
 	// --- Derived posture queries ---
 	// Belly conditions read bodyRoll. These are what used to hide behind isScootMode.
@@ -173,17 +177,30 @@ public class FloorRestraint : RestraintBase
 
 	public override void OnEnter(PlayerController player)
 	{
-		// Initialize heading from the transform only the FIRST time we enter —
-		// after that, steeringYaw/bodyRoll/leadYawOffset are authoritative and
-		// recovering yaw from eulerAngles would be wrong once a roll has been
-		// applied (the composed rotation is no longer pure yaw).
-		if (!hasInitializedHeading)
-		{
-			steeringYaw = player.transform.eulerAngles.y;
-			bodyRoll = 0f;        // start belly-down (prone / inch)
-			leadYawOffset = 0f;   // start head-first
-			hasInitializedHeading = true;
-		}
+		// Every entry is a fresh bind: prone, head-first, heading re-derived from
+		// the current transform. Previously this was gated to the first entry only
+		// (hasInitializedHeading) so posture persisted across re-entry; that's
+		// intentionally dropped — a re-tipped chair or a floorbound re-bind should
+		// start clean, not resume a stale belly. The guard binds her facedown.
+		ResetPosture(player);
+	}
+
+	/// <summary>
+	/// Reset floor posture to the default bind: prone (belly-down), head-first,
+	/// heading taken from the current transform. Called on every OnEnter so each
+	/// fresh stint starts identically, and called explicitly by FailureLoopController
+	/// in the stay-floorbound case — where OnEnter does NOT fire because she never
+	/// left FloorRestraint — AFTER the respawn snap, so the respawn point's rotation
+	/// actually drives her heading. Reads eulerAngles.y for the heading: fine here
+	/// because by the time we re-enter she's either at a clean respawn rotation or
+	/// coming off a chair (ChairRestraint owns the rotation between floor stints),
+	/// so there's no stale floor-roll polluting the yaw.
+	/// </summary>
+	public void ResetPosture(PlayerController player)
+	{
+		steeringYaw = player.transform.eulerAngles.y;
+		bodyRoll = 0f;        // prone (belly-down / inch)
+		leadYawOffset = 0f;   // head-first
 		twistOffset = 0f;
 		nextLeadIsRight = true;
 	}
@@ -216,9 +233,16 @@ public class FloorRestraint : RestraintBase
 			player.StartCoroutine(FlipCycle(player));
 		}
 
+		// W = forward (any belly). S = backward, supine-only: you can push off your
+		// heels on your back, but not inch backward on your belly with bound limbs.
+		// Forward wins if both are somehow held.
 		if (Input.GetKey(KeyCode.W) && !player.IsBusy)
 		{
-			player.StartCoroutine(MoveCycle(player));
+			player.StartCoroutine(MoveCycle(player, +1));
+		}
+		else if (Input.GetKey(KeyCode.S) && IsBellyUp && !player.IsBusy)
+		{
+			player.StartCoroutine(MoveCycle(player, -1));
 		}
 
 		// Compose the visual: heading (steering + per-inch twist + lead-end offset)
@@ -348,21 +372,28 @@ public class FloorRestraint : RestraintBase
 
 	/// <summary>
 	/// One movement cycle. Always travels along the steering vector — the visual
-	/// offsets (roll, lead, twist) don't affect travel, so W is consistent in any
-	/// posture. Belly-DOWN applies the alternating shoulder-lead twist (inchworm);
+	/// offsets (roll, lead, twist) don't affect travel, so movement is consistent in
+	/// any posture. Belly-DOWN applies the alternating shoulder-lead twist (inchworm);
 	/// belly-up (and the neutral side band) is symmetric.
 	///
-	/// Hold-W: at the end of each cycle, if W is still held and nothing else is
-	/// busy, the next cycle starts directly. interCycleDelay preserves the
-	/// discrete-rep cadence. Releasing W mid-cycle lets the current one finish.
+	/// dir = +1 forward (W, any belly), -1 backward (S, belly-up ONLY — input gates
+	/// this in HandleMovementInput). Backward is the supine heel-push scoot: you can
+	/// reverse on your back, but not inch backward prone with bound limbs. Backward
+	/// never twists (dir<0 implies belly-up, which is symmetric).
+	///
+	/// Hold-to-chain: at the end of each cycle, if the matching key is still held and
+	/// nothing else is busy, the next cycle starts directly. interCycleDelay preserves
+	/// the discrete-rep cadence. Releasing mid-cycle lets the current one finish. The
+	/// backward chain also re-checks belly-up, so rolling prone mid-hold stops it.
 	/// </summary>
-	private IEnumerator MoveCycle(PlayerController player)
+	private IEnumerator MoveCycle(PlayerController player, int dir)
 	{
 		isMoving = true;
 
-		// Shoulder-lead twist only when belly-down (prone). Belly-up / on-side: symmetric.
+		// Shoulder-lead twist is a forward-inch (belly-down) tell. Backward (dir < 0)
+		// is supine-only and symmetric, so it never twists. Belly-up / on-side: symmetric.
 		float targetTwist = 0f;
-		if (IsBellyDown)
+		if (IsBellyDown && dir > 0)
 		{
 			float leadSign = nextLeadIsRight ? 1f : -1f;
 			nextLeadIsRight = !nextLeadIsRight;
@@ -379,7 +410,7 @@ public class FloorRestraint : RestraintBase
 			// carries roll/lead/twist offsets and would corrupt world-space travel.
 			Vector3 steeringForward = Quaternion.Euler(0f, steeringYaw, 0f) * Vector3.forward;
 			Vector3 perFrameDelta = steeringForward
-				* (moveDistance / lungeDuration) * Time.deltaTime;
+				* (moveDistance / lungeDuration) * Time.deltaTime * dir;
 			player.Rb.MovePosition(player.Rb.position + perFrameDelta);
 
 			// No-op when belly-up/on-side (targetTwist stays 0).
@@ -409,9 +440,15 @@ public class FloorRestraint : RestraintBase
 
 		isMoving = false;
 
-		if (Input.GetKey(KeyCode.W) && !player.IsBusy)
+		// Re-chain on the same direction's key while held. Backward re-checks belly-up
+		// so a mid-hold roll to prone stops the back-scoot.
+		if (dir > 0 && Input.GetKey(KeyCode.W) && !player.IsBusy)
 		{
-			player.StartCoroutine(MoveCycle(player));
+			player.StartCoroutine(MoveCycle(player, +1));
+		}
+		else if (dir < 0 && Input.GetKey(KeyCode.S) && IsBellyUp && !player.IsBusy)
+		{
+			player.StartCoroutine(MoveCycle(player, -1));
 		}
 	}
 
@@ -454,6 +491,7 @@ public class FloorRestraint : RestraintBase
 		if (IsBellyUp)
 		{
 			hints.Add(new ControlHint("Scoot", "W (hold)"));
+			hints.Add(new ControlHint("Back", "S (hold)"));
 			hints.Add(new ControlHint("Kick", "F"));
 		}
 		else
@@ -474,7 +512,9 @@ public class FloorRestraint : RestraintBase
 
 	public override void OnExit(PlayerController player)
 	{
-		// No cleanup needed — twistOffset resets on next OnEnter; bodyRoll,
-		// leadYawOffset, and steeringYaw persist by design.
+		// No cleanup needed — the next OnEnter calls ResetPosture, which re-derives
+		// heading and returns her to a prone, head-first bind. Nothing to tear down
+		// here; leaving the fields as-is is harmless since they're overwritten on
+		// re-entry.
 	}
 }

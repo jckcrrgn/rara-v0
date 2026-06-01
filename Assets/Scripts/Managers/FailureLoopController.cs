@@ -497,6 +497,20 @@ public class FailureLoopController : MonoBehaviour
 			Debug.LogWarning("FailureLoopController: no respawnPoint set. Cassie will not be repositioned.");
 		}
 
+		// --- Floor posture reset (stay-floorbound case) ---
+		// If Cassie stayed floorbound (case 3 — both chairs broken), she never
+		// exited FloorRestraint, so its OnEnter — which resets her to a prone,
+		// head-first bind — did NOT fire. Reset it explicitly here, AFTER the
+		// position snap, so her heading re-derives from the respawn point and she
+		// comes back facedown rather than resuming whatever tangle she failed in.
+		// The chair cases (1 and 2) re-entered a restraint via SetRestraint, so
+		// their OnEnter already handled posture; this is the one gap.
+		if (player.CurrentRestraint is FloorRestraint floorRestraint)
+		{
+			floorRestraint.ResetPosture(player);
+			Log("Floor posture reset to prone (stay-floorbound re-bind).");
+		}
+
 		// --- Scene-specific resets via UnityEvent ---
 		// Wire NightstandDrawer.Close() and other scene-specific resets here.
 		// Per spec §7 persistence rules, lamp/pen/shard state PERSISTS across
