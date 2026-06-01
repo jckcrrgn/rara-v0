@@ -149,6 +149,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d4e3c73d8261ff4f98986c7b73bacaa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  interactionRange: 1.5
+  interactionRange: 0.8
   itemName: Lamp Shard
   requiresFloorAccess: 1
+  grabRadius: 0.35

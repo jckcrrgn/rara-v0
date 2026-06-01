@@ -689,6 +689,7 @@ MonoBehaviour:
   interactionRange: 1.5
   itemName: Pen
   requiresFloorAccess: 0
+  grabRadius: 0.35
 --- !u!23 &320689846
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -4654,6 +4655,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 4118337886289226959, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: handAnchor
+      value: 
+      objectReference: {fileID: 8205259987904620298}
     - target: {fileID: 4709457099200860874, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       propertyPath: m_LocalPosition.x
       value: 3
@@ -4763,6 +4768,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+--- !u!4 &8205259987904620298 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1238684975675695348, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+  m_PrefabInstance: {fileID: 8205259987904620297}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &9189937284300119568
 PrefabInstance:
   m_ObjectHideFlags: 0

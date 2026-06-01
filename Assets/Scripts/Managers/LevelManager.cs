@@ -60,11 +60,6 @@ public class LevelManager : MonoBehaviour
 			RestartLevel();
 		}
 
-		if (Input.GetKeyDown(KeyCode.T) && LevelTimer.Instance != null)
-		{
-			LevelTimer.Instance.StartTimer();
-		}
-
 		// N still works as a manual fallback for autoAdvance==false levels.
 		if (isLevelComplete && Input.GetKeyDown(KeyCode.N) && !isFinalLevel)
 		{

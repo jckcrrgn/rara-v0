@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &148317703503589539
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1238684975675695348}
+  m_Layer: 0
+  m_Name: HandAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1238684975675695348
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 148317703503589539}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.5, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4709457099200860874}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &394032450473193987
 GameObject:
   m_ObjectHideFlags: 0
@@ -182,6 +213,7 @@ Transform:
   - {fileID: 2066318422714893918}
   - {fileID: 2383845005536782456}
   - {fileID: 7421102376541338901}
+  - {fileID: 1238684975675695348}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &6311644867716891775
@@ -285,6 +317,7 @@ MonoBehaviour:
   kickEffortClip: {fileID: 8300000, guid: a008ad123a3466b48b9224ff2ab6fcf7, type: 3}
   kickMissThudClip: {fileID: 8300000, guid: ea76216119c12154686919a900143d4c, type: 3}
   kickDuration: 0.5
+  handAnchor: {fileID: 1238684975675695348}
   footAnchor: {fileID: 7421102376541338901}
   kickCastRadius: 0.4
   kickCastDistance: 1.2
@@ -352,6 +385,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   boundLimbs: 1
   hopForce: 3
+  backScootDistance: 0.15
+  backScootLungeDuration: 0.25
+  backScootSettleDuration: 0.35
+  backScootInterCycleDelay: 0.08
+  backScootClip: {fileID: 0}
   turnVerticalImpulse: 2
   turnLateralImpulse: 0.5
   turnAngularImpulse: 0.2
@@ -361,6 +399,12 @@ MonoBehaviour:
   rockClip: {fileID: 0}
   floorRestraintOnBreak: {fileID: 0}
   chairBreakClip: {fileID: 0}
+  chairShardPrefab: {fileID: 0}
+  shardCount: 3
+  shardScatterRadius: 0.4
+  shardSpawnImpulse: 1.5
+  shardSpawnYOffset: -0.4
+  shardScaleRange: {x: 0.6, y: 1.4}
   turnHopClip: {fileID: 0}
 --- !u!114 &6255347650362523610
 MonoBehaviour:
@@ -383,6 +427,14 @@ MonoBehaviour:
   rotationSpeed: 80
   modeToggleKey: 99
   flipDuration: 0.25
+  rollModifier: 304
+  rollModifierAlt: 303
+  rollAnglePerCycle: 180
+  rollLateralDistance: 0.5
+  rollDuration: 0.5
+  rollClip: {fileID: 0}
+  rollVolume: 1
+  bellyOrientationThreshold: 60
   struggleBonus: 1.2
   kickModifier: 0.5
 --- !u!1 &3821897026556788459
