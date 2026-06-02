@@ -437,6 +437,9 @@ MonoBehaviour:
   bellyOrientationThreshold: 60
   struggleBonus: 1.2
   kickModifier: 0.5
+  furnitureGhostLayers:
+    serializedVersion: 2
+    m_Bits: 128
 --- !u!1 &3821897026556788459
 GameObject:
   m_ObjectHideFlags: 0

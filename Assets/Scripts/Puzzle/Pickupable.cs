@@ -23,6 +23,14 @@ public class Pickupable : InteractableBase
 		"a 1u-thick body.")]
 	[SerializeField] private float grabRadius = 0.35f;
 
+	[Tooltip("Mirror of requiresFloorAccess for the opposite posture: if true, " +
+		"this item is only grabbable while Cassie can reach UP to furniture height " +
+		"— a restraint whose CanReachUprightTools() returns true (chair-bound, " +
+		"standing). Set on items reached from a seated posture that must NOT be " +
+		"grabbable once she's floor-bound — e.g. the L6 pen (reachable from the " +
+		"chair via the drawer, not from the floor until Stand-Up debuts in L7).")]
+	[SerializeField] private bool requiresUprightReach = false;
+
 	public string ItemName => itemName;
 
 	// Default tool type is BareHands (i.e. no upgrade). Subclasses override.
@@ -55,6 +63,20 @@ public class Pickupable : InteractableBase
 			{
 				Debug.Log($"Pickupable ({itemName}): on the floor but her hands " +
 					$"aren't over it — roll onto her back over the tool.");
+				return;
+			}
+		}
+
+		// Upright-reach gate. Mirror of the floor-access gate for items reached
+		// from a seated/standing posture. Single-tier — no hand-over check,
+		// because the reach is "up to a surface," not "hands down onto the floor."
+		if (requiresUprightReach)
+		{
+			RestraintBase restraint = player.CurrentRestraint;
+			if (restraint == null || !restraint.CanReachUprightTools())
+			{
+				Debug.Log($"Pickupable ({itemName}): can't reach from here — " +
+					$"Cassie can't get to it while she's down on the floor.");
 				return;
 			}
 		}

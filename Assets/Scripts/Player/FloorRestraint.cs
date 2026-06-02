@@ -148,6 +148,15 @@ public class FloorRestraint : RestraintBase
 		"Belly-down (and the neutral side band) returns 0 — kick is suppressed until she rolls belly-up.")]
 	[SerializeField] private float kickModifier = 0.5f;
 
+	[Header("Furniture Ghosting (flip/roll sweep)")]
+	[Tooltip("Layers the body passes through DURING a flip or roll only, so the " +
+		"kinematic collider-sweep can't launch dynamic props (the nightstand). " +
+		"Set this to your Furniture layer. Collision restores the instant the " +
+		"maneuver ends, so she stays solid against furniture while scooting. " +
+		"Leave empty (Nothing) to keep furniture solid throughout and accept the " +
+		"launch. Deliberate kicks are cast-based and ignore this entirely.")]
+	[SerializeField] private LayerMask furnitureGhostLayers;
+
 	// --- Internal state ---
 	// bodyRoll, leadYawOffset, and steeringYaw persist WITHIN a single floor stint
 	// (her rolls, flips, and steering carry frame-to-frame) but are RESET on every
@@ -292,6 +301,14 @@ public class FloorRestraint : RestraintBase
 		bool wasKinematic = player.Rb.isKinematic;
 		player.Rb.isKinematic = true;
 
+		// Ghost through furniture during the roll sweep — same rationale as
+		// FlipCycle. The roll also translates laterally, so rolling INTO a prop's
+		// footprint may give a small depenetration nudge when collision restores;
+		// that reads fine as "can't roll through the furniture" and only triggers
+		// if she rolls at a prop, not during normal open-floor positioning.
+		int restoreExclude = player.Rb.excludeLayers;
+		player.Rb.excludeLayers = restoreExclude | furnitureGhostLayers;
+
 		// Lateral direction is perpendicular to the heading (steering only, not
 		// the visual offsets): Shift+D (dir +1) -> her right, Shift+A -> her left.
 		Vector3 lateralDir = (Quaternion.Euler(0f, steeringYaw, 0f) * Vector3.right) * dir;
@@ -319,6 +336,7 @@ public class FloorRestraint : RestraintBase
 
 		bodyRoll = Mathf.Repeat(endRoll, 360f);
 
+		player.Rb.excludeLayers = restoreExclude;
 		player.Rb.isKinematic = wasKinematic;
 		isRolling = false;
 		RaiseHintsChanged();
@@ -351,6 +369,15 @@ public class FloorRestraint : RestraintBase
 		bool wasKinematic = player.Rb.isKinematic;
 		player.Rb.isKinematic = true;
 
+		// Ghost through furniture for the duration of the sweep. A kinematic body
+		// rotating its box collider through a dynamic prop launches it (the
+		// "nightstand into the abyss" bug). Excluding the furniture layers here —
+		// and ONLY here — lets the collider pass cleanly while keeping her solid
+		// against furniture during normal scooting. Safe to restore at the end:
+		// a 180° flip returns her to her starting footprint, no residual overlap.
+		int restoreExclude = player.Rb.excludeLayers;
+		player.Rb.excludeLayers = restoreExclude | furnitureGhostLayers;
+
 		float elapsed = 0f;
 		while (elapsed < flipDuration)
 		{
@@ -365,6 +392,7 @@ public class FloorRestraint : RestraintBase
 		bodyRoll = endRoll;
 		leadYawOffset = endYaw;
 
+		player.Rb.excludeLayers = restoreExclude;
 		player.Rb.isKinematic = wasKinematic;
 		isFlipping = false;
 		RaiseHintsChanged();
@@ -470,6 +498,11 @@ public class FloorRestraint : RestraintBase
 	// On the floor = can reach floor tools. The #1 gate; #2 adds the hand-over-tool
 	// proximity check on top of this.
 	public override bool CanReachFloorTools() => true;
+
+	// Mirror of CanReachFloorTools: flat on the floor she CAN'T reach up to a
+	// nightstand-height drawer or the pen inside it. Flips true when Stand-Up
+	// debuts (L7) and she can get off the floor.
+	public override bool CanReachUprightTools() => false;
 
 	/// <summary>
 	/// Feet point along the steering vector when feet-first, against it when

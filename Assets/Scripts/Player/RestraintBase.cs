@@ -145,6 +145,14 @@ public abstract class RestraintBase : MonoBehaviour
 	// flagged requiresFloorAccess consult this. (#1 floor-access gate.)
 	public virtual bool CanReachFloorTools() => false;
 
+	// Mirror of CanReachFloorTools: whether this restraint lets Cassie reach
+	// UP to furniture-height interactables (a nightstand drawer, the pen inside
+	// it). Default true — chair-bound and standing can reach a waist-height
+	// surface behind/around them. FloorRestraint overrides false: flat on the
+	// floor she can't, until Stand-Up debuts (L7). Drawer.OnPickUp and
+	// Pickupables flagged requiresUprightReach consult this.
+	public virtual bool CanReachUprightTools() => true;
+
 	/// <summary>
 	/// Multiplier on the restraint's primary movement (hop force, orbit step,
 	/// inch distance, etc). Subclasses apply this scalar where they use their

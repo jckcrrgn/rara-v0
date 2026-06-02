@@ -185,7 +185,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f222a2a2521e6b44a89da6503ec10e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  totalDuration: 5
+  totalDuration: 60
   thresholdsNormalized:
   - 0.5
   OnTimerStart:
@@ -690,6 +690,7 @@ MonoBehaviour:
   itemName: Pen
   requiresFloorAccess: 0
   grabRadius: 0.35
+  requiresUprightReach: 1
 --- !u!23 &320689846
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1175,7 +1176,7 @@ GameObject:
   - component: {fileID: 517821756}
   - component: {fileID: 517821760}
   - component: {fileID: 517821759}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Lamp
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1776,7 +1777,7 @@ GameObject:
   - component: {fileID: 1002874642}
   - component: {fileID: 1002874644}
   - component: {fileID: 1002874643}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Drawer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2811,7 +2812,7 @@ GameObject:
   - component: {fileID: 1405729925}
   - component: {fileID: 1405729929}
   - component: {fileID: 1405729928}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Nightstand
   m_TagString: Untagged
   m_Icon: {fileID: 0}

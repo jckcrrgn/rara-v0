@@ -117,6 +117,18 @@ public class Drawer : InteractableBase
 		if (!requireBackFacing) return;
 		if (isOpen || isOpening) return;
 
+		// Upright-reach gate (tier 1): a floor-bound Cassie can't reach up to a
+		// nightstand-height drawer. Mirror of Pickupable's floor-access gate.
+		// Sits after the requireBackFacing guard, so L3 bump-to-open drawers
+		// never hit it. Back-facing (below) is the tier-2 alignment check.
+		RestraintBase restraint = player.CurrentRestraint;
+		if (restraint == null || !restraint.CanReachUprightTools())
+		{
+			Debug.Log($"Drawer ({name}): can't reach from here - " +
+					  $"Cassie can't get to the drawer while she's down on the floor.");
+			return;
+		}
+
 		Vector3 dirToDrawer = (transform.position - player.transform.position).normalized;
 		float backwardness = Vector3.Dot(-player.transform.forward, dirToDrawer);
 
