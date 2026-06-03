@@ -86,18 +86,31 @@ public class FailureLoopController : MonoBehaviour
 	[SerializeField] private float postSfxHoldDuration = 0.3f;
 
 	[Header("Mutter Content")]
-	[Tooltip("Guard's verdict line. Fires while screen is still black, after " +
-		"the rebind SFX. Beat 6a per the L6 mutter chain. Speaker is Guard " +
-		"(diegetic, routed through Guard's SpeakerConfig.audioSourceOverride).")]
+	[Tooltip("Guard's verdict lines, indexed per attempt (index 0 = first failure). " +
+		"Fires while screen is still black, after the rebind SFX. Beat 6a. Speaker is " +
+		"Guard (diegetic). Index clamps to the last entry, so attempt 4+ all use the cap line.")]
 	[TextArea(2, 4)]
-	[SerializeField] private string beat6aGuard = "That ought to hold you.";
+	[SerializeField]
+	private string[] beat6aGuard =
+	{
+		"That ought to hold you.",                 // attempt 1 (adds Ankles)
+		"Slippery, aren't you. Let's fix that.",   // attempt 2 (adds Elbows)
+		"You're persistent, I'll give you that.",  // attempt 3 (adds Knees)
+		"I'm out of rope. Just... stay.",          // attempt 4+ (cap, no new bond)
+	};
 
-	[Tooltip("Cassie's reaction line. Auto-queued behind 6a via MutterSystem's " +
-		"queue; visible after fade-in. Beat 6b per the L6 mutter chain. " +
-		"v1 uses a single line for all attempts; spec §6 calls out per-attempt " +
-		"variation as future content work.")]
+	[Tooltip("Cassie's reaction lines, indexed per attempt — each reacts to the bond " +
+		"just added (Ankles, Elbows, Knees, then cap). Auto-queued behind 6a; visible " +
+		"after fade-in. Beat 6b. Index clamps to the last entry for attempt 4+.")]
 	[TextArea(2, 4)]
-	[SerializeField] private string beat6bCassie = "My ELBOWS? Really? Good thing I stretched.";
+	[SerializeField]
+	private string[] beat6bCassie =
+	{
+		"My ankles too, huh? Not like I was walking anywhere to begin with...", // attempt 1
+		"My ELBOWS? Really? Good thing I stretched.",                           // attempt 2
+		"Knees now, huh? Finally, a challenge.",                                // attempt 3
+		"What? No more tricks?",                                                // attempt 4+ (cap)
+	};
 
 	[Header("Position Reset")]
 	[Tooltip("Transform marking where Cassie respawns at the start of each " +
@@ -297,8 +310,12 @@ public class FailureLoopController : MonoBehaviour
 		// drain from the queue automatically and appear over the faded-in scene.
 		if (MutterSystem.Instance != null)
 		{
-			MutterSystem.Instance.Play(beat6aGuard, MutterSystem.Speaker.Guard);
-			MutterSystem.Instance.Play(beat6bCassie, MutterSystem.Speaker.Cassie);
+			// Same index the bond escalation uses (additionIndex = currentAttempt - 1),
+			// clamped so attempt 4+ all land on the cap line. Locks each line to the
+			// bond just added. Both arrays are the same length; guard's drives the clamp.
+			int beatIdx = Mathf.Min(currentAttempt - 1, beat6aGuard.Length - 1);
+			MutterSystem.Instance.Play(beat6aGuard[beatIdx], MutterSystem.Speaker.Guard);
+			MutterSystem.Instance.Play(beat6bCassie[beatIdx], MutterSystem.Speaker.Cassie);
 		}
 		else
 		{
