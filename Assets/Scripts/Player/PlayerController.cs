@@ -136,6 +136,14 @@ public class PlayerController : MonoBehaviour
 	public int BondStrength => bond != null ? bond.BondStrength : 1;
 	public System.Action OnStruggleProgressChanged;
 	public System.Action OnPlayerFreed;
+	/// <summary>
+	/// Reset bond cut-progress to zero. Failure loop calls this on re-bind so a
+	/// partially-cut Cassie loses her progress when the guard re-ties her.
+	/// </summary>
+	public void ResetBondProgress()
+	{
+		if (bond != null) bond.ResetProgress();
+	}
 
 	/// <summary>
 	/// Fires when a Struggle attempt produces zero or negative bond progress

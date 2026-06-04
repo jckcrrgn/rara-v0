@@ -498,6 +498,13 @@ public class FailureLoopController : MonoBehaviour
 		{
 			Log($"Bond cap reached (attempt {currentAttempt}); no new bond added.");
 		}
+		// --- Reset cut progress ---
+		// The guard re-ties her: any partial cut from the failed attempt is gone.
+		// Runs on EVERY failure, INCLUDING the cap (attempt 4+) where no new limb
+		// is added — she still loses her progress. Placing it outside the
+		// escalation if/else is deliberate; inside the `if`, cap attempts would
+		// keep their progress and the bug would survive at max bonds.
+		player.ResetBondProgress();
 
 		// --- Position reset ---
 		// Snap Cassie back to the respawnPoint. Done AFTER chair management so

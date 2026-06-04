@@ -1,6 +1,7 @@
 # Rara — Level 6 Spatial Spec (v2)
 
 **Status:** Design locked. Ready to drive Unity geometry pass.
+**Day 57 revision:** Escape is defined as the bond-cut, not window traversal. Cutting the bonds frees Cassie completely — a free Cassie is out, and the window is the fiction's implied exit, never a played walk/crawl. This keeps L6's ending consistent with L1–L5's grammar (free of bonds = level complete) and avoids introducing a free-locomotion verb. See §7. The interruptible-untie idea that motivated a longer escape is deferred to a future Feign mechanic (§11).
 **Purpose:** Source of truth for L6 spatial design, mutter chain, timer behavior, and failure loop mechanics.
 
 ---
@@ -30,7 +31,7 @@ L6 is Act 2's opening salvo. The chair-tip mechanic, soft timer, offstage guard 
 
 ## 3. Top-Down Room Sketch
 
-Clean diamond layout. Door north (where guard is), window south (Cassie's exit), nightstand east, Chair B/table west. Cassie at center facing the door.
+Clean diamond layout. Door north (where guard is), window south (Cassie's implied exit — see §7), nightstand east, Chair B/table west. Cassie at center facing the door.
 
 ```
                     HALLWAY (guard offstage, stationary)
@@ -64,7 +65,7 @@ Clean diamond layout. Door north (where guard is), window south (Cassie's exit),
 - nstd = nightstand, east wall (against bed-implied area, which is offscreen as part of the suite framing)
 - lamp = lamp on top of nightstand
 - D = door to hallway (north wall, ~center)
-- W = window/exit (south wall, ~center)
+- W = window (south wall, ~center) — Cassie's *implied* exit. The level completes on the bond-cut (a free Cassie is out), not on reaching the window. No played traversal.
 - radiator = under the window (south wall)
 - G = guard audio source (north of door, in hallway, stationary)
 
@@ -139,7 +140,7 @@ First-pass coordinates. Adjust in Unity once geometry is in.
 
 ## 7. Failure Loop Mechanics
 
-**Failure trigger**: timer expires before Cassie escapes through the window.
+**Failure trigger**: timer expires before Cassie cuts her bonds. Cutting the bonds (pen, chair shards, or lamp shards) frees her — the wrist-cut frees her hands to undo the rest, so the cut *is* the escape. The window is the fiction's implied exit, not a played traversal: a free Cassie is out. The race the timer creates is getting *to* a tool and cutting before the guard checks, not getting to the window. (Engineering: the level completes on `PlayerController.OnPlayerFreed`, which fires once when `bond.OnBroken` fires — same hook L1–L5 complete on.)
 
 **On failure**: guard returns to the room (offstage → onstage briefly, but never rendered — implied through audio + state changes during a brief fade or blackout), re-binds Cassie in whichever chair is still intact, escalates her bonds, and resets specific environmental state. Then leaves.
 
@@ -257,6 +258,7 @@ Things that might tempt you but belong in L7+ or post-v0:
 - [ ] **Follow camera mode** (parked to ideas.md — revisit if Act 2 tone demands tighter framing)
 - [ ] Combinatorial puzzle paths (e.g., shard + drawer-key combined solution)
 - [ ] Game-over screen design — N/A, indefinite loop with bond cap
+- [ ] **Feign-still-bound** — a future level may make *undoing the remaining bonds after the wrist-cut* a timed, interruptible process (guard returns mid-untie → Cassie feigns her hands are still bound until he leaves). In L6 the cut is instantaneous freedom; that is deliberate, and it is what keeps L6's escape a clean state-flip consistent with L1–L5. Feign debuts when a level needs the interruptible-untie tension — not here. (Origin: Day 57 design discussion — the question of whether escape should be a process rather than a state-flip. Answer for L6: state-flip. The process version lives in Feign.)
 
 ---
 

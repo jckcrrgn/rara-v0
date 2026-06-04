@@ -82,4 +82,15 @@ public class Bond : MonoBehaviour
 			OnBroken?.Invoke();
 		}
 	}
+
+	/// <summary>
+	/// Zero out cut progress. The failure loop calls this on re-bind: the guard
+	/// re-ties Cassie, so any partial cut is gone — fresh rope. Fires
+	/// OnProgressChanged so the struggle-progress UI clears with it.
+	/// </summary>
+	public void ResetProgress()
+	{
+		struggleProgress = 0;
+		OnProgressChanged?.Invoke();
+	}
 }
