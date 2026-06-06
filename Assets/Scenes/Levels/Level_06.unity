@@ -2318,7 +2318,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d56ba1d1a3dd54245863933b3eda6177, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  player: {fileID: 0}
+  player: {fileID: 1333935372}
   escapeMutter: 
 --- !u!4 &1113943029
 Transform:
