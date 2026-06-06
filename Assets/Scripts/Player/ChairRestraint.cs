@@ -735,6 +735,7 @@ public class ChairRestraint : RestraintBase
 		hints.Add(new ControlHint("Struggle", "Space"));
 		hints.Add(new ControlHint("Kick", "F", kickSuppressed, kickSuppressed ? "(legs tied)" : null));
 		hints.Add(new ControlHint("Pick Up", "E"));
+		hints.Add(new ControlHint("Feign", "G"));
 
 		return hints;
 	}
@@ -772,6 +773,13 @@ public class ChairRestraint : RestraintBase
 		}
 		return 1f;
 	}
+
+	/// <summary>
+	/// ChairRestraint supports Feign — Cassie can hold the bound-and-helpless
+	/// pose while seated in the chair. This is the VS's headline mechanic;
+	/// other restraints default false.
+	/// </summary>
+	public override bool CanFeign() => true;
 
 	[ContextMenu("Debug: Add Elbow Bond")]
 	private void DebugAddElbowBond()

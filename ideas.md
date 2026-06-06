@@ -621,3 +621,8 @@ Elbows+Ankles+Knees. Day 48 revised this to Wrists → +Ankles →
 +Elbows → +Knees, putting the ELBOWS line on attempt 2→3 where elbows
 are actually added. Update the matrix table and any prose references
 on the next low-energy doc-pass session.
+
+L6 latent: Chair-B swap (HandleChairManagement case 2) does not sync BoundLimbs floor->chair, though the chair->floor break does. Only bites if a level re-binds to a chair after floor escalation; L6 never does. Backlog.
+L6 latent: FloorRestraint sets the Elbows flag but its modifier math ignores it, so failure-loop Elbows escalation has no mechanical bite on the floor (reads as "more rope" only). Decide floor Elbows numbers if/when it matters.
+
+[VS / GuardController] Caught condition is currently "not feigning at inspection" regardless of player state. Should only trigger caught if Cassie has made meaningful progress (bond cut progress > 0, moved from spawn, or holding a tool). Raw "not feigning" = caught is too punishing for a player who hasn't done anything yet. Design question: what's the right threshold?

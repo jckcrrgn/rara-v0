@@ -109,6 +109,36 @@ public class PlayerController : MonoBehaviour
 	/// </summary>
 	public bool IsBusy => isKicking || (currentRestraint != null && currentRestraint.IsBusy);
 
+	// -------------------------------------------------------------------------
+	// Feign state
+	// -------------------------------------------------------------------------
+	// True while Cassie is holding the bound-and-helpless pose. Suppresses all
+	// player verbs (Struggle, Pick Up, Kick, movement) so the player can't
+	// accidentally break the illusion mid-inspection. The guard samples this
+	// flag at the inspection moment; holding it through the check-in = pass.
+	//
+	// Set/cleared only through TryFeign / CancelFeign, which enforce the
+	// restraint's CanFeign gate and fire OnFeignChanged. External systems
+	// (guard, UI) read IsFeigning; they don't write it directly.
+	// -------------------------------------------------------------------------
+
+	private bool isFeigning = false;
+
+	/// <summary>
+	/// True while Cassie is holding the bound-and-helpless pose for a guard
+	/// inspection. All player verbs are suppressed while this is true. The
+	/// guard samples this at the inspection moment — holding the pose through
+	/// the check-in is a pass.
+	/// </summary>
+	public bool IsFeigning => isFeigning;
+
+	/// <summary>
+	/// Fires whenever IsFeigning changes. UI subscribes to update the hint
+	/// panel; future guard logic can subscribe to trigger inspection outcomes.
+	/// Argument is the new value.
+	/// </summary>
+	public System.Action<bool> OnFeignChanged;
+
 	/// <summary>
 	/// True if the bound hands (handAnchor) are within `radius` of a world point.
 	/// 3D distance, so it implicitly gates posture: with hands-behind binding the
@@ -193,6 +223,23 @@ public class PlayerController : MonoBehaviour
 
 	void Update()
 	{
+		// Strike CAN interrupt an active mutter. The climactic beat plays the
+		// guard's lean-in gloat as a (world-pausing) mutter; the catharsis is
+		// Cassie cutting him off mid-sentence by swinging. So H is checked ABOVE
+		// the mutter gate: if a strike is currently valid (weapon held + guard
+		// in LeanIn), pressing H dismisses the mutter and lands the strike in
+		// one press. If the strike isn't valid, fall through to the normal gate
+		// so H does nothing special during non-strike mutters.
+		if (Input.GetKeyDown(KeyCode.H) && CanStrikeNow())
+		{
+			if (MutterSystem.Instance != null && MutterSystem.Instance.IsActive)
+			{
+				MutterSystem.Instance.ForceDismissAndClear();
+			}
+			TryStrike();
+			return;
+		}
+
 		// While a mutter is showing, world is paused — no movement, no verbs.
 		// MutterSystem owns the dismissKey input itself (Space, currently shared
 		// with Struggle); gating here keeps Struggle from double-firing on the
@@ -208,6 +255,22 @@ public class PlayerController : MonoBehaviour
 		// false in the same frame. WasJustDismissed catches this.
 		bool justDismissed = MutterSystem.Instance != null
 			&& MutterSystem.Instance.WasJustDismissed;
+
+		// Feign toggle: G key. Available whenever the active restraint supports
+		// it (ChairRestraint returns true; others return false by default).
+		// Checked BEFORE the IsFeigning gate below so the player can always
+		// exit the pose even while it's active.
+		if (Input.GetKeyDown(KeyCode.G))
+		{
+			if (isFeigning)
+				CancelFeign();
+			else
+				TryFeign();
+		}
+
+		// While feigning, all other verbs are suppressed — movement, struggle,
+		// pick up, kick. The player is holding a posed stillness for the guard.
+		if (isFeigning) return;
 
 		if (currentRestraint != null)
 		{
@@ -230,6 +293,10 @@ public class PlayerController : MonoBehaviour
 		{
 			TryKick();
 		}
+
+		// NOTE: Strike (H) is handled ABOVE the mutter gate, near the top of
+		// Update — it needs to interrupt the guard's lean-in gloat mutter. See
+		// the CanStrikeNow() check there.
 	}
 
 	void TryStruggle()
@@ -275,6 +342,115 @@ public class PlayerController : MonoBehaviour
 		}
 
 		bond.ApplyStruggle(struggleAmount);
+	}
+
+	/// <summary>
+	/// Attempt to enter the Feign pose. Gated on the active restraint's
+	/// CanFeign() — only ChairRestraint supports it in v1. Silent no-op if
+	/// the restraint doesn't support feigning or if already feigning.
+	/// </summary>
+	void TryFeign()
+	{
+		if (isFeigning) return;
+		if (currentRestraint == null || !currentRestraint.CanFeign()) return;
+
+		isFeigning = true;
+		OnFeignChanged?.Invoke(true);
+		Debug.Log("[PlayerController] Feign ENTER.");
+	}
+
+	/// <summary>
+	/// Exit the Feign pose, restoring all suppressed verbs. Called by the G
+	/// key toggle and by the guard system when an inspection window closes
+	/// (auto-release once the guard leaves). Safe to call when not feigning.
+	/// </summary>
+	public void CancelFeign()
+	{
+		if (!isFeigning) return;
+
+		isFeigning = false;
+		OnFeignChanged?.Invoke(false);
+		Debug.Log("[PlayerController] Feign EXIT.");
+	}
+
+	/// <summary>
+	/// True if a Strike would currently succeed: player holds a weapon AND a
+	/// StrikeableGuard in range reports CanBeStruck() (guard in LeanIn, not yet
+	/// struck). Used by Update to decide whether H should interrupt an active
+	/// mutter, and by TryStrike as the actual gate. No side effects, no logging.
+	/// </summary>
+	private bool CanStrikeNow()
+	{
+		if (heldItem == null || !heldItem.IsWeapon) return false;
+		StrikeableGuard target = FindNearestStrikeableGuard();
+		return target != null && target.CanBeStruck();
+	}
+
+	/// <summary>
+	/// Strike verb entry point. Two gates must both pass:
+	///   1. Player is holding a weapon (heldItem != null and IsWeapon true).
+	///   2. The nearest StrikeableGuard reports CanBeStruck() — meaning
+	///      GuardController is in LeanIn state and the guard hasn't been
+	///      struck yet.
+	///
+	/// Both gates are bundled in CanStrikeNow(). On a miss, logs which gate
+	/// failed (for testing); on a pass, breaks feign and delivers the strike.
+	///
+	/// Note: Strike is intentionally available while IsFeigning. The whole
+	/// point of the climactic beat is that Cassie reveals her free hands mid-
+	/// pose. Pressing H breaks the feign and swings — the reveal IS the strike.
+	/// CancelFeign fires first so verbs re-enable before OnStruck runs.
+	/// </summary>
+	void TryStrike()
+	{
+		// Diagnostic logging — split the gate so a miss tells us which half failed.
+		if (heldItem == null || !heldItem.IsWeapon)
+		{
+			Debug.Log("[PlayerController] TryStrike: no weapon held.");
+			return;
+		}
+
+		StrikeableGuard target = FindNearestStrikeableGuard();
+		if (target == null || !target.CanBeStruck())
+		{
+			Debug.Log("[PlayerController] TryStrike: no strikeable target in range or guard not in LeanIn.");
+			return;
+		}
+
+		// Both gates passed. Break feign (the reveal), then deliver the strike.
+		if (isFeigning) CancelFeign();
+
+		Debug.Log("[PlayerController] Strike!");
+		target.OnStruck(this);
+	}
+
+	/// <summary>
+	/// Find the nearest StrikeableGuard within interactionCheckRadius.
+	/// Uses the same broadphase radius as FindNearestInteractable so the
+	/// reach feels consistent. Returns null if none found.
+	/// </summary>
+	private StrikeableGuard FindNearestStrikeableGuard()
+	{
+		Collider[] hits = Physics.OverlapSphere(
+			transform.position, interactionCheckRadius, interactableLayer);
+
+		StrikeableGuard nearest = null;
+		float nearestDist = float.MaxValue;
+
+		foreach (Collider hit in hits)
+		{
+			StrikeableGuard sg = hit.GetComponent<StrikeableGuard>();
+			if (sg == null) continue;
+
+			float dist = Vector3.Distance(transform.position, hit.transform.position);
+			if (dist < nearestDist)
+			{
+				nearest = sg;
+				nearestDist = dist;
+			}
+		}
+
+		return nearest;
 	}
 
 	/// <summary>

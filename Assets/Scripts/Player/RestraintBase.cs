@@ -154,6 +154,17 @@ public abstract class RestraintBase : MonoBehaviour
 	public virtual bool CanReachUprightTools() => true;
 
 	/// <summary>
+	/// Whether this restraint supports the Feign verb — entering the bound-
+	/// and-helpless pose to fool a guard inspection. Default false.
+	///
+	/// ChairRestraint overrides true: the VS arc is entirely chair-bound, and
+	/// the posed stillness (hands behind back, stopped struggling, gag in) reads
+	/// naturally from a seated position. FloorRestraint and others stay false
+	/// until a level design requires it.
+	/// </summary>
+	public virtual bool CanFeign() => false;
+
+	/// <summary>
 	/// Multiplier on the restraint's primary movement (hop force, orbit step,
 	/// inch distance, etc). Subclasses apply this scalar where they use their
 	/// movement values. Default 1.0 (no scaling).

@@ -31,6 +31,11 @@ public class Pickupable : InteractableBase
 		"chair via the drawer, not from the floor until Stand-Up debuts in L7).")]
 	[SerializeField] private bool requiresUprightReach = false;
 
+	[Tooltip("True if this item can be used as the Strike weapon. " +
+	"The blunt object Cassie conceals for the turnaround beat.")]
+	[SerializeField] private bool isWeapon = false;
+	public bool IsWeapon => isWeapon;
+
 	public string ItemName => itemName;
 
 	// Default tool type is BareHands (i.e. no upgrade). Subclasses override.
