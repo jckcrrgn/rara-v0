@@ -3009,10 +3009,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 044c050ba21013646aa1bdfcc06c7d7c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  offstageDuration: 15
+  offstageDuration: 20
   approachDuration: 5
   inspectionHoldDuration: 1.5
-  gloatLingerDuration: 0
+  gloatLingerDuration: 1.5
   leanInDuration: 10
   leavingDuration: 3
   approachFootstepsClip: {fileID: 8300000, guid: ee1417ec7d4a0a2429eb01b5de981dba, type: 3}
@@ -3036,7 +3036,7 @@ MonoBehaviour:
   onCaughtReset:
     m_PersistentCalls:
       m_Calls: []
-  onClimacticInspectionPassed:
+  onLeanInEntered:
     m_PersistentCalls:
       m_Calls: []
   verboseLogging: 1
@@ -4917,6 +4917,10 @@ PrefabInstance:
       propertyPath: handAnchor
       value: 
       objectReference: {fileID: 8205259987904620298}
+    - target: {fileID: 4118337886289226959, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: freeOnBondBreak
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4709457099200860874, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       propertyPath: m_LocalPosition.x
       value: 3

@@ -81,6 +81,26 @@ public class PlayerController : MonoBehaviour
 	[Header("Restraint")]
 	[SerializeField] private RestraintBase currentRestraint;
 
+	// -------------------------------------------------------------------------
+	// VS — Lure / Phase
+	// -------------------------------------------------------------------------
+
+	[Header("VS — Lure / Phase")]
+	[Tooltip("When true (default), breaking the bond fires OnPlayerFreed and ends " +
+		"the level — standard Act 1 behavior. Set false for the Vertical Slice: the " +
+		"bond break advances to phase 2 (wrists free, level continues) rather than " +
+		"completing. Uncheck this on the VS scene's PlayerController instance.")]
+	[SerializeField] private bool freeOnBondBreak = true;
+
+	[Tooltip("Key the player presses while feigning during a guard gloat to draw " +
+		"the guard into LeanIn range. Requires IsFeigning and GuardController." +
+		"CanBeLured. Available regardless of arm state — an unarmed lure produces " +
+		"a near-miss (guard leans in, gloats up close, leaves). " +
+		"Fiction: Cassie calls out / strains against the gag.")]
+	[SerializeField] private KeyCode lureKey = KeyCode.T;
+
+	// -------------------------------------------------------------------------
+
 	public Rigidbody Rb { get; private set; }
 	public bool IsGrounded { get; private set; }
 
@@ -139,6 +159,40 @@ public class PlayerController : MonoBehaviour
 	/// </summary>
 	public System.Action<bool> OnFeignChanged;
 
+	// -------------------------------------------------------------------------
+	// VS Phase State
+	// -------------------------------------------------------------------------
+	// In the Vertical Slice (freeOnBondBreak = false), breaking the wrist bond
+	// does not end the level — it advances to phase 2. wristsFree is set true
+	// when EscapeBonds fires in VS mode, marking that Cassie's hands are free.
+	//
+	// The strike verb gates on this: she can't swing with bound wrists.
+	// In Act 1 (freeOnBondBreak = true), wristsFree is also set true by
+	// EscapeBonds, but OnPlayerFreed fires immediately (level complete), so
+	// the flag is only briefly true before the scene changes — no gameplay impact.
+	//
+	// ResetBondProgress clears wristsFree so a caught re-bind correctly returns
+	// Cassie to phase 1.
+	// -------------------------------------------------------------------------
+
+	private bool wristsFree = false;
+
+	/// <summary>
+	/// True once the wrist bond has been broken. Set in both VS mode (phase
+	/// advance) and Act 1 mode (full freedom). The strike verb requires this
+	/// to be true — Cassie can't swing with bound wrists.
+	/// </summary>
+	public bool WristsFree => wristsFree;
+
+	/// <summary>
+	/// Fires when the wrist bond breaks in VS mode (freeOnBondBreak = false).
+	/// Does NOT fire in Act 1 mode — OnPlayerFreed fires there instead.
+	/// Wire a VS scene coordinator here to respond to phase 1 completion.
+	/// </summary>
+	public System.Action OnWristsFreed;
+
+	// -------------------------------------------------------------------------
+
 	/// <summary>
 	/// True if the bound hands (handAnchor) are within `radius` of a world point.
 	/// 3D distance, so it implicitly gates posture: with hands-behind binding the
@@ -166,13 +220,16 @@ public class PlayerController : MonoBehaviour
 	public int BondStrength => bond != null ? bond.BondStrength : 1;
 	public System.Action OnStruggleProgressChanged;
 	public System.Action OnPlayerFreed;
+
 	/// <summary>
-	/// Reset bond cut-progress to zero. Failure loop calls this on re-bind so a
-	/// partially-cut Cassie loses her progress when the guard re-ties her.
+	/// Reset bond cut-progress to zero and clear wristsFree. The failure loop
+	/// and caught sequence call this on re-bind: the guard re-ties Cassie, so
+	/// any partial cut and any freed-wrists state are gone — back to phase 1.
 	/// </summary>
 	public void ResetBondProgress()
 	{
 		if (bond != null) bond.ResetProgress();
+		wristsFree = false;
 	}
 
 	/// <summary>
@@ -223,13 +280,13 @@ public class PlayerController : MonoBehaviour
 
 	void Update()
 	{
-		// Strike CAN interrupt an active mutter. The climactic beat plays the
-		// guard's lean-in gloat as a (world-pausing) mutter; the catharsis is
-		// Cassie cutting him off mid-sentence by swinging. So H is checked ABOVE
-		// the mutter gate: if a strike is currently valid (weapon held + guard
-		// in LeanIn), pressing H dismisses the mutter and lands the strike in
-		// one press. If the strike isn't valid, fall through to the normal gate
-		// so H does nothing special during non-strike mutters.
+		// Strike CAN interrupt an active mutter. The lean-in beat plays the
+		// guard's gloat as a (world-pausing) mutter; the catharsis is Cassie
+		// cutting him off mid-sentence by swinging. So H is checked ABOVE
+		// the mutter gate: if a strike is currently valid (wrists free + weapon
+		// held + guard in LeanIn), pressing H dismisses the mutter and lands
+		// the strike in one press. If the strike isn't valid, fall through to
+		// the normal gate so H does nothing special during non-strike mutters.
 		if (Input.GetKeyDown(KeyCode.H) && CanStrikeNow())
 		{
 			if (MutterSystem.Instance != null && MutterSystem.Instance.IsActive)
@@ -237,6 +294,21 @@ public class PlayerController : MonoBehaviour
 				MutterSystem.Instance.ForceDismissAndClear();
 			}
 			TryStrike();
+			return;
+		}
+
+		// Lure CAN interrupt the gloat mutter — same architecture as the strike
+		// above. When the player fires T while feigning during a gloat, the mutter
+		// is dismissed and GuardController is told to divert to LeanIn on its next
+		// coroutine tick. No-op if the guard isn't in Gloating state or Cassie
+		// isn't feigning (CanLureNow gates both).
+		if (Input.GetKeyDown(lureKey) && CanLureNow())
+		{
+			if (MutterSystem.Instance != null && MutterSystem.Instance.IsActive)
+			{
+				MutterSystem.Instance.ForceDismissAndClear();
+			}
+			TryLure();
 			return;
 		}
 
@@ -294,9 +366,9 @@ public class PlayerController : MonoBehaviour
 			TryKick();
 		}
 
-		// NOTE: Strike (H) is handled ABOVE the mutter gate, near the top of
-		// Update — it needs to interrupt the guard's lean-in gloat mutter. See
-		// the CanStrikeNow() check there.
+		// NOTE: Strike (H) and Lure (T) are handled ABOVE the mutter gate, near
+		// the top of Update — both need to interrupt active mutters. See the
+		// CanStrikeNow() and CanLureNow() checks there.
 	}
 
 	void TryStruggle()
@@ -374,36 +446,67 @@ public class PlayerController : MonoBehaviour
 	}
 
 	/// <summary>
-	/// True if a Strike would currently succeed: player holds a weapon AND a
-	/// StrikeableGuard in range reports CanBeStruck() (guard in LeanIn, not yet
-	/// struck). Used by Update to decide whether H should interrupt an active
-	/// mutter, and by TryStrike as the actual gate. No side effects, no logging.
+	/// True if a Lure attempt is currently meaningful: Cassie is feigning,
+	/// a GuardController is present, and the guard is in the Gloating state.
+	/// Used by Update to gate the lure key. No side effects.
+	/// </summary>
+	private bool CanLureNow()
+	{
+		return isFeigning
+			&& GuardController.Instance != null
+			&& GuardController.Instance.CanBeLured;
+	}
+
+	/// <summary>
+	/// Lure verb entry point. Notifies GuardController to divert from Gloating
+	/// to LeanIn on its next coroutine tick. Mutter dismissal is handled by
+	/// Update before this call, same pattern as TryStrike.
+	/// </summary>
+	void TryLure()
+	{
+		if (GuardController.Instance == null) return;
+		GuardController.Instance.AttemptLure();
+		Debug.Log("[PlayerController] Lure attempted.");
+	}
+
+	/// <summary>
+	/// True if a Strike would currently succeed: Cassie's wrists are free,
+	/// she holds a weapon, AND the nearest StrikeableGuard reports CanBeStruck()
+	/// (guard in LeanIn, not yet struck). Used by Update to decide whether H
+	/// should interrupt an active mutter, and by TryStrike as the actual gate.
+	/// No side effects, no logging.
 	/// </summary>
 	private bool CanStrikeNow()
 	{
+		if (!wristsFree) return false;
 		if (heldItem == null || !heldItem.IsWeapon) return false;
 		StrikeableGuard target = FindNearestStrikeableGuard();
 		return target != null && target.CanBeStruck();
 	}
 
 	/// <summary>
-	/// Strike verb entry point. Two gates must both pass:
-	///   1. Player is holding a weapon (heldItem != null and IsWeapon true).
-	///   2. The nearest StrikeableGuard reports CanBeStruck() — meaning
-	///      GuardController is in LeanIn state and the guard hasn't been
-	///      struck yet.
+	/// Strike verb entry point. Three gates must all pass:
+	///   1. Cassie's wrists are free (wristsFree = true).
+	///   2. Player is holding a weapon (heldItem != null and IsWeapon true).
+	///   3. The nearest StrikeableGuard reports CanBeStruck() — guard in LeanIn.
 	///
-	/// Both gates are bundled in CanStrikeNow(). On a miss, logs which gate
+	/// All three are bundled in CanStrikeNow(). On a miss, logs which gate
 	/// failed (for testing); on a pass, breaks feign and delivers the strike.
 	///
 	/// Note: Strike is intentionally available while IsFeigning. The whole
-	/// point of the climactic beat is that Cassie reveals her free hands mid-
-	/// pose. Pressing H breaks the feign and swings — the reveal IS the strike.
+	/// point of the turnaround is that Cassie reveals her free hands mid-pose.
+	/// Pressing H breaks the feign and swings — the reveal IS the strike.
 	/// CancelFeign fires first so verbs re-enable before OnStruck runs.
 	/// </summary>
 	void TryStrike()
 	{
 		// Diagnostic logging — split the gate so a miss tells us which half failed.
+		if (!wristsFree)
+		{
+			Debug.Log("[PlayerController] TryStrike: wrists not yet free.");
+			return;
+		}
+
 		if (heldItem == null || !heldItem.IsWeapon)
 		{
 			Debug.Log("[PlayerController] TryStrike: no weapon held.");
@@ -417,7 +520,7 @@ public class PlayerController : MonoBehaviour
 			return;
 		}
 
-		// Both gates passed. Break feign (the reveal), then deliver the strike.
+		// All gates passed. Break feign (the reveal), then deliver the strike.
 		if (isFeigning) CancelFeign();
 
 		Debug.Log("[PlayerController] Strike!");
@@ -455,7 +558,7 @@ public class PlayerController : MonoBehaviour
 
 	/// <summary>
 	/// Kick verb entry point. Delegates to KickCycle coroutine, which owns the
-	/// timing of the kick action (wind-up, strike, recovery). Gated on IsBusy AND 
+	/// timing of the kick action (wind-up, strike, recovery). Gated on IsBusy AND
 	/// IsGrounded: can't kick mid-crawl, mid-flip, mid-kick,
 	/// or mid-hop. Cassie's kinetic chain depends on having ground under her —
 	/// you can't drive a kick from the air.
@@ -794,10 +897,25 @@ public class PlayerController : MonoBehaviour
 
 	void EscapeBonds()
 	{
+		// Mark wrists free in both paths — the strike gate always checks this.
+		wristsFree = true;
+
+		if (!freeOnBondBreak)
+		{
+			// VS two-phase mode: wrists free, but the level is not over.
+			// Fire OnWristsFreed for the VS coordinator; do NOT fire OnPlayerFreed.
+			// The bond break SFX still plays — she earned it.
+			if (AudioManager.Instance != null && bondBreakClip != null)
+				AudioManager.Instance.PlaySFX(bondBreakClip, 1f, 1f);
+			OnWristsFreed?.Invoke();
+			Debug.Log("[PlayerController] Wrists free — phase 1 complete. Level continues.");
+			return;
+		}
+
+		// Default: bond break = full freedom = level complete.
 		Debug.Log("FREE OF BONDS!");
 		if (AudioManager.Instance != null && bondBreakClip != null)
 			AudioManager.Instance.PlaySFX(bondBreakClip, 1f, 1f);
-
 		OnPlayerFreed?.Invoke();
 	}
 

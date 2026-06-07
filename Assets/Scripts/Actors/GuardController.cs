@@ -13,11 +13,10 @@ using UnityEngine.Events;
 ///
 /// STATE MACHINE
 /// -------------
-/// Offstage → Approaching → AtDoor → Gloating → Leaving → (back to Offstage)
+/// Offstage → Approaching → AtDoor → Gloating ─[lure]─→ LeanIn → Downed (strike lands)
+///                                                               ↘ Leaving (window lapses)
+///                                             → Leaving → (back to Offstage)
 ///                                  ↘ Caught (not feigning at inspection)
-///                                  ↘ LeanIn (climactic, feigning + prerequisites met)
-///                                         ↘ Downed (strike lands during LeanIn)
-///                                         ↘ Leaving (strike window lapses, guard unharmed)
 ///
 /// Downed is terminal — StrikeableGuard calls OnGuardDowned() which stops all
 /// coroutines and sets the state. No further cycle runs after Downed.
@@ -35,14 +34,20 @@ using UnityEngine.Events;
 /// Closes when he reaches AtDoor. The player must press G during this window.
 /// At AtDoor, IsFeigning is sampled once — pass → Gloating; fail → Caught.
 ///
-/// CLIMACTIC CHECK-IN
-/// ------------------
-/// After prerequisites are met (wrists free + weapon acquired + concealed),
-/// the NEXT check-in is flagged climactic. At that inspection, if the player
-/// is feigning, the guard enters LeanIn instead of routine Gloating — that's
-/// where the strike window lives (§8, next session). Climactic detection is
-/// driven by the IsClimacticConditionMet() delegate, which the scene wires
-/// to whatever tracks weapon/wrist state.
+/// LURE
+/// ----
+/// After passing inspection and entering Gloating, the player can fire the
+/// lure verb (T key by default, while feigning) to draw the guard into
+/// LeanIn. Fiction: Cassie calls out / strains against the gag; he steps
+/// in to relish it, not knowing she's armed. The lure is available on every
+/// check-in regardless of arm state — an unarmed lure produces a near-miss
+/// (he leans in, gloats up close, leaves). The catharsis fires when she's
+/// armed, wrists-free, and strikes during the LeanIn window.
+///
+/// AttemptLure() sets a flag that GloatPhase picks up on its next tick,
+/// aborting the leave path and starting LeanIn. Mutter dismissal is handled
+/// by PlayerController before the call, mirroring how TryStrike dismisses
+/// the lean-in gloat.
 ///
 /// CAUGHT BRANCH
 /// -------------
@@ -50,7 +55,7 @@ using UnityEngine.Events;
 /// default: re-cinch/escalate). Reuses the FailureLoopController fade pattern
 /// conceptually, but lives here as a lighter version — the VS doesn't carry
 /// the full failure loop apparatus (no Chair B, no LevelTimer, no lamp).
-/// Re-cinch just: fade to black → add bond escalation → mutter → fade in.
+/// Re-cinch: fade to black → bond escalation → mutter → fade in.
 ///
 /// SINGLETON
 /// ---------
@@ -72,8 +77,8 @@ public class GuardController : MonoBehaviour
 		Gloating,
 		Leaving,
 		Caught,
-		LeanIn,   // forward hook — §8 turnaround, not yet wired
-		Downed,   // forward hook — terminal state after strike
+		LeanIn,
+		Downed,
 	}
 
 	public GuardState CurrentState { get; private set; } = GuardState.Offstage;
@@ -110,7 +115,8 @@ public class GuardController : MonoBehaviour
 	[Tooltip("How long the guard lingers during a routine gloat before leaving. " +
 		"His mutter fires at the start of this window; he leaves when it expires " +
 		"(or when the mutter is dismissed, whichever is longer). 0 = leave " +
-		"immediately after mutter dismiss.")]
+		"immediately after mutter dismiss. A lure fired during this window " +
+		"will divert to LeanIn regardless of whether the linger has expired.")]
 	[SerializeField] private float gloatLingerDuration = 0f;
 
 	[Tooltip("How long the guard stays in LeanIn — the strike window. If the " +
@@ -166,10 +172,9 @@ public class GuardController : MonoBehaviour
 		"That's it. Trust the knots.",
 	};
 
-	[Header("Mutter Content — Climactic LeanIn (Guard)")]
-	[Tooltip("Guard's line when he leans in during the climactic check-in — " +
-		"he thinks he's gloating up close; he doesn't know she's armed. " +
-		"Speaker: Guard. Plays at the start of LeanIn.")]
+	[Header("Mutter Content — LeanIn (Guard)")]
+	[Tooltip("Guard's line when he leans in close — he thinks he's won; he " +
+		"doesn't know she's armed. Speaker: Guard. Plays at the start of LeanIn.")]
 	[TextArea(2, 4)]
 	[SerializeField] private string leanInGuardLine =
 		"Look at you. Helpless.";
@@ -224,16 +229,14 @@ public class GuardController : MonoBehaviour
 	[SerializeField] private UnityEvent onCaughtReset;
 
 	// -------------------------------------------------------------------------
-	// Inspector — Climactic Condition
+	// Inspector — LeanIn Scene Hook
 	// -------------------------------------------------------------------------
 
-	[Header("Climactic Check-In")]
-	[Tooltip("When true, the NEXT check-in is climactic — the guard enters LeanIn " +
-		"instead of routine Gloating. Wire this to a scene condition that tracks " +
-		"whether Cassie is wrists-free AND holding the weapon. " +
-		"Leave null to disable climactic check-ins (routine loop only — " +
-		"useful during early development of the feign system).")]
-	[SerializeField] private UnityEngine.Events.UnityEvent onClimacticInspectionPassed;
+	[Header("LeanIn — Scene Hook")]
+	[Tooltip("UnityEvent fired at the start of LeanIn — the moment the guard " +
+		"steps in close. Wire scene-specific responses here (e.g. a camera nudge, " +
+		"enabling a UI hint for the strike key, triggering a Beg verb display).")]
+	[SerializeField] private UnityEngine.Events.UnityEvent onLeanInEntered;
 
 	// -------------------------------------------------------------------------
 	// Inspector — Debug
@@ -246,12 +249,16 @@ public class GuardController : MonoBehaviour
 	// Runtime State
 	// -------------------------------------------------------------------------
 
-	// How many routine check-ins have completed. Used to index mutter lines.
+	// How many check-ins have completed. Used to index mutter lines.
+	// Incremented at the start of GloatPhase (before the wait loop) so both
+	// exit paths — normal leave and lure-divert to LeanIn — see a consistent
+	// count. No double-increment from LeanInPhase on lapse.
 	private int checkInCount = 0;
 
-	// Whether the next check-in should be treated as climactic.
-	// Set externally via FlagNextCheckInAsClimatic() once prerequisites are met.
-	private bool nextCheckInIsClimatic = false;
+	// Set by AttemptLure() when the player fires the lure verb during a gloat.
+	// GloatPhase polls this each frame in its wait loop and diverts to LeanIn
+	// when true. Cleared at the start of each GloatPhase to avoid stale state.
+	private bool lureRequested = false;
 
 	// Re-entry guard for the caught sequence (same pattern as FailureLoopController).
 	private bool caughtSequenceRunning = false;
@@ -294,7 +301,6 @@ public class GuardController : MonoBehaviour
 				"Inspection outcomes will not fire correctly.");
 		}
 
-		// Start the first offstage phase automatically.
 		StartCoroutine(OffstagePhase());
 	}
 
@@ -303,19 +309,36 @@ public class GuardController : MonoBehaviour
 	// -------------------------------------------------------------------------
 
 	/// <summary>
-	/// Call this when the climactic prerequisites are met (wrists free + weapon
-	/// acquired + concealed). The NEXT check-in will enter LeanIn on a pass
-	/// instead of routine Gloating.
+	/// True while the guard is in the Gloating state — the only window in
+	/// which a lure can draw him into LeanIn. PlayerController checks this
+	/// before calling AttemptLure so the key is a silent no-op offstage.
 	/// </summary>
-	public void FlagNextCheckInAsClimatic()
+	public bool CanBeLured => CurrentState == GuardState.Gloating;
+
+	/// <summary>
+	/// Called by PlayerController when the player fires the lure verb while
+	/// feigning during a gloat. Sets lureRequested; GloatPhase picks it up
+	/// on its next coroutine tick and diverts to LeanInPhase.
+	///
+	/// Mutter dismissal is handled by PlayerController before this call —
+	/// same pattern as TryStrike dismissing the lean-in gloat mutter.
+	/// Safe no-op if called outside Gloating state.
+	/// </summary>
+	public void AttemptLure()
 	{
-		nextCheckInIsClimatic = true;
-		Log("Next check-in flagged as climactic.");
+		if (!CanBeLured)
+		{
+			Log("AttemptLure called outside Gloating state — ignored.");
+			return;
+		}
+		lureRequested = true;
+		Log("Lure requested — diverting to LeanIn on next coroutine tick.");
 	}
 
 	/// <summary>
 	/// Hard-stop the guard cycle and move to Downed. Called by StrikeableGuard
-	/// when the strike lands (§8, next session).
+	/// when the strike lands. StopAllCoroutines prevents any pending LeanIn /
+	/// Leaving logic from running after the guard is KO'd.
 	/// </summary>
 	public void OnGuardDowned()
 	{
@@ -334,12 +357,10 @@ public class GuardController : MonoBehaviour
 		Log($"Offstage phase — waiting {offstageDuration}s.");
 
 		// Auto-release feign at the start of the offstage window. The guard
-		// has left; there's no reason to hold the pose. This covers the case
-		// where the player forgets to toggle off manually.
+		// has left; there's no reason to hold the pose. Covers the case where
+		// the player forgets to toggle off manually.
 		if (player != null && player.IsFeigning)
-		{
 			player.CancelFeign();
-		}
 
 		yield return new WaitForSeconds(offstageDuration);
 		StartCoroutine(ApproachPhase());
@@ -350,11 +371,8 @@ public class GuardController : MonoBehaviour
 		SetState(GuardState.Approaching);
 		Log("Guard approaching — feign window OPEN.");
 
-		// Telegraph audio: footsteps start. This is the player's cue to press G.
 		if (AudioManager.Instance != null && approachFootstepsClip != null)
-		{
 			AudioManager.Instance.PlaySFX(approachFootstepsClip, footstepsVolume, 1f);
-		}
 
 		yield return new WaitForSeconds(approachDuration);
 		StartCoroutine(AtDoorPhase());
@@ -373,31 +391,21 @@ public class GuardController : MonoBehaviour
 		Log($"Inspection result: {(passed ? "PASS (feigning)" : "FAIL (not feigning)")}");
 
 		if (passed)
-		{
-			bool isClimatic = nextCheckInIsClimatic;
-			nextCheckInIsClimatic = false; // consume the flag
-
-			if (isClimatic)
-			{
-				StartCoroutine(LeanInPhase());
-			}
-			else
-			{
-				StartCoroutine(GloatPhase());
-			}
-		}
+			StartCoroutine(GloatPhase());
 		else
-		{
 			StartCoroutine(CaughtPhase());
-		}
 	}
 
 	private IEnumerator GloatPhase()
 	{
 		SetState(GuardState.Gloating);
+		lureRequested = false; // clear any stale flag from a previous cycle
 
-		// Index into mutter arrays. Clamp so extra check-ins repeat the last line.
+		// Compute the mutter index before incrementing so index 0 = first check-in.
+		// Increment immediately so both exit paths (normal leave and lure-divert
+		// to LeanIn) leave checkInCount consistent — no double-counting.
 		int idx = Mathf.Min(checkInCount, routineGloatLines.Length - 1);
+		checkInCount++;
 
 		if (MutterSystem.Instance != null)
 		{
@@ -407,62 +415,61 @@ public class GuardController : MonoBehaviour
 				MutterSystem.Instance.Play(routineReactionLines[idx], MutterSystem.Speaker.Cassie);
 		}
 
-		// Wait for mutter to finish (or gloat linger, whichever is longer).
+		// Wait for the gloat to finish, watching for a lure request each frame.
+		// The mutter is dismissed by PlayerController before AttemptLure is called,
+		// so IsActive may already be false when lureRequested is set — check
+		// lureRequested first so we always catch it regardless of ordering.
 		float lingerTimer = 0f;
 		while (lingerTimer < gloatLingerDuration ||
 			   (MutterSystem.Instance != null && MutterSystem.Instance.IsActive))
 		{
+			if (lureRequested)
+			{
+				lureRequested = false;
+				Log("Lure fired — guard stepping in close.");
+				StartCoroutine(LeanInPhase());
+				yield break;
+			}
 			lingerTimer += Time.deltaTime;
 			yield return null;
 		}
 
-		checkInCount++;
+		// No lure — guard finishes gloating and leaves normally.
 		StartCoroutine(LeavingPhase());
 	}
 
 	/// <summary>
-	/// Climactic check-in: guard leans in close, unaware Cassie is armed.
-	/// This is the strike window. The player has leanInDuration seconds to
-	/// press H (Strike). If they don't, the guard straightens and leaves —
-	/// back into the routine loop for another attempt.
+	/// Guard leans in close. This is the strike window. The player has
+	/// leanInDuration seconds to press H (Strike). If they don't, the guard
+	/// straightens and leaves — the loop continues and she can lure him in
+	/// again on the next check-in.
 	///
 	/// GuardController does NOT poll for the strike here — PlayerController
 	/// calls StrikeableGuard.OnStruck(), which calls OnGuardDowned(), which
 	/// calls StopAllCoroutines() on this component. That stops this coroutine
-	/// mid-execution, which is the correct behavior: once the guard is down,
-	/// none of the remaining LeanIn/Leaving logic should run.
+	/// mid-execution: once the guard is down, none of the remaining
+	/// LeanIn / Leaving logic should run.
 	/// </summary>
 	private IEnumerator LeanInPhase()
 	{
 		SetState(GuardState.LeanIn);
 		Log($"Guard LEAN IN — strike window open for {leanInDuration}s.");
 
-		// Guard's close-up gloat line — he thinks he's won.
+		// Guard's close-up line — he thinks he's won.
 		if (MutterSystem.Instance != null && !string.IsNullOrEmpty(leanInGuardLine))
-		{
 			MutterSystem.Instance.Play(leanInGuardLine, MutterSystem.Speaker.Guard);
-		}
 
-		// Fire the climactic-passed event for any scene hooks (e.g. enabling
-		// the Beg verb if it's been built).
-		onClimacticInspectionPassed?.Invoke();
+		// Scene hook — fire anything wired to the lean-in moment.
+		onLeanInEntered?.Invoke();
 
-		// Hold the strike window. PlayerController polls StrikeableGuard.CanBeStruck()
-		// while H is pressed. If a strike lands, GuardController.OnGuardDowned()
-		// fires StopAllCoroutines() — this yield never returns.
+		// Hold the strike window. If a strike lands, OnGuardDowned fires
+		// StopAllCoroutines — this yield never returns.
 		yield return new WaitForSeconds(leanInDuration);
 
-		// Window lapsed — guard missed his chance to notice, Cassie missed hers
-		// to strike. He straightens up and leaves. No penalty; try again next
-		// climactic check-in (FlagNextCheckInAsClimatic resets externally,
-		// or the prerequisites condition re-flags it automatically on the next cycle).
+		// Window lapsed. Guard straightens and leaves. No penalty — the lure
+		// is available on the next check-in. checkInCount was already
+		// incremented in GloatPhase when this check-in began.
 		Log("Strike window lapsed. Guard leaving without incident.");
-
-		// Re-flag climactic so the next check-in is another attempt.
-		// The player already has the weapon; they just didn't strike in time.
-		nextCheckInIsClimatic = true;
-
-		checkInCount++;
 		StartCoroutine(LeavingPhase());
 	}
 
@@ -472,13 +479,9 @@ public class GuardController : MonoBehaviour
 		Log($"Guard leaving — {leavingDuration}s receding audio.");
 
 		if (AudioManager.Instance != null && leaveFootstepsClip != null)
-		{
 			AudioManager.Instance.PlaySFX(leaveFootstepsClip, footstepsVolume, 1f);
-		}
 
 		yield return new WaitForSeconds(leavingDuration);
-
-		// Cycle complete. Return to offstage.
 		StartCoroutine(OffstagePhase());
 	}
 
@@ -536,7 +539,6 @@ public class GuardController : MonoBehaviour
 		caughtSequenceRunning = false;
 		Log("=== CAUGHT sequence END. Restarting cycle. ===");
 
-		// Restart the offstage phase — same as a normal loop reset.
 		StartCoroutine(OffstagePhase());
 	}
 
@@ -552,7 +554,9 @@ public class GuardController : MonoBehaviour
 				$"New BoundLimbs = {player.CurrentRestraint.BoundLimbs}");
 		}
 
-		// Reset bond cut progress — the guard re-ties her.
+		// Reset bond cut progress — the guard re-ties her. ResetBondProgress
+		// also clears PlayerController.wristsFree so phase 1 restarts correctly
+		// if she was caught after having freed her wrists.
 		player.ResetBondProgress();
 
 		// Position reset.
@@ -607,12 +611,6 @@ public class GuardController : MonoBehaviour
 		CurrentState = newState;
 		OnStateChanged?.Invoke(newState);
 		Log($"State → {newState}");
-	}
-
-	[ContextMenu("Debug: Flag Next Check-In As Climactic")]
-	private void DebugFlagClimatic()
-	{
-		FlagNextCheckInAsClimatic();
 	}
 
 	private void Log(string msg)
