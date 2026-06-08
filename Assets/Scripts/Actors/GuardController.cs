@@ -57,6 +57,18 @@ using UnityEngine.Events;
 /// the full failure loop apparatus (no Chair B, no LevelTimer, no lamp).
 /// Re-cinch: fade to black → bond escalation → mutter → fade in.
 ///
+/// MOVEMENT
+/// --------
+/// The guard's visible body (guardBody) physically lerps between positions:
+/// offstage (out of sight) and door (inspection/gloat) are fixed anchors; the
+/// lean-in target is computed live from Cassie's position (he leans into
+/// wherever she actually is, stopping leanInStandoff short of her). Movement
+/// rides the existing phase durations, so timing is unchanged. It is purely
+/// presentational — strike validity is the LeanIn STATE, never the body's
+/// distance from the player (see StrikeableGuard and PlayerController). If
+/// anchors aren't wired, movement is skipped and the slice still runs on the
+/// abstract state machine alone.
+///
 /// SINGLETON
 /// ---------
 /// Same pattern as LevelTimer and MutterSystem. Wire one instance per VS scene.
@@ -128,6 +140,39 @@ public class GuardController : MonoBehaviour
 	[Tooltip("How long the leaving phase lasts (footsteps receding). Guards " +
 		"the player from feign-releasing too early and breaking the fiction.")]
 	[SerializeField] private float leavingDuration = 3f;
+
+	// -------------------------------------------------------------------------
+	// Inspector — Movement
+	// -------------------------------------------------------------------------
+
+	[Header("Movement")]
+	[Tooltip("The guard's visible body — the Transform that physically moves " +
+		"between anchors (in the graybox, the guard cube; later, the character " +
+		"model root). If left unwired, falls back to the StrikeableGuard's " +
+		"transform found in the scene. If neither resolves, movement is skipped " +
+		"and phases just wait out their durations — the slice still runs.")]
+	[SerializeField] private Transform guardBody;
+
+	[Tooltip("Where the guard sits while Offstage — out of the player's sightline, " +
+		"down the hallway past the door. He snaps here at the start of each " +
+		"Offstage phase and lerps back here when Leaving.")]
+	[SerializeField] private Transform offstageAnchor;
+
+	[Tooltip("The doorway / inspection position. The guard lerps here during " +
+		"Approaching and holds here through AtDoor and Gloating.")]
+	[SerializeField] private Transform doorAnchor;
+
+	[Tooltip("How close the guard stops in FRONT of Cassie when he leans in, in " +
+		"metres. He targets her live position (offset back toward the door so he " +
+		"doesn't overlap her), not a fixed spot — he leans into wherever she " +
+		"actually is. ~0.7–0.9 reads as in-her-face without clipping. Strike " +
+		"validity is the LeanIn state, so this is purely how the lean reads.")]
+	[SerializeField] private float leanInStandoff = 0.8f;
+
+	[Tooltip("How long the physical step-in takes when the guard leans in, in " +
+		"seconds. Short and quick — he closes the distance, then the strike " +
+		"window (leanInDuration) runs. 0.5–0.8s reads as a deliberate step.")]
+	[SerializeField] private float leanInStepDuration = 0.7f;
 
 	// -------------------------------------------------------------------------
 	// Inspector — Audio
@@ -301,6 +346,15 @@ public class GuardController : MonoBehaviour
 				"Inspection outcomes will not fire correctly.");
 		}
 
+		// Fall back to the scene's StrikeableGuard transform if no explicit
+		// body is wired — the cube/model carrying StrikeableGuard is the thing
+		// that should move.
+		if (guardBody == null)
+		{
+			StrikeableGuard sg = FindFirstObjectByType<StrikeableGuard>();
+			if (sg != null) guardBody = sg.transform;
+		}
+
 		StartCoroutine(OffstagePhase());
 	}
 
@@ -356,6 +410,11 @@ public class GuardController : MonoBehaviour
 		SetState(GuardState.Offstage);
 		Log($"Offstage phase — waiting {offstageDuration}s.");
 
+		// Snap the body to its offstage anchor — he's out of sight between
+		// check-ins. No-op if no body/anchor wired.
+		if (guardBody != null && offstageAnchor != null)
+			guardBody.position = offstageAnchor.position;
+
 		// Auto-release feign at the start of the offstage window. The guard
 		// has left; there's no reason to hold the pose. Covers the case where
 		// the player forgets to toggle off manually.
@@ -374,7 +433,10 @@ public class GuardController : MonoBehaviour
 		if (AudioManager.Instance != null && approachFootstepsClip != null)
 			AudioManager.Instance.PlaySFX(approachFootstepsClip, footstepsVolume, 1f);
 
-		yield return new WaitForSeconds(approachDuration);
+		// Walk to the door over the approach window — this IS the telegraph the
+		// player reacts to. Move duration == approachDuration, so the feign
+		// window timing is unchanged from the audio-only version.
+		yield return MoveBody(doorAnchor, approachDuration);
 		StartCoroutine(AtDoorPhase());
 	}
 
@@ -462,6 +524,13 @@ public class GuardController : MonoBehaviour
 		// Scene hook — fire anything wired to the lean-in moment.
 		onLeanInEntered?.Invoke();
 
+		// Physically step into melee range. He leans into wherever Cassie
+		// actually is — computed from her live position (she's feigning, so
+		// she's frozen for the duration of the step). State is already LeanIn,
+		// so a strike landing mid-step is valid (she swings as he closes) —
+		// and if it lands, OnGuardDowned's StopAllCoroutines freezes him here.
+		yield return MoveBodyToPoint(ComputeLeanInPoint(), leanInStepDuration);
+
 		// Hold the strike window. If a strike lands, OnGuardDowned fires
 		// StopAllCoroutines — this yield never returns.
 		yield return new WaitForSeconds(leanInDuration);
@@ -481,7 +550,8 @@ public class GuardController : MonoBehaviour
 		if (AudioManager.Instance != null && leaveFootstepsClip != null)
 			AudioManager.Instance.PlaySFX(leaveFootstepsClip, footstepsVolume, 1f);
 
-		yield return new WaitForSeconds(leavingDuration);
+		// Recede back to the offstage anchor over the leaving window.
+		yield return MoveBody(offstageAnchor, leavingDuration);
 		StartCoroutine(OffstagePhase());
 	}
 
@@ -569,6 +639,12 @@ public class GuardController : MonoBehaviour
 
 		// Scene-specific resets.
 		onCaughtReset?.Invoke();
+
+		// Snap the guard back offstage while the screen is black, so he isn't
+		// seen popping from the door after fade-in. OffstagePhase will also
+		// place him there, but doing it under the fade avoids the visible pop.
+		if (guardBody != null && offstageAnchor != null)
+			guardBody.position = offstageAnchor.position;
 	}
 
 	// -------------------------------------------------------------------------
@@ -586,6 +662,72 @@ public class GuardController : MonoBehaviour
 				AudioManager.Instance.PlaySFX(clip, caughtRebindSfxVolume, 1f);
 			yield return new WaitForSeconds(clip.length);
 		}
+	}
+
+	/// <summary>
+	/// Lerp the guard body to a target anchor's position over `duration`
+	/// seconds, then yield. Degrades gracefully: if no body or no target anchor
+	/// is wired, it just waits out the duration so phase timing (the feign
+	/// window, etc.) is preserved even before the movement anchors are placed.
+	/// </summary>
+	private IEnumerator MoveBody(Transform target, float duration)
+	{
+		if (guardBody == null || target == null)
+		{
+			yield return new WaitForSeconds(duration);
+			yield break;
+		}
+
+		yield return MoveBodyToPoint(target.position, duration);
+	}
+
+	/// <summary>
+	/// Lerp the guard body to an explicit world point over `duration` seconds.
+	/// Used for the lean-in, whose target is computed live from Cassie's
+	/// position rather than a fixed anchor. Falls back to waiting if no body.
+	/// </summary>
+	private IEnumerator MoveBodyToPoint(Vector3 end, float duration)
+	{
+		if (guardBody == null)
+		{
+			yield return new WaitForSeconds(duration);
+			yield break;
+		}
+
+		Vector3 start = guardBody.position;
+		float t = 0f;
+		while (t < duration)
+		{
+			t += Time.deltaTime;
+			guardBody.position = Vector3.Lerp(start, end, Mathf.Clamp01(t / duration));
+			yield return null;
+		}
+		guardBody.position = end;
+	}
+
+	/// <summary>
+	/// The world point the guard steps to when he leans in: leanInStandoff
+	/// metres in front of Cassie, on the side he's approaching from (his
+	/// current position, i.e. the door), so he stops at her face without
+	/// overlapping her. Computed at the moment of lean-in — she's feigning and
+	/// therefore stationary, so a one-shot snapshot is accurate. Keeps his own
+	/// height so he doesn't sink into the floor.
+	/// </summary>
+	private Vector3 ComputeLeanInPoint()
+	{
+		if (guardBody == null) return Vector3.zero;
+		if (player == null) return guardBody.position;
+
+		Vector3 cassie = player.transform.position;
+		Vector3 fromCassieToGuard = guardBody.position - cassie;
+		fromCassieToGuard.y = 0f;
+
+		// Degenerate case (guard already on top of her): just hold position.
+		if (fromCassieToGuard.sqrMagnitude < 0.0001f) return guardBody.position;
+
+		Vector3 point = cassie + fromCassieToGuard.normalized * leanInStandoff;
+		point.y = guardBody.position.y;
+		return point;
 	}
 
 	private IEnumerator FadeOverlay(float from, float to, float duration)

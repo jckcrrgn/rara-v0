@@ -469,18 +469,43 @@ public class PlayerController : MonoBehaviour
 		Debug.Log("[PlayerController] Lure attempted.");
 	}
 
+	// Cached reference to the scene's StrikeableGuard. The VS has exactly one
+	// guard, and it's a SCRIPTED actor — its LeanIn state is the authority on
+	// whether a strike is valid, not its physical distance from Cassie. So we
+	// hold a direct reference rather than sweeping for nearby colliders each
+	// frame (the old OverlapSphere approach forced the player to physically
+	// shuffle next to a guard who never moved toward her). Resolved lazily so
+	// it works regardless of script init order. See GetStrikeableGuard.
+	private StrikeableGuard strikeableGuard;
+
+	/// <summary>
+	/// The scene's StrikeableGuard, cached on first use. Single-guard
+	/// assumption — true for the VS. Returns null if none is present.
+	/// </summary>
+	private StrikeableGuard GetStrikeableGuard()
+	{
+		if (strikeableGuard == null)
+			strikeableGuard = FindFirstObjectByType<StrikeableGuard>();
+		return strikeableGuard;
+	}
+
 	/// <summary>
 	/// True if a Strike would currently succeed: Cassie's wrists are free,
-	/// she holds a weapon, AND the nearest StrikeableGuard reports CanBeStruck()
+	/// she holds a weapon, AND the scene's StrikeableGuard reports CanBeStruck()
 	/// (guard in LeanIn, not yet struck). Used by Update to decide whether H
 	/// should interrupt an active mutter, and by TryStrike as the actual gate.
 	/// No side effects, no logging.
+	///
+	/// Strike validity is the guard's LeanIn STATE, not his physical proximity:
+	/// the scripted guard asserts "I'm in your face" by entering LeanIn, and we
+	/// trust that. His position is a presentational layer (GuardController moves
+	/// him there) and never gates the swing.
 	/// </summary>
 	private bool CanStrikeNow()
 	{
 		if (!wristsFree) return false;
 		if (heldItem == null || !heldItem.IsWeapon) return false;
-		StrikeableGuard target = FindNearestStrikeableGuard();
+		StrikeableGuard target = GetStrikeableGuard();
 		return target != null && target.CanBeStruck();
 	}
 
@@ -513,10 +538,10 @@ public class PlayerController : MonoBehaviour
 			return;
 		}
 
-		StrikeableGuard target = FindNearestStrikeableGuard();
+		StrikeableGuard target = GetStrikeableGuard();
 		if (target == null || !target.CanBeStruck())
 		{
-			Debug.Log("[PlayerController] TryStrike: no strikeable target in range or guard not in LeanIn.");
+			Debug.Log("[PlayerController] TryStrike: no guard in scene or guard not in LeanIn.");
 			return;
 		}
 
@@ -525,35 +550,6 @@ public class PlayerController : MonoBehaviour
 
 		Debug.Log("[PlayerController] Strike!");
 		target.OnStruck(this);
-	}
-
-	/// <summary>
-	/// Find the nearest StrikeableGuard within interactionCheckRadius.
-	/// Uses the same broadphase radius as FindNearestInteractable so the
-	/// reach feels consistent. Returns null if none found.
-	/// </summary>
-	private StrikeableGuard FindNearestStrikeableGuard()
-	{
-		Collider[] hits = Physics.OverlapSphere(
-			transform.position, interactionCheckRadius, interactableLayer);
-
-		StrikeableGuard nearest = null;
-		float nearestDist = float.MaxValue;
-
-		foreach (Collider hit in hits)
-		{
-			StrikeableGuard sg = hit.GetComponent<StrikeableGuard>();
-			if (sg == null) continue;
-
-			float dist = Vector3.Distance(transform.position, hit.transform.position);
-			if (dist < nearestDist)
-			{
-				nearest = sg;
-				nearestDist = dist;
-			}
-		}
-
-		return nearest;
 	}
 
 	/// <summary>
