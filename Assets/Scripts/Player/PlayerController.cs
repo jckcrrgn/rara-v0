@@ -82,22 +82,15 @@ public class PlayerController : MonoBehaviour
 	[SerializeField] private RestraintBase currentRestraint;
 
 	// -------------------------------------------------------------------------
-	// VS — Lure / Phase
+	// VS — Phase
 	// -------------------------------------------------------------------------
 
-	[Header("VS — Lure / Phase")]
+	[Header("VS — Phase")]
 	[Tooltip("When true (default), breaking the bond fires OnPlayerFreed and ends " +
 		"the level — standard Act 1 behavior. Set false for the Vertical Slice: the " +
 		"bond break advances to phase 2 (wrists free, level continues) rather than " +
 		"completing. Uncheck this on the VS scene's PlayerController instance.")]
 	[SerializeField] private bool freeOnBondBreak = true;
-
-	[Tooltip("Key the player presses while feigning during a guard gloat to draw " +
-		"the guard into LeanIn range. Requires IsFeigning and GuardController." +
-		"CanBeLured. Available regardless of arm state — an unarmed lure produces " +
-		"a near-miss (guard leans in, gloats up close, leaves). " +
-		"Fiction: Cassie calls out / strains against the gag.")]
-	[SerializeField] private KeyCode lureKey = KeyCode.T;
 
 	// -------------------------------------------------------------------------
 
@@ -297,21 +290,6 @@ public class PlayerController : MonoBehaviour
 			return;
 		}
 
-		// Lure CAN interrupt the gloat mutter — same architecture as the strike
-		// above. When the player fires T while feigning during a gloat, the mutter
-		// is dismissed and GuardController is told to divert to LeanIn on its next
-		// coroutine tick. No-op if the guard isn't in Gloating state or Cassie
-		// isn't feigning (CanLureNow gates both).
-		if (Input.GetKeyDown(lureKey) && CanLureNow())
-		{
-			if (MutterSystem.Instance != null && MutterSystem.Instance.IsActive)
-			{
-				MutterSystem.Instance.ForceDismissAndClear();
-			}
-			TryLure();
-			return;
-		}
-
 		// While a mutter is showing, world is paused — no movement, no verbs.
 		// MutterSystem owns the dismissKey input itself (Space, currently shared
 		// with Struggle); gating here keeps Struggle from double-firing on the
@@ -366,9 +344,9 @@ public class PlayerController : MonoBehaviour
 			TryKick();
 		}
 
-		// NOTE: Strike (H) and Lure (T) are handled ABOVE the mutter gate, near
-		// the top of Update — both need to interrupt active mutters. See the
-		// CanStrikeNow() and CanLureNow() checks there.
+		// NOTE: Strike (H) is handled ABOVE the mutter gate, near the top of
+		// Update — it needs to interrupt the guard's close-gloat mutter (the
+		// catharsis is Cassie cutting him off mid-sentence). See CanStrikeNow().
 	}
 
 	void TryStruggle()
@@ -389,7 +367,7 @@ public class PlayerController : MonoBehaviour
 
 		InteractableBase nearby = FindNearestInteractable();
 
-		if (nearby is EnvironmentalTool envTool)
+		if (nearby is EnvironmentalTool envTool && envTool.CanStruggleAgainst(this))
 		{
 			struggleAmount += bond.GetStruggleProgress(envTool.ToolType);
 			envTool.OnStruggle(this);
@@ -443,30 +421,6 @@ public class PlayerController : MonoBehaviour
 		isFeigning = false;
 		OnFeignChanged?.Invoke(false);
 		Debug.Log("[PlayerController] Feign EXIT.");
-	}
-
-	/// <summary>
-	/// True if a Lure attempt is currently meaningful: Cassie is feigning,
-	/// a GuardController is present, and the guard is in the Gloating state.
-	/// Used by Update to gate the lure key. No side effects.
-	/// </summary>
-	private bool CanLureNow()
-	{
-		return isFeigning
-			&& GuardController.Instance != null
-			&& GuardController.Instance.CanBeLured;
-	}
-
-	/// <summary>
-	/// Lure verb entry point. Notifies GuardController to divert from Gloating
-	/// to LeanIn on its next coroutine tick. Mutter dismissal is handled by
-	/// Update before this call, same pattern as TryStrike.
-	/// </summary>
-	void TryLure()
-	{
-		if (GuardController.Instance == null) return;
-		GuardController.Instance.AttemptLure();
-		Debug.Log("[PlayerController] Lure attempted.");
 	}
 
 	// Cached reference to the scene's StrikeableGuard. The VS has exactly one

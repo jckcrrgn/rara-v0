@@ -626,3 +626,90 @@ L6 latent: Chair-B swap (HandleChairManagement case 2) does not sync BoundLimbs 
 L6 latent: FloorRestraint sets the Elbows flag but its modifier math ignores it, so failure-loop Elbows escalation has no mechanical bite on the floor (reads as "more rope" only). Decide floor Elbows numbers if/when it matters.
 
 [VS / GuardController] Caught condition is currently "not feigning at inspection" regardless of player state. Should only trigger caught if Cassie has made meaningful progress (bond cut progress > 0, moved from spawn, or holding a tool). Raw "not feigning" = caught is too punishing for a player who hasn't done anything yet. Design question: what's the right threshold?
+
+## VS Playtest Notes — Day 62 (resolved)
+
+### ✅ [POLISH] Guard close-in speed — RESOLVED (became guardMoveSpeed)
+Original note: the lean-in step was duration-based, which read as a lunge.
+Superseded by the Day 62 lure-cut rewrite (see below). The close-in is now
+SPEED-based — `GuardController.guardMoveSpeed` (m/s, default 1.5) — so the walk
+reads the same whether Cassie sits near the door or across the room. Duration-
+based movement (`leanInStepDuration`) is gone for the variable-distance walks
+(lean-in + leaving); only the door approach stays duration-based, because that
+duration IS the feign window (a gameplay clock, not a movement to normalize).
+Lesson: ask "is this a timer or a movement?" — normalize movements by speed,
+leave gameplay clocks as durations.
+
+### ✅ [DESIGN] SharpEdge back-facing gate — DONE (Day 62)
+Resolved, but NOT via either option originally floated. The interaction verb for
+SharpEdge is STRUGGLE, not Pick Up — so the gate lives in a new
+`EnvironmentalTool.CanStruggleAgainst(player)` virtual (default true), which
+SharpEdge overrides with the same back-facing dot product as
+`Drawer.requireBackFacing` (`Dot(-forward, dirToEdge) >= threshold`, default 0.6).
+`PlayerController.TryStruggle` gates the environmental-tool branch on it; gate
+fail → tool contributes nothing → falls through to the existing struggle-fail
+feedback (shake + SFX). Initial mistake: the gate was first written on
+`SharpEdge.OnPickUp`, which never fires for an environmental tool — Struggle is
+the verb, so OnPickUp was dead code. Lesson logged: match the gate to the actual
+interaction verb, not the sibling component's verb (mirrored Drawer's *pattern*
+without checking Drawer used a *different verb*).
+
+### ✂️ [CUT] Lure verb card — CUT WITH THE LURE (Day 62)
+The whole lure verb was cut (see below), so the planned verb-card prompt and the
+lure SFX are both gone; the `LureHintPrompt` component built for it was discarded
+before import. The legibility need it addressed transfers to STRIKE — the player
+still needs to know H is live when armed and the guard is in close. Repurpose
+target: a `StrikeHintPrompt`, show condition `wristsFree && heldItem.IsWeapon &&
+guard in LeanIn`, drivable off the `GuardController.onLeanInEntered` hook +
+`PlayerController.OnFeignChanged`. Not yet built — candidate for the room pass or
+just after.
+
+## VS — Lure Cut & Guard Auto-Approach (Day 62)
+
+Cut the Lure verb (T) from the VS. It was the return of "Call Out," axed early in
+dev — reintroducing it under a new name resurfaced the same problem without
+solving it. In a one-guard scripted slice, a summon-the-guard verb is agency
+theater: you press T, he comes, there's no tactical choice in it. It was also a
+THIRD novel verb in a slice whose one-mechanic budget is Feign (headline) +
+Strike (payoff).
+
+New model: on a passed inspection the guard walks straight in to Cassie and
+gloats in her face — EVERY check-in, unconditionally. It's his habit (the sadist
+who can't resist getting close). On the unarmed early check-ins this is pure
+threat: he leans in, taunts, leaves, she can't act. The turnaround happens on
+whichever check-in she's finally armed — the same smug lean-in he's done every
+time, except this time her hands come around swinging. The escalation lives in
+HER state, not his; the constancy of his approach is the *engine* of the dramatic
+irony, not a flattening of it.
+
+Implementation: `GuardController` AtDoor(pass) → LeanIn directly. `GloatPhase`
+removed; its mutter + check-in counting folded into `LeanInPhase`. Stripped:
+`AttemptLure`, `CanBeLured`, `lureRequested`, the gloat polling loop,
+`leanInGuardLine`, `gloatLingerDuration`, the `Gloating` enum value.
+`PlayerController` stripped: `lureKey`, `lureSfx`/`lureSfxVolume`, `CanLureNow`,
+`TryLure`, the lure input block. Strike gating UNCHANGED — it already keys on
+`wristsFree && heldItem.IsWeapon && guard-in-LeanIn`, so the unarmed check-ins
+self-gate (no weapon → logged no-op).
+
+Mutter consequence: there is deliberately NO special climactic guard line. He
+can't perceive that she's armed (same causality rule that killed the climactic
+flag), so his close-gloat lines are identical every check-in. `routineGloatLines`
+now play up close — author them as in-her-face taunts, not door-distance glances.
+
+### Forward hook — Lure / Call Out belongs to the AI levels
+The player-authored lure isn't dead, it's deferred. In the future patrol-AI
+levels (see Stealth-between-escapes) a draw-the-guard verb has real tactical
+meaning — pull a guard off a position, bait him away from a sightline. That's
+where Call Out / Lure earns its place: against AI that can be meaningfully
+misdirected, not a scripted actor on a fixed clock. Reintroduce there.
+
+### Contextual-hint registry — generalize when a SECOND prompt appears
+`ControlHintsUI` is restraint-driven (rebuilds from
+`RestraintBase.GetControlHints()` on restraint/mode change). The strike prompt
+(and the cut lure prompt) are state-driven — guard + feign state — which the
+restraint can't and shouldn't know about. For now a dedicated component is the
+right call: one instance doesn't justify the abstraction. But the L7
+interruptible-untie feign (see Forward Hooks) will want its own state-driven
+prompt. When that SECOND prompt appears, generalize: a contextual-hint registry
+any system can push/pop hints into, with `ControlHintsUI` consuming both
+restraint and contextual sources. Two instances justify it; one doesn't.

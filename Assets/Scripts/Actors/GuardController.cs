@@ -13,10 +13,21 @@ using UnityEngine.Events;
 ///
 /// STATE MACHINE
 /// -------------
-/// Offstage → Approaching → AtDoor → Gloating ─[lure]─→ LeanIn → Downed (strike lands)
-///                                                               ↘ Leaving (window lapses)
-///                                             → Leaving → (back to Offstage)
-///                                  ↘ Caught (not feigning at inspection)
+/// Offstage → Approaching → AtDoor → LeanIn → Downed (strike lands)
+///                                          ↘ Leaving → (back to Offstage)
+///                                 ↘ Caught (not feigning at inspection)
+///
+/// On a PASSED inspection the guard walks straight in to Cassie and gloats in
+/// her face (LeanIn). He does this EVERY check-in — it's his habit, the sadist
+/// who can't resist getting close. There is no player verb to summon him; the
+/// approach is unconditional. On the routine (unarmed) check-ins this is pure
+/// threat — she endures him up close, unable to act. The turnaround happens on
+/// whichever check-in she is finally armed: the same smug lean-in he's done
+/// every time, except this time her hands come around swinging. The escalation
+/// lives in HER state, not his — which is the whole engine of the dramatic
+/// irony. (This replaces the earlier lure/"Call Out" verb, cut Day 62: in a
+/// one-guard scripted slice, a summon-the-guard verb was agency theater. It
+/// belongs to the AI levels, parked in ideas.md.)
 ///
 /// Downed is terminal — StrikeableGuard calls OnGuardDowned() which stops all
 /// coroutines and sets the state. No further cycle runs after Downed.
@@ -32,22 +43,22 @@ using UnityEngine.Events;
 /// ------------
 /// Opens when the guard enters Approaching (approach audio starts).
 /// Closes when he reaches AtDoor. The player must press G during this window.
-/// At AtDoor, IsFeigning is sampled once — pass → Gloating; fail → Caught.
+/// At AtDoor, IsFeigning is sampled once — pass → walk in (LeanIn); fail → Caught.
 ///
-/// LURE
-/// ----
-/// After passing inspection and entering Gloating, the player can fire the
-/// lure verb (T key by default, while feigning) to draw the guard into
-/// LeanIn. Fiction: Cassie calls out / strains against the gag; he steps
-/// in to relish it, not knowing she's armed. The lure is available on every
-/// check-in regardless of arm state — an unarmed lure produces a near-miss
-/// (he leans in, gloats up close, leaves). The catharsis fires when she's
-/// armed, wrists-free, and strikes during the LeanIn window.
+/// CLOSE-IN (the gloat)
+/// --------------------
+/// After passing inspection the guard enters LeanIn and physically walks to
+/// Cassie's position, then taunts her up close. This is the strike window. He
+/// does it on every passed inspection, armed or not. If she doesn't strike (no
+/// weapon, or the player hesitates), he straightens after leanInDuration and
+/// leaves — the loop continues and the next check-in is another chance.
 ///
-/// AttemptLure() sets a flag that GloatPhase picks up on its next tick,
-/// aborting the leave path and starting LeanIn. Mutter dismissal is handled
-/// by PlayerController before the call, mirroring how TryStrike dismisses
-/// the lean-in gloat.
+/// His movement is SPEED-based (guardMoveSpeed, m/s), not duration-based: the
+/// distance from the door to wherever Cassie sits varies, so a fixed duration
+/// would make him crawl when she's near the door and lunge when she's far. A
+/// constant speed reads as the same deliberate walk regardless of distance.
+/// (The door APPROACH, by contrast, stays duration-based — that duration IS the
+/// feign window, a gameplay clock, not a movement to be normalized.)
 ///
 /// CAUGHT BRANCH
 /// -------------
@@ -86,7 +97,6 @@ public class GuardController : MonoBehaviour
 		Offstage,
 		Approaching,
 		AtDoor,
-		Gloating,
 		Leaving,
 		Caught,
 		LeanIn,
@@ -120,25 +130,24 @@ public class GuardController : MonoBehaviour
 	[SerializeField] private float approachDuration = 5f;
 
 	[Tooltip("How long the guard stays at the door during inspection before the " +
-		"outcome fires (pass → Gloating, fail → Caught). A beat of held tension " +
+		"outcome fires (pass → walk in / LeanIn, fail → Caught). A beat of held " +
+		"tension " +
 		"before the branch. 1–2s is enough to let the pause land.")]
 	[SerializeField] private float inspectionHoldDuration = 1.5f;
 
-	[Tooltip("How long the guard lingers during a routine gloat before leaving. " +
-		"His mutter fires at the start of this window; he leaves when it expires " +
-		"(or when the mutter is dismissed, whichever is longer). 0 = leave " +
-		"immediately after mutter dismiss. A lure fired during this window " +
-		"will divert to LeanIn regardless of whether the linger has expired.")]
-	[SerializeField] private float gloatLingerDuration = 0f;
-
-	[Tooltip("How long the guard stays in LeanIn — the strike window. If the " +
-		"player doesn't strike within this window, he straightens up and leaves. " +
-		"No hard QTE — the window closes naturally when the timer expires. " +
-		"4–6s gives the player enough time to act without feeling infinite.")]
+	[Tooltip("How long the guard stays in LeanIn after he's finished closing the " +
+		"distance — the strike window. His close-up gloat plays at the start of it. " +
+		"If the player doesn't strike within this window (no weapon, or hesitation), " +
+		"he straightens up and leaves; the next check-in is another chance. No hard " +
+		"QTE — the window closes naturally when the timer expires. 4–6s gives enough " +
+		"time to act without feeling infinite. Note: total time in-close = the " +
+		"speed-based walk to Cassie PLUS this window.")]
 	[SerializeField] private float leanInDuration = 5f;
 
-	[Tooltip("How long the leaving phase lasts (footsteps receding). Guards " +
-		"the player from feign-releasing too early and breaking the fiction.")]
+	[Tooltip("Fallback duration for the leaving phase, used ONLY when no guardBody " +
+		"or offstageAnchor is wired (abstract-testing mode). When anchors are " +
+		"present the recede is speed-based (guardMoveSpeed). Keeps the abstract " +
+		"state machine paced before the movement anchors are placed.")]
 	[SerializeField] private float leavingDuration = 3f;
 
 	// -------------------------------------------------------------------------
@@ -159,7 +168,8 @@ public class GuardController : MonoBehaviour
 	[SerializeField] private Transform offstageAnchor;
 
 	[Tooltip("The doorway / inspection position. The guard lerps here during " +
-		"Approaching and holds here through AtDoor and Gloating.")]
+		"Approaching and holds here through AtDoor; on a pass he walks on from here " +
+		"to Cassie for the close-in.")]
 	[SerializeField] private Transform doorAnchor;
 
 	[Tooltip("How close the guard stops in FRONT of Cassie when he leans in, in " +
@@ -169,10 +179,16 @@ public class GuardController : MonoBehaviour
 		"validity is the LeanIn state, so this is purely how the lean reads.")]
 	[SerializeField] private float leanInStandoff = 0.8f;
 
-	[Tooltip("How long the physical step-in takes when the guard leans in, in " +
-		"seconds. Short and quick — he closes the distance, then the strike " +
-		"window (leanInDuration) runs. 0.5–0.8s reads as a deliberate step.")]
-	[SerializeField] private float leanInStepDuration = 0.7f;
+	[Tooltip("How fast the guard's body moves, in metres per second, for the " +
+		"variable-distance walks: the lean-in to Cassie and the recede back " +
+		"offstage. Speed-based (not duration-based) so the walk reads the same " +
+		"whether she's sitting near the door or across the room. ~1.2–1.8 reads " +
+		"as a deliberate, unhurried walk. For a seamless pace, set this near " +
+		"(offstage→door distance / approachDuration) so the close-in matches the " +
+		"door approach; set it deliberately different if you want the close-in to " +
+		"feel like a distinct change of intent. The door approach itself is NOT " +
+		"governed by this — its speed is set by approachDuration (the feign window).")]
+	[SerializeField] private float guardMoveSpeed = 1.5f;
 
 	// -------------------------------------------------------------------------
 	// Inspector — Audio
@@ -196,10 +212,13 @@ public class GuardController : MonoBehaviour
 	// Inspector — Mutter Content
 	// -------------------------------------------------------------------------
 
-	[Header("Mutter Content — Routine Gloat (Guard)")]
-	[Tooltip("Guard's gloat lines for routine check-ins, played in order. " +
-		"Index 0 = first check-in. Clamps to last entry once exhausted, so " +
-		"the final line repeats on any extra routine check-ins. Speaker: Guard.")]
+	[Header("Mutter Content — Close Gloat (Guard)")]
+	[Tooltip("Guard's taunt lines, spoken up close once he's leaned in. Played in " +
+		"order, index 0 = first check-in, clamps to the last entry once exhausted. " +
+		"Speaker: Guard. NOTE: he says the same kind of thing every check-in — he " +
+		"can't perceive that she's armed, so there is deliberately no special " +
+		"'climactic' line. The difference on the turnaround is entirely on her side. " +
+		"Author these as in-her-face taunts, not door-distance glances.")]
 	[TextArea(2, 4)]
 	[SerializeField] private string[] routineGloatLines =
 	{
@@ -207,7 +226,7 @@ public class GuardController : MonoBehaviour
 		"Still with us? Wonderful.",
 	};
 
-	[Header("Mutter Content — Routine Reaction (Cassie)")]
+	[Header("Mutter Content — Close Reaction (Cassie)")]
 	[Tooltip("Cassie's internal reaction lines, queued behind each routine gloat. " +
 		"Index matches routineGloatLines. Speaker: Cassie.")]
 	[TextArea(2, 4)]
@@ -216,13 +235,6 @@ public class GuardController : MonoBehaviour
 		"Keep walking.",
 		"That's it. Trust the knots.",
 	};
-
-	[Header("Mutter Content — LeanIn (Guard)")]
-	[Tooltip("Guard's line when he leans in close — he thinks he's won; he " +
-		"doesn't know she's armed. Speaker: Guard. Plays at the start of LeanIn.")]
-	[TextArea(2, 4)]
-	[SerializeField] private string leanInGuardLine =
-		"Look at you. Helpless.";
 
 	[Header("Mutter Content — Caught")]
 	[Tooltip("Guard's line when he catches Cassie not feigning. Plays over the " +
@@ -278,9 +290,10 @@ public class GuardController : MonoBehaviour
 	// -------------------------------------------------------------------------
 
 	[Header("LeanIn — Scene Hook")]
-	[Tooltip("UnityEvent fired at the start of LeanIn — the moment the guard " +
-		"steps in close. Wire scene-specific responses here (e.g. a camera nudge, " +
-		"enabling a UI hint for the strike key, triggering a Beg verb display).")]
+	[Tooltip("UnityEvent fired at the start of the close-in (LeanIn) — the moment " +
+		"the guard commits to walking in on Cassie. Wire scene-specific responses " +
+		"here, e.g. a camera nudge, or showing a contextual 'Strike (H)' hint card " +
+		"while she's armed and he's in range.")]
 	[SerializeField] private UnityEngine.Events.UnityEvent onLeanInEntered;
 
 	// -------------------------------------------------------------------------
@@ -294,16 +307,9 @@ public class GuardController : MonoBehaviour
 	// Runtime State
 	// -------------------------------------------------------------------------
 
-	// How many check-ins have completed. Used to index mutter lines.
-	// Incremented at the start of GloatPhase (before the wait loop) so both
-	// exit paths — normal leave and lure-divert to LeanIn — see a consistent
-	// count. No double-increment from LeanInPhase on lapse.
+	// How many check-ins have completed. Used to index the close-gloat mutter
+	// lines. Incremented once at the start of LeanInPhase.
 	private int checkInCount = 0;
-
-	// Set by AttemptLure() when the player fires the lure verb during a gloat.
-	// GloatPhase polls this each frame in its wait loop and diverts to LeanIn
-	// when true. Cleared at the start of each GloatPhase to avoid stale state.
-	private bool lureRequested = false;
 
 	// Re-entry guard for the caught sequence (same pattern as FailureLoopController).
 	private bool caughtSequenceRunning = false;
@@ -361,33 +367,6 @@ public class GuardController : MonoBehaviour
 	// -------------------------------------------------------------------------
 	// Public API
 	// -------------------------------------------------------------------------
-
-	/// <summary>
-	/// True while the guard is in the Gloating state — the only window in
-	/// which a lure can draw him into LeanIn. PlayerController checks this
-	/// before calling AttemptLure so the key is a silent no-op offstage.
-	/// </summary>
-	public bool CanBeLured => CurrentState == GuardState.Gloating;
-
-	/// <summary>
-	/// Called by PlayerController when the player fires the lure verb while
-	/// feigning during a gloat. Sets lureRequested; GloatPhase picks it up
-	/// on its next coroutine tick and diverts to LeanInPhase.
-	///
-	/// Mutter dismissal is handled by PlayerController before this call —
-	/// same pattern as TryStrike dismissing the lean-in gloat mutter.
-	/// Safe no-op if called outside Gloating state.
-	/// </summary>
-	public void AttemptLure()
-	{
-		if (!CanBeLured)
-		{
-			Log("AttemptLure called outside Gloating state — ignored.");
-			return;
-		}
-		lureRequested = true;
-		Log("Lure requested — diverting to LeanIn on next coroutine tick.");
-	}
 
 	/// <summary>
 	/// Hard-stop the guard cycle and move to Downed. Called by StrikeableGuard
@@ -453,22 +432,50 @@ public class GuardController : MonoBehaviour
 		Log($"Inspection result: {(passed ? "PASS (feigning)" : "FAIL (not feigning)")}");
 
 		if (passed)
-			StartCoroutine(GloatPhase());
+			StartCoroutine(LeanInPhase());
 		else
 			StartCoroutine(CaughtPhase());
 	}
 
-	private IEnumerator GloatPhase()
+	/// <summary>
+	/// The close-in: on a passed inspection the guard walks in to Cassie and
+	/// gloats in her face. This is the strike window. He does it every check-in,
+	/// armed or not — it's his habit. The player has the duration of the walk
+	/// plus leanInDuration to press H (Strike); a strike only succeeds if Cassie
+	/// is armed (PlayerController.CanStrikeNow gates on the held weapon), so the
+	/// unarmed early check-ins are pure threat — he leans in, taunts, leaves.
+	///
+	/// GuardController does NOT poll for the strike here — PlayerController calls
+	/// StrikeableGuard.OnStruck(), which calls OnGuardDowned(), which calls
+	/// StopAllCoroutines() on this component. That stops this coroutine
+	/// mid-execution: once the guard is down, none of the remaining LeanIn /
+	/// Leaving logic should run.
+	/// </summary>
+	private IEnumerator LeanInPhase()
 	{
-		SetState(GuardState.Gloating);
-		lureRequested = false; // clear any stale flag from a previous cycle
+		SetState(GuardState.LeanIn);
 
-		// Compute the mutter index before incrementing so index 0 = first check-in.
-		// Increment immediately so both exit paths (normal leave and lure-divert
-		// to LeanIn) leave checkInCount consistent — no double-counting.
+		// Index the close-gloat line, then increment. Index 0 = first check-in;
+		// clamps to the last line once exhausted.
 		int idx = Mathf.Min(checkInCount, routineGloatLines.Length - 1);
 		checkInCount++;
 
+		Log($"Guard CLOSE-IN (check-in #{checkInCount}) — strike window open.");
+
+		// Scene hook — fire anything wired to the close-in moment (camera nudge,
+		// strike-verb hint prompt, etc.).
+		onLeanInEntered?.Invoke();
+
+		// Physically walk into melee range at a constant speed. He closes on
+		// wherever Cassie actually is — computed from her live position (she's
+		// feigning, so frozen for the duration of the walk). State is already
+		// LeanIn, so a strike landing mid-walk is valid (she swings as he closes);
+		// if it lands, OnGuardDowned's StopAllCoroutines freezes him here.
+		yield return MoveBodyAtSpeed(ComputeLeanInPoint(), guardMoveSpeed);
+
+		// In her face now — the taunt. He says the same kind of thing every time;
+		// he can't tell this one's different. The player can cut him off by
+		// striking (H dismisses the mutter and swings — handled in PlayerController).
 		if (MutterSystem.Instance != null)
 		{
 			if (routineGloatLines.Length > 0)
@@ -477,67 +484,12 @@ public class GuardController : MonoBehaviour
 				MutterSystem.Instance.Play(routineReactionLines[idx], MutterSystem.Speaker.Cassie);
 		}
 
-		// Wait for the gloat to finish, watching for a lure request each frame.
-		// The mutter is dismissed by PlayerController before AttemptLure is called,
-		// so IsActive may already be false when lureRequested is set — check
-		// lureRequested first so we always catch it regardless of ordering.
-		float lingerTimer = 0f;
-		while (lingerTimer < gloatLingerDuration ||
-			   (MutterSystem.Instance != null && MutterSystem.Instance.IsActive))
-		{
-			if (lureRequested)
-			{
-				lureRequested = false;
-				Log("Lure fired — guard stepping in close.");
-				StartCoroutine(LeanInPhase());
-				yield break;
-			}
-			lingerTimer += Time.deltaTime;
-			yield return null;
-		}
-
-		// No lure — guard finishes gloating and leaves normally.
-		StartCoroutine(LeavingPhase());
-	}
-
-	/// <summary>
-	/// Guard leans in close. This is the strike window. The player has
-	/// leanInDuration seconds to press H (Strike). If they don't, the guard
-	/// straightens and leaves — the loop continues and she can lure him in
-	/// again on the next check-in.
-	///
-	/// GuardController does NOT poll for the strike here — PlayerController
-	/// calls StrikeableGuard.OnStruck(), which calls OnGuardDowned(), which
-	/// calls StopAllCoroutines() on this component. That stops this coroutine
-	/// mid-execution: once the guard is down, none of the remaining
-	/// LeanIn / Leaving logic should run.
-	/// </summary>
-	private IEnumerator LeanInPhase()
-	{
-		SetState(GuardState.LeanIn);
-		Log($"Guard LEAN IN — strike window open for {leanInDuration}s.");
-
-		// Guard's close-up line — he thinks he's won.
-		if (MutterSystem.Instance != null && !string.IsNullOrEmpty(leanInGuardLine))
-			MutterSystem.Instance.Play(leanInGuardLine, MutterSystem.Speaker.Guard);
-
-		// Scene hook — fire anything wired to the lean-in moment.
-		onLeanInEntered?.Invoke();
-
-		// Physically step into melee range. He leans into wherever Cassie
-		// actually is — computed from her live position (she's feigning, so
-		// she's frozen for the duration of the step). State is already LeanIn,
-		// so a strike landing mid-step is valid (she swings as he closes) —
-		// and if it lands, OnGuardDowned's StopAllCoroutines freezes him here.
-		yield return MoveBodyToPoint(ComputeLeanInPoint(), leanInStepDuration);
-
 		// Hold the strike window. If a strike lands, OnGuardDowned fires
 		// StopAllCoroutines — this yield never returns.
 		yield return new WaitForSeconds(leanInDuration);
 
-		// Window lapsed. Guard straightens and leaves. No penalty — the lure
-		// is available on the next check-in. checkInCount was already
-		// incremented in GloatPhase when this check-in began.
+		// Window lapsed (no weapon, or the player held off). Guard straightens
+		// and leaves; the next check-in is another chance.
 		Log("Strike window lapsed. Guard leaving without incident.");
 		StartCoroutine(LeavingPhase());
 	}
@@ -545,13 +497,21 @@ public class GuardController : MonoBehaviour
 	private IEnumerator LeavingPhase()
 	{
 		SetState(GuardState.Leaving);
-		Log($"Guard leaving — {leavingDuration}s receding audio.");
+		Log("Guard leaving — receding to offstage.");
 
 		if (AudioManager.Instance != null && leaveFootstepsClip != null)
 			AudioManager.Instance.PlaySFX(leaveFootstepsClip, footstepsVolume, 1f);
 
-		// Recede back to the offstage anchor over the leaving window.
-		yield return MoveBody(offstageAnchor, leavingDuration);
+		// Recede to the offstage anchor at walking speed. Speed-based for the
+		// same reason as the lean-in: he now leaves from wherever he leaned in
+		// (next to Cassie), so the distance varies — a fixed duration would make
+		// his exit pace lurch. If no offstage anchor is wired, fall back to a
+		// fixed beat so the abstract state machine still paces.
+		if (guardBody != null && offstageAnchor != null)
+			yield return MoveBodyAtSpeed(offstageAnchor.position, guardMoveSpeed);
+		else
+			yield return new WaitForSeconds(leavingDuration);
+
 		StartCoroutine(OffstagePhase());
 	}
 
@@ -665,10 +625,12 @@ public class GuardController : MonoBehaviour
 	}
 
 	/// <summary>
-	/// Lerp the guard body to a target anchor's position over `duration`
-	/// seconds, then yield. Degrades gracefully: if no body or no target anchor
-	/// is wired, it just waits out the duration so phase timing (the feign
-	/// window, etc.) is preserved even before the movement anchors are placed.
+	/// Lerp the guard body to a target anchor over `duration` seconds. Used ONLY
+	/// for the door approach, where the duration IS the feign window — a gameplay
+	/// clock, deliberately fixed regardless of distance. (Distance-varying walks —
+	/// lean-in, leaving — use MoveBodyAtSpeed instead.) Degrades gracefully: if no
+	/// body or target is wired it just waits out the duration so the feign-window
+	/// timing is preserved even before the movement anchors are placed.
 	/// </summary>
 	private IEnumerator MoveBody(Transform target, float duration)
 	{
@@ -678,23 +640,41 @@ public class GuardController : MonoBehaviour
 			yield break;
 		}
 
-		yield return MoveBodyToPoint(target.position, duration);
+		Vector3 start = guardBody.position;
+		Vector3 end = target.position;
+		float t = 0f;
+		while (t < duration)
+		{
+			t += Time.deltaTime;
+			guardBody.position = Vector3.Lerp(start, end, Mathf.Clamp01(t / duration));
+			yield return null;
+		}
+		guardBody.position = end;
 	}
 
 	/// <summary>
-	/// Lerp the guard body to an explicit world point over `duration` seconds.
-	/// Used for the lean-in, whose target is computed live from Cassie's
-	/// position rather than a fixed anchor. Falls back to waiting if no body.
+	/// Move the guard body to an explicit world point at a constant `speed`
+	/// (metres/second), so a longer walk simply takes longer rather than moving
+	/// faster. Used for the variable-distance walks — the lean-in to Cassie and
+	/// the recede offstage. Falls back to an immediate return if there's no body
+	/// (the strike window / offstage wait provides pacing in abstract mode).
 	/// </summary>
-	private IEnumerator MoveBodyToPoint(Vector3 end, float duration)
+	private IEnumerator MoveBodyAtSpeed(Vector3 end, float speed)
 	{
-		if (guardBody == null)
+		if (guardBody == null) yield break;
+
+		Vector3 start = guardBody.position;
+		float distance = Vector3.Distance(start, end);
+
+		// Degenerate cases: zero distance, or a non-positive speed that would
+		// divide-by-zero / never arrive. Snap and bail.
+		if (distance < 0.0001f || speed <= 0f)
 		{
-			yield return new WaitForSeconds(duration);
+			guardBody.position = end;
 			yield break;
 		}
 
-		Vector3 start = guardBody.position;
+		float duration = distance / speed;
 		float t = 0f;
 		while (t < duration)
 		{

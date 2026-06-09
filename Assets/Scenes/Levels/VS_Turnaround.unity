@@ -1031,7 +1031,7 @@ Transform:
   m_GameObject: {fileID: 643573507}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.96, y: 0.5, z: 10.76}
+  m_LocalPosition: {x: 1.96, y: 0.5, z: 12.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2156,7 +2156,7 @@ MonoBehaviour:
   offstageAnchor: {fileID: 2006802563}
   doorAnchor: {fileID: 643573508}
   leanInStandoff: 0.8
-  leanInStepDuration: 0.7
+  leanInStepDuration: 2
   approachFootstepsClip: {fileID: 8300000, guid: ee1417ec7d4a0a2429eb01b5de981dba, type: 3}
   leaveFootstepsClip: {fileID: 0}
   footstepsVolume: 0.85
@@ -2394,6 +2394,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   interactionRange: 1.5
+  requireBackFacing: 1
+  backFacingThreshold: 0.5
 --- !u!65 &1428520260
 BoxCollider:
   m_ObjectHideFlags: 0

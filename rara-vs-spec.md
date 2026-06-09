@@ -2,6 +2,8 @@
 ### Working title: "The Turnaround"
 
 > **Day 58 — initial draft.** Source of truth for the Patreon/SubscribeStar launch demo. Locked this session: (A) recurring **check-in rhythm**, (B) **strike** takedown (not kick). Smaller forks are spec'd to a buildable default and listed in §13 for confirmation.
+>
+> **Day 62 — revision: Lure cut.** The interactive lure/"Beg" verb (former §8 step 1) is removed — it was "Call Out" returning under a new name, and in a one-guard scripted slice a summon-the-guard verb is agency theater (and a third novel verb against a Feign+Strike budget). New climax: the guard **walks in and gloats up close on every passed inspection, unconditionally**; the turnaround is simply whichever check-in Cassie is armed on. Escalation lives in her state, not his — his constant approach is the engine of the dramatic irony. Guard movement is now speed-based, not duration-based. Lure preserved as a forward hook for the AI levels (§14). Sections updated below: §2, §3, §5, §7, §8, §12, §13, §14.
 
 ---
 
@@ -22,7 +24,7 @@ The VS is a standalone **5–10 minute demo** that compresses Rara's core fantas
 
 ## 2. The Arc
 
-Start chair-bound and gagged → work the wrist bond between guard check-ins, dropping into a **Feign** pose each time he looks in → free the wrists (legs stay bound) → acquire and conceal a blunt object → on the final check-in, **lure** the guard into melee range → **strike** with the hidden object, KO him → finish freeing herself → exit triumphant.
+Start chair-bound and gagged → work the wrist bond between guard check-ins, dropping into a **Feign** pose each time he looks in → free the wrists (legs stay bound) → acquire and conceal a blunt object → on the next check-in the guard leans in to gloat in her face (he does this every time) → **strike** with the hidden object, KO him → finish freeing herself → exit triumphant.
 
 ---
 
@@ -31,9 +33,8 @@ Start chair-bound and gagged → work the wrist bond between guard check-ins, dr
 | Mechanic | Debut in VS? | Notes |
 | :---- | :---- | :---- |
 | **Feign** | ✅ the headline mechanic | New player state: re-stage as bound (hands behind back, stop struggling, re-gag, hide held object). Suppresses real verbs while held. Sampled by the guard at inspection. |
-| **Guard (scripted actor)** | ✅ | Deterministic state sequence keyed to the check-in clock + player lure. ~200–300 line behavior script. NOT patrol AI. |
+| **Guard (scripted actor)** | ✅ | Deterministic state sequence keyed to the check-in clock. On a passed inspection he walks in and gloats up close every time. ~200–300 line behavior script. NOT patrol AI. |
 | **StrikeableGuard** | ✅ | Receives the concealed-object strike → stagger → down. Sibling to Kickable. (Revises the old "KickableGuard" framing — the payoff is a strike, not a kick.) |
-| **Performative lure ("Beg")** | ⚠️ open (§13) | Interactive verb used while feigning to draw the guard into lean-in range. Degrades gracefully to scripted if cut. |
 | **Gag-as-feign-state** | ✅ minor | Removable/replaceable gag; a component of the helpless pose, not its own system. |
 
 ---
@@ -57,18 +58,20 @@ Per cycle:
 2. **Approach telegraph** — offstage footsteps begin (the guard-return audio). The **feign window** opens.
 3. **Feign window** — player must enter the Feign pose before the guard reaches the door sightline.
 4. **Inspection (AtDoor)** — guard samples her state. Feigning → pass; not feigning → **caught** (§10).
-5. **Gloat beat** — a short line, then he leaves.
+5. **Close-in gloat** — on a pass he walks in to her and taunts her up close (this is the strike window, §8). A short line, then he straightens and leaves.
 6. **Reset** — clock restarts; she resumes.
 
 **Progress is independent of the clock** — she advances the escape whenever she isn't feigning, so a check-in never interrupts unfairly; it just forces her to hide what she's done.
 
-**Routine vs. climactic check-ins:** check-ins are routine inspections until prerequisites are met (**wrists free + weapon acquired + concealed**). Once armed-and-feigning, the **next** entrance is flagged climactic — the guard can now be lured close (§8).
+**Every check-in is mechanically identical.** The guard always walks in and gloats up close on a pass — there is no special "climactic" guard behavior and no player verb to summon him. What changes across check-ins is *her* state. While she's unarmed, the close-in is pure threat — he leans into her face, taunts, leaves, and she can't act. The turnaround is simply whichever check-in she's finally **wrists-free + armed + concealed** on: the same smug lean-in he's done every time, except now her hands come around swinging. The dramatic irony rides on his routine being constant while hers isn't.
 
-| Check-in | She accomplishes (offstage before it) | At inspection |
+| Check-in | She accomplishes (offstage before it) | At the close-in |
 | :---- | :---- | :---- |
-| 1 | Still working the wrist bond | Feign → routine gloat → leaves |
-| 2 | Wrists free; reaching for / hiding the object | Feign (now hiding object) → routine gloat → leaves |
-| 3 (climactic) | Armed and concealed | Feign → **lure → lean-in → strike** (§8) |
+| 1 | Still working the wrist bond | Feign → he leans in, taunts → leaves (pure threat) |
+| 2 | Wrists free; reaching for / hiding the object | Feign (now hiding object) → he leans in, taunts → leaves |
+| 3 (the turn) | Armed and concealed | Feign → he leans in as always → **strike** (§8) |
+
+> Which check-in becomes "the turn" depends only on when she's armed — not on any guard-side flag. The count here is illustrative; see §13 for the tuning value (how many threat beats before she can realistically be armed).
 
 > Count of routine check-ins (2 above) is a tuning value — enough to teach and stress Feign without padding.
 
@@ -89,21 +92,21 @@ Per cycle:
 
 A deterministic state machine, not AI:
 
-`Offstage → Approaching → AtDoor (Inspecting) → Gloating → [LeanIn / Close] → Leaving → Downed`
+`Offstage → Approaching → AtDoor (Inspecting) → LeanIn (walks in, close gloat) → Leaving → Downed`
 
 - **Approaching** fires the telegraph audio; transition to **AtDoor** closes the feign window.
-- **Inspecting** branches on `IsFeigning` (pass → Gloating → Leaving; fail → caught).
-- **LeanIn / Close** only reachable on the climactic check-in, via the lure (§8). This is the strike window.
-- **Downed** is terminal (KO).
-- Carries the **gloat mutter set** (Guard speaker). Cassie's reaction lines queue behind, same pattern as L6 Beat 6.
+- **Inspecting** branches on `IsFeigning` (pass → **LeanIn**; fail → caught).
+- **LeanIn** is reached on **every** passed inspection — he walks in to her (speed-based movement) and gloats up close. This is the strike window. He holds it for `leanInDuration`, then straightens and leaves if no strike landed. No lure, no summon verb.
+- **Downed** is terminal (KO), set by `StrikeableGuard` → `OnGuardDowned()` (stops all guard coroutines).
+- Carries the **close-gloat mutter set** (Guard speaker). Cassie's reaction lines queue behind, same pattern as L6 Beat 6. The guard's lines are identical every check-in — he can't perceive that she's armed, so there is deliberately no special climactic line (same causality rule that killed the climactic flag).
 
 ---
 
 ## 8. The Turnaround (climax)
 
-1. **Lure** — *[open: interactive vs scripted, §13]*. Spec'd interactive: while feigning at the climactic check-in, a **Beg/Plead** verb triggers the guard's `LeanIn` branch (he steps in to gloat in her face / loosen her gag). If cut, the guard auto-leans-in during the climactic gloat — the beat survives either way.
-2. **Strike** — enabled while the guard is in `LeanIn` **and** unaware. Player swings the concealed object → `StrikeableGuard` stagger → `Downed`. The catharsis is the reveal: the hands he thought were tied come around swinging.
-3. **Window** — *[open, §13]*. Spec'd as a window that lapses: wait too long and the guard straightens, finishes gloating, and leaves — back into the loop for another attempt. No hard QTE; the window exists naturally because he's only close during `LeanIn`.
+1. **Close-in (automatic).** On the passed inspection where she's armed — same as every other check-in — the guard walks in to gloat in her face. No verb triggers this; it's his habit. The catharsis is set up by the constancy: he's done this every time, and this time she's ready.
+2. **Strike** — enabled while the guard is in `LeanIn` **and** she's armed (`wristsFree && heldItem.IsWeapon`). Player swings the concealed object → `StrikeableGuard` stagger → `Downed`. Strike validity is the `LeanIn` *state*, not the guard's physical distance — he asserts "I'm in your face" by entering LeanIn and we trust that. The reveal: the hands he thought were tied come around swinging. (Pressing H breaks the feign and swings in one press — the reveal *is* the strike.)
+3. **Window** — the `LeanIn` hold (`leanInDuration`, plus the speed-based walk-in before it). Wait too long, or be unarmed, and the guard straightens, finishes gloating, and leaves — back into the loop for another attempt. No hard QTE; the window exists naturally because he's only close during `LeanIn`.
 
 ---
 
@@ -137,23 +140,23 @@ The arc needs only: a **chair** (center), a **reachable weapon surface** she bac
 
 1. **Feign** — highest risk, novel. Prove the state + verb gating on the existing `ChairRestraint` first; everything else hangs off it.
 2. **Guard + check-in rhythm** — reuse the `FailureLoopController` guard-return bones; branch the inspection outcome on `IsFeigning`.
-3. **StrikeableGuard + turnaround** — lure → lean-in → strike → down.
+3. **StrikeableGuard + turnaround** — auto lean-in (every passed inspection) → strike → down.
 4. **Room** — purpose-built lean (§11).
 5. **Mutters** — gloat + Cassie reactions; content, comes last.
 
-Cut-candidates if scope tightens: the interactive lure (→ scripted), tie-up the guard (→ post-slice).
+Cut-candidates if scope tightens: tie-up the guard (→ post-slice).
 
 ---
 
 ## 13. Open Questions / Decisions to Confirm
 
-- [ ] **Lure** — interactive Beg verb vs. scripted approach. *(spec'd: interactive-minimal, degrades to scripted)*
+- [x] **Lure** — ~~interactive Beg verb vs. scripted approach~~ **CUT Day 62.** Guard auto-approaches and gloats up close every check-in; no summon verb. Preserved as a forward hook for the AI levels (§14).
 - [ ] **Weapon placement** — a back-scoot surface (reuses the L6 bound-hands-behind-back reach pattern) vs. already near the chair. *(spec'd: back-scoot surface)*
-- [ ] **Strike timing** — window-that-lapses vs. enabled-whenever-in-range. *(spec'd: window)*
+- [x] **Strike timing** — ~~window-that-lapses vs. enabled-whenever-in-range~~ **resolved Day 62:** strike is valid whenever the guard is in `LeanIn` (the close-gloat window), gated on her being armed. The window lapses naturally when he straightens and leaves.
 - [ ] **Feign-fail harshness** — re-cinch/escalate vs. soft reset. *(spec'd: re-cinch)*
 - [ ] **Room** — purpose-built lean vs. adapt L6. *(spec'd: purpose-built, cannibalize L6)*
 - [ ] **Tie-up the guard** — confirm cut from v1?
-- [ ] **Routine check-in count** — 2 before the climax? Tuning value.
+- [ ] **Check-in count before the turn** — how many threat-only close-ins before she can realistically be armed. Tuning value; sets the pacing of the build before the payoff.
 
 ---
 
@@ -162,3 +165,4 @@ Cut-candidates if scope tightens: the interactive lure (→ scripted), tie-up th
 - **Feign** generalizes to the deferred L6 **interruptible-untie** tension (guard returns mid-untie → Cassie feigns her hands are still bound until he leaves). The VS is where that mechanic is born.
 - **StrikeableGuard** → future takedown/combat verbs and the L11/L12 villain confrontation.
 - **Tie-up-the-guard** → victory-button stretch and future capture/turnabout mechanics.
+- **Lure / Call Out** (cut here, §13) → reintroduce in the patrol-AI levels, where a draw-the-guard verb has real tactical meaning (pull a guard off a position, bait him from a sightline). It's agency theater against a scripted actor; it earns its place against AI that can be meaningfully misdirected.
