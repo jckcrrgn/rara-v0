@@ -78,6 +78,17 @@ public class PlayerController : MonoBehaviour
 		"self-collision edge cases on top of the explicit self-Rigidbody filter.")]
 	[SerializeField] private LayerMask kickCastLayers = ~0;
 
+	[Header("Strike")]
+	[Tooltip("Maximum distance from Cassie to the guard at which Strike is valid, " +
+		"in metres. During LeanIn the guard walks from the door to " +
+		"GuardController.leanInStandoff in front of her — this gate keeps Strike " +
+		"honest about that approach: she can't swing a bottle at him while he's " +
+		"still on the other side of the room. Set slightly larger than the " +
+		"guard's leanInStandoff so the swing opens up during the LAST bit of his " +
+		"close-in (the 'swings as he closes' beat). ~1.1–1.3m if leanInStandoff " +
+		"is 0.8m; the small buffer is what gives the brief mid-walk strike window.")]
+	[SerializeField] private float strikeRange = 1.2f;
+
 	[Header("Restraint")]
 	[SerializeField] private RestraintBase currentRestraint;
 
@@ -445,22 +456,33 @@ public class PlayerController : MonoBehaviour
 
 	/// <summary>
 	/// True if a Strike would currently succeed: Cassie's wrists are free,
-	/// she holds a weapon, AND the scene's StrikeableGuard reports CanBeStruck()
-	/// (guard in LeanIn, not yet struck). Used by Update to decide whether H
-	/// should interrupt an active mutter, and by TryStrike as the actual gate.
-	/// No side effects, no logging.
+	/// she holds a weapon, the scene's StrikeableGuard reports CanBeStruck()
+	/// (guard in LeanIn, not yet struck), AND the guard is within strikeRange
+	/// of Cassie. Used by Update to decide whether H should interrupt an active
+	/// mutter, by TryStrike as the actual gate, and by StrikeHintPrompt to
+	/// drive prompt visibility. No side effects, no logging.
 	///
-	/// Strike validity is the guard's LeanIn STATE, not his physical proximity:
-	/// the scripted guard asserts "I'm in your face" by entering LeanIn, and we
-	/// trust that. His position is a presentational layer (GuardController moves
-	/// him there) and never gates the swing.
+	/// Strike validity is the guard's LeanIn STATE plus physical proximity.
+	/// The state alone isn't enough: LeanIn fires the instant inspection passes,
+	/// but the guard then walks from the door across the room to his standoff
+	/// in front of Cassie. Without the proximity gate, she could swing a bottle
+	/// at him while he's still mid-walk on the far side of the room — narratively
+	/// absurd. With it, the strike opens up during the last bit of his close-in
+	/// — the "swings as he closes" beat. His body position is otherwise
+	/// presentational, but for the strike specifically, distance matters.
 	/// </summary>
-	private bool CanStrikeNow()
+	public bool CanStrikeNow()
 	{
 		if (!wristsFree) return false;
 		if (heldItem == null || !heldItem.IsWeapon) return false;
 		StrikeableGuard target = GetStrikeableGuard();
-		return target != null && target.CanBeStruck();
+		if (target == null || !target.CanBeStruck()) return false;
+
+		// Proximity gate: guard must be within strikeRange. Even when LeanIn
+		// has fired, he's walking in from the door — only the last bit of
+		// that approach is a valid swing window.
+		float dist = Vector3.Distance(transform.position, target.transform.position);
+		return dist <= strikeRange;
 	}
 
 	/// <summary>
@@ -496,6 +518,15 @@ public class PlayerController : MonoBehaviour
 		if (target == null || !target.CanBeStruck())
 		{
 			Debug.Log("[PlayerController] TryStrike: no guard in scene or guard not in LeanIn.");
+			return;
+		}
+
+		// Proximity gate — see CanStrikeNow for rationale.
+		float dist = Vector3.Distance(transform.position, target.transform.position);
+		if (dist > strikeRange)
+		{
+			Debug.Log($"[PlayerController] TryStrike: guard out of range " +
+				$"(dist={dist:F2} > strikeRange={strikeRange}). He hasn't closed in yet.");
 			return;
 		}
 
