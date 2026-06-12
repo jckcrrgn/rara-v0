@@ -190,6 +190,19 @@ public class GuardController : MonoBehaviour
 		"governed by this — its speed is set by approachDuration (the feign window).")]
 	[SerializeField] private float guardMoveSpeed = 1.5f;
 
+	[Tooltip("Ordered intermediate waypoints the guard walks THROUGH on his way " +
+		"in to Cassie (and in reverse when leaving), routing around walls / " +
+		"furniture that a straight door→Cassie lerp would clip through. " +
+		"Hand-placed — this is a scripted actor on a fixed floorplan, not a " +
+		"NavMesh agent. Leave empty for a clear straight shot (the guard then " +
+		"walks door→Cassie directly, as before). The FINAL leg (last waypoint → " +
+		"Cassie's live lean-in point) is still computed live, so place the " +
+		"waypoint(s) in the OPEN part of the room — south of the bath partition — " +
+		"and let that last leg cover wherever she actually hopped to. In this " +
+		"room a single waypoint clears it: the partition is the only interior " +
+		"obstacle, so one point south of it gives full line-of-sight to the rest.")]
+	[SerializeField] private Transform[] leanInWaypoints;
+
 	// -------------------------------------------------------------------------
 	// Inspector — Audio
 	// -------------------------------------------------------------------------
@@ -466,11 +479,26 @@ public class GuardController : MonoBehaviour
 		// strike-verb hint prompt, etc.).
 		onLeanInEntered?.Invoke();
 
-		// Physically walk into melee range at a constant speed. He closes on
-		// wherever Cassie actually is — computed from her live position (she's
-		// feigning, so frozen for the duration of the walk). State is already
-		// LeanIn, so a strike landing mid-walk is valid (she swings as he closes);
-		// if it lands, OnGuardDowned's StopAllCoroutines freezes him here.
+		// Walk the routing waypoints first (door → mid-point(s)), THEN the live
+		// final leg to Cassie. The waypoints route him around the bath partition
+		// (and anything else) that a naive straight door→Cassie lerp would clip
+		// through. He's already in LeanIn for all of it, but CanStrikeNow's
+		// proximity gate keeps the strike — and the Strike (H) prompt — closed
+		// until the final leg brings him within strikeRange, so being in-state
+		// during the far waypoint legs is harmless.
+		if (leanInWaypoints != null)
+		{
+			foreach (Transform wp in leanInWaypoints)
+			{
+				if (wp == null) continue;
+				yield return MoveBodyAtSpeed(wp.position, guardMoveSpeed);
+			}
+		}
+
+		// Final leg: close on wherever Cassie actually is — computed from her live
+		// position (she's feigning, so frozen for the duration of the walk). State
+		// is already LeanIn, so a strike landing mid-walk is valid (she swings as
+		// he closes); if it lands, OnGuardDowned's StopAllCoroutines freezes him here.
 		yield return MoveBodyAtSpeed(ComputeLeanInPoint(), guardMoveSpeed);
 
 		// In her face now — the taunt. He says the same kind of thing every time;
@@ -507,6 +535,28 @@ public class GuardController : MonoBehaviour
 		// (next to Cassie), so the distance varies — a fixed duration would make
 		// his exit pace lurch. If no offstage anchor is wired, fall back to a
 		// fixed beat so the abstract state machine still paces.
+		// Leave by reversing the approach exactly: Cassie → waypoint(s) → door →
+		// offstage. The approach ran offstage → door → waypoint(s) → Cassie, so
+		// the recede retraces it. The door leg is NOT optional polish: waypoint0 →
+		// offstage is not a clear straight line (it clips the partition and the
+		// north wall), but routing back out through the doorway the same way he
+		// came in is. All legs are speed-based — the door here is just a routing
+		// point on the way out, not the feign-window telegraph it is on approach.
+		// Body-gated; the abstract fallback below still paces the state machine
+		// before any anchors/waypoints are placed.
+		if (guardBody != null && leanInWaypoints != null)
+		{
+			for (int i = leanInWaypoints.Length - 1; i >= 0; i--)
+			{
+				if (leanInWaypoints[i] == null) continue;
+				yield return MoveBodyAtSpeed(leanInWaypoints[i].position, guardMoveSpeed);
+			}
+		}
+
+		// Back out through the doorway before receding offstage.
+		if (guardBody != null && doorAnchor != null)
+			yield return MoveBodyAtSpeed(doorAnchor.position, guardMoveSpeed);
+
 		if (guardBody != null && offstageAnchor != null)
 			yield return MoveBodyAtSpeed(offstageAnchor.position, guardMoveSpeed);
 		else

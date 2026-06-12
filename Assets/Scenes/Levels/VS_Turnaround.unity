@@ -678,6 +678,38 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &397882666
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 397882667}
+  m_Layer: 0
+  m_Name: GuardPath
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &397882667
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 397882666}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1676327020}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &417618281
 GameObject:
   m_ObjectHideFlags: 0
@@ -2311,6 +2343,8 @@ MonoBehaviour:
   doorAnchor: {fileID: 643573508}
   leanInStandoff: 0.8
   guardMoveSpeed: 1.5
+  leanInWaypoints:
+  - {fileID: 1676327020}
   approachFootstepsClip: {fileID: 8300000, guid: ee1417ec7d4a0a2429eb01b5de981dba, type: 3}
   leaveFootstepsClip: {fileID: 0}
   footstepsVolume: 0.85
@@ -2546,9 +2580,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 769afd936827d7c47a67522305ed46c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  interactionRange: 1.5
+  interactionRange: 0.75
   requireBackFacing: 1
-  backFacingThreshold: 0.5
+  backFacingThreshold: 0.7
 --- !u!65 &1428520260
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -2992,6 +3026,37 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1651504950}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1676327019
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1676327020}
+  m_Layer: 0
+  m_Name: waypoint0
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1676327020
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1676327019}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3, y: 0.5, z: 8}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 397882667}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1797652684
 GameObject:
   m_ObjectHideFlags: 0
@@ -3879,7 +3944,7 @@ PrefabInstance:
       objectReference: {fileID: 8300000, guid: fddabc2407dcd894581edd3721615984, type: 3}
     - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       propertyPath: rockingEnabled
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       propertyPath: chairShardPrefab
@@ -4014,3 +4079,4 @@ SceneRoots:
   - {fileID: 2006802563}
   - {fileID: 643573508}
   - {fileID: 507039753}
+  - {fileID: 397882667}
