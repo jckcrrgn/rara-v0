@@ -104,15 +104,22 @@ Shader "Rara/CelShaded"
                 half  mainTerm = Band(ndotl * mainLight.shadowAttenuation);
                 half3 lit = mainLight.color * mainTerm;
 
-                // ---- Additional lights (e.g. the warm desk-lamp practical) ----
+// ---- Additional lights (lamp practical + window-shaft spot) ----
             #if defined(_ADDITIONAL_LIGHTS)
                 uint count = GetAdditionalLightsCount();
                 for (uint i = 0u; i < count; ++i)
                 {
+                    int perObjectLightIndex = GetPerObjectLightIndex(i);
                     Light l = GetAdditionalLight(i, IN.positionWS);
-                    half nl = dot(N, l.direction);
+
+                    half3 cookie = half3(1, 1, 1);
+                #if defined(_LIGHT_COOKIES)
+                    cookie = SampleAdditionalLightCookie(perObjectLightIndex, IN.positionWS);
+                #endif
+
+                    half nl   = dot(N, l.direction);
                     half term = Band(nl * l.shadowAttenuation) * l.distanceAttenuation;
-                    lit += l.color * term;
+                    lit += l.color * cookie * term;
                 }
             #endif
 
