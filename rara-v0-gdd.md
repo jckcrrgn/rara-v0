@@ -9,7 +9,7 @@ A quirky third-person low-poly escape game where a captured detective uses Strug
 | **Engine** | Unity (latest LTS, URP) |
 | **Platform** | PC (itch.io release) |
 | **Perspective** | Third-person, fixed or semi-fixed camera per room |
-| **Art Style** | Low-poly 3D, flat-shaded, bright chunky palette |
+| **Art Style** | Low-poly 3D, cel-shaded with bold outlines; noir lighting — hard directional light, crushed shadows, cool/warm color split |
 | **Tone** | Dry humor, noir-to-spy-thriller escalation |
 | **Target Playtime** | 30–60 minutes |
 | **Dev Timeline** | ~60 days at 1 hr/day |
