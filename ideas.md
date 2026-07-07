@@ -231,6 +231,15 @@ Next steps for mutter:
   some follow) rather than global mode shift. Boundary-clamped so
   camera doesn't reveal off-room space.
 
+## Art / Rendering
+- Cel outline — floating outline on hard/thin geometry (Day 63): inverted-hull
+  outline pass splits at divergent normals (box corners, chair tubes), so the
+  shell floats past the surface. Expected artifact of the technique, not a bug.
+  Cheap knob: lower _OutlineWidth (0.015 → ~0.007) on shared mat 3ed0d346.
+  Real fix: averaged/smoothed normals baked to a spare UV channel, read in the
+  outline vert. Do on real Cassie/hero meshes — NOT placeholders. Accepted as-is
+  on VS greybox beauty shot.
+
 ## Feedback Patterns
 - Twist shake (Day 12): Rejection feedback reads best as slow windup + snap-past-origin + settle, rotation rather than position. Pattern is reusable for other "wrong tool / wrong action" moments.
 - Physics-as-feedback (Day 25): The Jostleable refactor crystallized

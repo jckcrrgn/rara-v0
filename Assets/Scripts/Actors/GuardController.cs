@@ -440,14 +440,19 @@ public class GuardController : MonoBehaviour
 		// Hold beat before sampling — lets the tension land.
 		yield return new WaitForSeconds(inspectionHoldDuration);
 
-		// Sample IsFeigning ONCE. This is the only moment that matters.
-		bool passed = player != null && player.IsFeigning;
-		Log($"Inspection result: {(passed ? "PASS (feigning)" : "FAIL (not feigning)")}");
+		// Inspection outcome. Feign is only load-bearing once Cassie has visible
+		// escape evidence to hide. No evidence + not feigning = a bound prisoner
+		// sitting there — nothing to catch — so it routes to the same lean-in/gloat
+		// as a pass. Caught requires BOTH: evidence AND not feigning.
+		bool feigning = player != null && player.IsFeigning;
+		bool evidence = HasEscapeEvidence();
+		bool caught = evidence && !feigning;
+		Log($"Inspection: feigning={feigning}, evidence={evidence} -> {(caught ? "CAUGHT" : "SAFE (lean-in)")}");
 
-		if (passed)
-			StartCoroutine(LeanInPhase());
-		else
+		if (caught)
 			StartCoroutine(CaughtPhase());
+		else
+			StartCoroutine(LeanInPhase());
 	}
 
 	/// <summary>
@@ -788,5 +793,19 @@ public class GuardController : MonoBehaviour
 	private void Log(string msg)
 	{
 		if (verboseLogging) Debug.Log($"[Guard] {msg}");
+	}
+
+	/// <summary>
+	/// True when Cassie is visibly mid-escape — the state a feign conceals.
+	/// Wrists already free, any bond-cut progress, or a tool in hand. All three
+	/// read from existing PlayerController surface. Moved-from-spawn intentionally
+	/// excluded: noisy under struggle jitter, redundant in the VS.
+	/// </summary>
+	private bool HasEscapeEvidence()
+	{
+		if (player == null) return false;
+		return player.WristsFree
+			|| player.StruggleProgress > 0
+			|| player.GetHeldItem() != null;
 	}
 }
