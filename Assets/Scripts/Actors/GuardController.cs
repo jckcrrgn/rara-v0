@@ -288,7 +288,7 @@ public class GuardController : MonoBehaviour
 		"Spec default: escalate (Ankles first, then Elbows, etc.) — but for " +
 		"v1 we apply a single fixed bond rather than a full escalation ladder. " +
 		"Set to None (0) to skip bond escalation on catch (soft re-cinch).")]
-	[SerializeField] private BoundLimbs caughtBondToAdd = BoundLimbs.Ankles;
+	[SerializeField] private BoundLimbs caughtBondToAdd = BoundLimbs.None;
 
 	[Tooltip("Respawn transform for Cassie after a caught reset. If null, " +
 		"position is not changed — useful during early testing.")]

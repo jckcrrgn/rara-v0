@@ -24,7 +24,7 @@ The VS is a standalone **5–10 minute demo** that compresses Rara's core fantas
 
 ## 2. The Arc
 
-Start chair-bound and gagged → work the wrist bond between guard check-ins, dropping into a **Feign** pose each time he looks in → free the wrists (legs stay bound) → acquire and conceal a blunt object → on the next check-in the guard leans in to gloat in her face (he does this every time) → **strike** with the hidden object, KO him → finish freeing herself → exit triumphant.
+Start chair-bound and gagged → work the wrist bond between guard check-ins, dropping into a **Feign** pose each time he looks in → free the wrists (legs stay bound) → acquire and conceal a blunt object → on the next check-in the guard leans in to gloat in her face (he does this every time) → **strike** with the hidden object, KO him. **The strike is the terminal beat — the VS ends here** (v1; see §9).
 
 ---
 
@@ -113,7 +113,7 @@ A deterministic state machine, not AI:
 ## 9. Resolution & Exit
 
 - Guard **Downed**. No more time pressure.
-- **Free the legs** — clear `Ankles | AnkledToChair` via Struggle/tool (now unhurried).
+- **Free the legs** — **CUT from v1.** Cassie runs a single wrist BondMeter: breaking it enables the pickup but does not touch `ChairRestraint` or end the level. Per-bodypart bonds (a leg-untie with its own consequences) are a forward hook — the `BoundLimbs` enum carries the scaffolding (`Knees`, logged in `ideas.md`) but the simulation isn't built. See §14.
 - **Tie up the guard** — *[open, §13]*. Spec'd **CUT from v1**, documented as a post-slice victory button (needs a bound-guard visual + a bind interaction).
 - **Exit** — **implied-exit fade**: freed + guard down → final mutter → fade = demo complete. No stand-up/walk verb is built (parked for L7 in `ideas.md`); the implied exit dodges building locomotion just for the slice and matches L6's window grammar.
 
@@ -121,7 +121,7 @@ A deterministic state machine, not AI:
 
 ## 10. Win / Fail Conditions
 
-- **Win:** guard KO'd **and** Cassie freed → exit trigger → complete.
+- **Win:** guard KO'd → exit trigger → complete. (v1: the strike is the terminal beat — no post-KO free-the-legs phase. See §9.)
 - **Fail:** caught at inspection (not feigning in time / wrong pose). *[harshness open, §13]* — spec'd as a re-cinch/escalate beat reusing the failure-loop pattern, returning her to a tighter bind rather than a hard restart.
 
 ---
@@ -166,3 +166,4 @@ Cut-candidates if scope tightens: tie-up the guard (→ post-slice).
 - **StrikeableGuard** → future takedown/combat verbs and the L11/L12 villain confrontation.
 - **Tie-up-the-guard** → victory-button stretch and future capture/turnabout mechanics.
 - **Lure / Call Out** (cut here, §13) → reintroduce in the patrol-AI levels, where a draw-the-guard verb has real tactical meaning (pull a guard off a position, bait him from a sightline). It's agency theater against a scripted actor; it earns its place against AI that can be meaningfully misdirected.
+- **Per-bodypart bonds** — the single wrist BondMeter generalizes to per-limb restraints with distinct movement/ability consequences (`Knees` as a leg-untie time-cost flag is logged in `ideas.md`). The VS's wrist-only bond is the seed; the cut "free the legs" phase (§9) is its first real use.

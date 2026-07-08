@@ -2716,7 +2716,7 @@ MonoBehaviour:
   caughtFadeDuration: 0.5
   caughtRebindSfx: []
   caughtRebindSfxVolume: 1
-  caughtBondToAdd: 4
+  caughtBondToAdd: 0
   caughtRespawnPoint: {fileID: 1417661562}
   onCaughtReset:
     m_PersistentCalls:
