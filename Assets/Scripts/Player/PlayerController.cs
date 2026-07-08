@@ -840,6 +840,30 @@ public class PlayerController : MonoBehaviour
 		heldItem = null;
 	}
 
+	/// <summary>
+	/// Remove the player's held item and return it to the world where it was
+	/// picked up — the non-destructive counterpart to ConfiscateHeldItem. Used
+	/// when the guard disarms Cassie on a caught re-bind: he takes the weapon out
+	/// of her hands, but it stays in the room (back on the table it came from), so
+	/// the slice remains solvable — she re-frees her wrists, re-acquires it, and
+	/// tries the turnaround again.
+	///
+	/// Pickupable.OnPickUp only SetActive(false)'s the item in place — it never
+	/// moves the transform — so DropFromPlayer's SetActive(true) returns it to the
+	/// exact pickup spot with no cached home position. DropFromPlayer does NOT
+	/// clear heldItem, so we null it here; otherwise she'd "hold" a bottle that's
+	/// simultaneously sitting on the table.
+	///
+	/// No-op if nothing is held.
+	/// </summary>
+	public void ReturnHeldItemToWorld()
+	{
+		if (heldItem == null) return;
+		Debug.Log($"[PlayerController] Returning held item to world: {heldItem.ItemName}.");
+		heldItem.DropFromPlayer();
+		heldItem = null;
+	}
+
 	InteractableBase FindNearestInteractable()
 	{
 		// Broadphase: gather everything within the global interaction sweep.
