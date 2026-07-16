@@ -1,3 +1,41 @@
+﻿=== DIRS ===
+
+Assets
+Assets\Art
+Assets\Art\Shaders
+Assets\Art\Textures
+Assets\Audio
+Assets\Audio\SFX
+Assets\Materials
+Assets\Prefabs
+Assets\Prefabs\Camera
+Assets\Prefabs\L6
+Assets\Prefabs\Player
+Assets\Prefabs\UI
+Assets\Scenes
+Assets\Scenes\Levels
+Assets\Scenes\Levels\VS_Turnaround
+Assets\Scenes\Scaffolds
+Assets\Scripts
+Assets\Scripts\Actors
+Assets\Scripts\Managers
+Assets\Scripts\Player
+Assets\Scripts\Puzzle
+Assets\Scripts\UI
+Assets\Settings
+Assets\TextMesh Pro
+Assets\TextMesh Pro\Fonts
+Assets\TextMesh Pro\Resources
+Assets\TextMesh Pro\Resources\Fonts & Materials
+Assets\TextMesh Pro\Resources\Sprite Assets
+Assets\TextMesh Pro\Resources\Style Sheets
+Assets\TextMesh Pro\Shaders
+Assets\TextMesh Pro\Sprites
+Design
+Design\Levels
+Packages
+ProjectSettings
+=== GITIGNORE ===
 # This .gitignore file should be placed at the root of your Unity project directory
 #
 # Get latest from https://github.com/github/gitignore/blob/main/Unity.gitignore
@@ -97,5 +135,4 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
-
-*.blend[0-9]
+=== LFS ===
