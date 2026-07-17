@@ -722,3 +722,8 @@ interruptible-untie feign (see Forward Hooks) will want its own state-driven
 prompt. When that SECOND prompt appears, generalize: a contextual-hint registry
 any system can push/pop hints into, with `ControlHintsUI` consuming both
 restraint and contextual sources. Two instances justify it; one doesn't.
+
+## Cassie Blockout — Deferred (Day 72)
+Apply object scale (0.5249) + reconcile guard unit scale (~9u vs her 3.96u) — rig/export time
+REF_Guard linked collection, excluded from view layer — Link not Append, repeatable silhouette check
+Refine pass: ribcage/bust mass, then re-judge torso; candidate crotch 3.75→3.65 only if still short after
