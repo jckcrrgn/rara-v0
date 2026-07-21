@@ -1,9 +1,9 @@
 # Rara — Vertical Slice Spec (v1)
 ### Working title: "The Turnaround"
 
-> **Day 58 — initial draft.** Source of truth for the Patreon/SubscribeStar launch demo. Locked this session: (A) recurring **check-in rhythm**, (B) **strike** takedown (not kick). Smaller forks are spec'd to a buildable default and listed in §13 for confirmation.
+> **Day 58 — initial draft.** Source of truth for the Patreon/SubscribeStar launch demo. Locked this session: (A) recurring **check-in rhythm**, (B) **strike** takedown (not kick). Smaller forks are spec'd to a buildable default and listed in §14 for confirmation.
 >
-> **Day 62 — revision: Lure cut.** The interactive lure/"Beg" verb (former §8 step 1) is removed — it was "Call Out" returning under a new name, and in a one-guard scripted slice a summon-the-guard verb is agency theater (and a third novel verb against a Feign+Strike budget). New climax: the guard **walks in and gloats up close on every passed inspection, unconditionally**; the turnaround is simply whichever check-in Cassie is armed on. Escalation lives in her state, not his — his constant approach is the engine of the dramatic irony. Guard movement is now speed-based, not duration-based. Lure preserved as a forward hook for the AI levels (§14). Sections updated below: §2, §3, §5, §7, §8, §12, §13, §14.
+> **Day 62 — revision: Lure cut.** The interactive lure/"Beg" verb (former §8 step 1) is removed — it was "Call Out" returning under a new name, and in a one-guard scripted slice a summon-the-guard verb is agency theater (and a third novel verb against a Feign+Strike budget). New climax: the guard **walks in and gloats up close on every passed inspection, unconditionally**; the turnaround is simply whichever check-in Cassie is armed on. Escalation lives in her state, not his — his constant approach is the engine of the dramatic irony. Guard movement is now speed-based, not duration-based. Lure preserved as a forward hook for the AI levels (§15). Sections updated below: §2, §3, §5, §7, §8, §12, §14, §15.
 
 ---
 
@@ -71,7 +71,7 @@ Per cycle:
 | 2 | Wrists free; reaching for / hiding the object | Feign (now hiding object) → he leans in, taunts → leaves |
 | 3 (the turn) | Armed and concealed | Feign → he leans in as always → **strike** (§8) |
 
-> Which check-in becomes "the turn" depends only on when she's armed — not on any guard-side flag. The count here is illustrative; see §13 for the tuning value (how many threat beats before she can realistically be armed).
+> Which check-in becomes "the turn" depends only on when she's armed — not on any guard-side flag. The count here is illustrative; see §14 for the tuning value (how many threat beats before she can realistically be armed).
 
 > Count of routine check-ins (2 above) is a tuning value — enough to teach and stress Feign without padding.
 
@@ -113,8 +113,8 @@ A deterministic state machine, not AI:
 ## 9. Resolution & Exit
 
 - Guard **Downed**. No more time pressure.
-- **Free the legs** — **CUT from v1.** Cassie runs a single wrist BondMeter: breaking it enables the pickup but does not touch `ChairRestraint` or end the level. Per-bodypart bonds (a leg-untie with its own consequences) are a forward hook — the `BoundLimbs` enum carries the scaffolding (`Knees`, logged in `ideas.md`) but the simulation isn't built. See §14.
-- **Tie up the guard** — *[open, §13]*. Spec'd **CUT from v1**, documented as a post-slice victory button (needs a bound-guard visual + a bind interaction).
+- **Free the legs** — **CUT from v1.** Cassie runs a single wrist BondMeter: breaking it enables the pickup but does not touch `ChairRestraint` or end the level. Per-bodypart bonds (a leg-untie with its own consequences) are a forward hook — the `BoundLimbs` enum carries the scaffolding (`Knees`, logged in `ideas.md`) but the simulation isn't built. See §15.
+- **Tie up the guard** — *[open, §14]*. Spec'd **CUT from v1**, documented as a post-slice victory button (needs a bound-guard visual + a bind interaction).
 - **Exit** — **implied-exit fade**: freed + guard down → final mutter → fade = demo complete. No stand-up/walk verb is built (parked for L7 in `ideas.md`); the implied exit dodges building locomotion just for the slice and matches L6's window grammar.
 
 ---
@@ -122,7 +122,7 @@ A deterministic state machine, not AI:
 ## 10. Win / Fail Conditions
 
 - **Win:** guard KO'd → exit trigger → complete. (v1: the strike is the terminal beat — no post-KO free-the-legs phase. See §9.)
-- **Fail:** caught at inspection (not feigning in time / wrong pose). *[harshness open, §13]* — spec'd as a re-cinch/escalate beat reusing the failure-loop pattern, returning her to a tighter bind rather than a hard restart.
+- **Fail:** caught at inspection (not feigning in time / wrong pose). *[harshness open, §14]* — spec'd as a re-cinch/escalate beat reusing the failure-loop pattern, returning her to a tighter bind rather than a hard restart.
 
 ---
 
@@ -148,9 +148,48 @@ Cut-candidates if scope tightens: tie-up the guard (→ post-slice).
 
 ---
 
-## 13. Open Questions / Decisions to Confirm
+## 13. Cassie Bone Drivers (VS Presentation Layer)
 
-- [x] **Lure** — ~~interactive Beg verb vs. scripted approach~~ **CUT Day 62.** Guard auto-approaches and gloats up close every check-in; no summon verb. Preserved as a forward hook for the AI levels (§14).
+*Presentation only. This layer subscribes to events the VS logic already fires; it changes no gameplay behaviour. Blockout-fidelity motion is **scripted** (procedural bone rotation, transforms grabbed directly) — hand-authored clips are a later polish pass. Runs on the Humanoid rig (chosen for pipeline consistency + guard retargeting), though the motion itself is Generic-capable.*
+
+### Drivers
+
+Four beats. **Only Strike waits on a guard state** — the other three fire off Cassie's own actions.
+
+| Driver | Trigger (existing event) | Guard-gated? | Effect |
+| :-- | :-- | :-- | :-- |
+| **Sit** | base state; `IsFeigning` toggles the variant | no | Chair-bound idle. Not feigning → working the wrist bond. Feigning → still / compliant. Only switch on the base. |
+| **Wrist-break** | `OnWristsFreed` (one-shot) | no | Hands snap free, come forward. Swaps the base pose bound → free. Fires offstage, between check-ins. |
+| **Arm-and-conceal** | weapon pickup (one-shot) | no | Brings the bottle in, tucks it out of sight before the next inspection. Offstage, between check-ins. |
+| **Strike** | strike input (one-shot) | **yes** — `LeanIn && WristsFree && Armed` | Torso uncoils, bottle swings around. → `StrikeableGuard.OnGuardDowned()` → `Downed`. |
+
+### Contact-frame KO
+
+The knockout fires when the swing **visibly connects**, not on the input frame. This is the fix for the "finicky" instant-strike (Day 59) — the hit lands when it looks like it lands. Implement as a timed callback / AnimationEvent inside the strike driver; wire it when the strike motion is built.
+
+### Architectural invariant (protect this)
+
+The guard's lean-in is **identical every check-in** — he cannot perceive that Cassie is armed. Cassie's driver set is the only thing that branches: feign-still on routine cycles, arm → strike on the armed one. Guard stays dumb; the turnaround lives entirely in her state. This mirrors the code (escalation in Cassie's state, not the guard's) and is the engine of the dramatic irony. Do not migrate any of it into `GuardController`.
+
+### Event hooks (read-only — do not modify these to serve animation)
+
+- `PlayerController.IsFeigning`
+- `PlayerController.OnWristsFreed` / `wristsFree`
+- weapon pickup → `Armed`
+- strike input → `CanStrikeNow` (already gates `wristsFree` + `LeanIn` + held weapon)
+- `GuardController.OnStateChanged` (for `LeanIn`)
+- `StrikeableGuard.OnGuardDowned()`
+
+### Deferred to polish (not now)
+
+- **Procedural aim** — strike swings toward the guard's live lean-in position; hand reaches to the bottle's actual position. Scripted beats use rough fixed targets until then.
+- **Hand-authored clips** replacing any beat that needs to read prettier than a scripted rotation.
+
+---
+
+## 14. Open Questions / Decisions to Confirm
+
+- [x] **Lure** — ~~interactive Beg verb vs. scripted approach~~ **CUT Day 62.** Guard auto-approaches and gloats up close every check-in; no summon verb. Preserved as a forward hook for the AI levels (§15).
 - [ ] **Weapon placement** — a back-scoot surface (reuses the L6 bound-hands-behind-back reach pattern) vs. already near the chair. *(spec'd: back-scoot surface)*
 - [x] **Strike timing** — ~~window-that-lapses vs. enabled-whenever-in-range~~ **resolved Day 62:** strike is valid whenever the guard is in `LeanIn` (the close-gloat window), gated on her being armed. The window lapses naturally when he straightens and leaves.
 - [ ] **Feign-fail harshness** — re-cinch/escalate vs. soft reset. *(spec'd: re-cinch)*
@@ -160,10 +199,10 @@ Cut-candidates if scope tightens: tie-up the guard (→ post-slice).
 
 ---
 
-## 14. Forward Hooks
+## 15. Forward Hooks
 
 - **Feign** generalizes to the deferred L6 **interruptible-untie** tension (guard returns mid-untie → Cassie feigns her hands are still bound until he leaves). The VS is where that mechanic is born.
 - **StrikeableGuard** → future takedown/combat verbs and the L11/L12 villain confrontation.
 - **Tie-up-the-guard** → victory-button stretch and future capture/turnabout mechanics.
-- **Lure / Call Out** (cut here, §13) → reintroduce in the patrol-AI levels, where a draw-the-guard verb has real tactical meaning (pull a guard off a position, bait him from a sightline). It's agency theater against a scripted actor; it earns its place against AI that can be meaningfully misdirected.
+- **Lure / Call Out** (cut here, §14) → reintroduce in the patrol-AI levels, where a draw-the-guard verb has real tactical meaning (pull a guard off a position, bait him from a sightline). It's agency theater against a scripted actor; it earns its place against AI that can be meaningfully misdirected.
 - **Per-bodypart bonds** — the single wrist BondMeter generalizes to per-limb restraints with distinct movement/ability consequences (`Knees` as a leg-untie time-cost flag is logged in `ideas.md`). The VS's wrist-only bond is the seed; the cut "free the legs" phase (§9) is its first real use.
