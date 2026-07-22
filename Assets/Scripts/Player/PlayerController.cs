@@ -116,6 +116,7 @@ public class PlayerController : MonoBehaviour
 
 	// Kick state. Set true when a KickCycle is in flight.
 	private bool isKicking = false;
+	private bool isStriking = false;
 
 	/// <summary>
 	/// True if the player is currently committing the body to any action that
@@ -131,7 +132,7 @@ public class PlayerController : MonoBehaviour
 	/// Steering (A/D heading adjustment) does NOT contribute to IsBusy — it's
 	/// aim, not body-committing motion.
 	/// </summary>
-	public bool IsBusy => isKicking || (currentRestraint != null && currentRestraint.IsBusy);
+	public bool IsBusy => isKicking || isStriking || (currentRestraint != null && currentRestraint.IsBusy);
 
 	// -------------------------------------------------------------------------
 	// Feign state
@@ -465,6 +466,15 @@ public class PlayerController : MonoBehaviour
 		return strikeableGuard;
 	}
 
+	private CassieStrikeDriver strikeDriver;
+
+	private CassieStrikeDriver GetStrikeDriver()
+	{
+		if (strikeDriver == null)
+			strikeDriver = FindFirstObjectByType<CassieStrikeDriver>();
+		return strikeDriver;
+	}
+
 	/// <summary>
 	/// True if a Strike would currently succeed: Cassie's wrists are free,
 	/// she holds a weapon, the scene's StrikeableGuard reports CanBeStruck()
@@ -545,7 +555,22 @@ public class PlayerController : MonoBehaviour
 		if (isFeigning) CancelFeign();
 
 		Debug.Log("[PlayerController] Strike!");
-		target.OnStruck(this);
+		isStriking = true;
+
+		CassieStrikeDriver driver = GetStrikeDriver();
+		if (driver == null)
+		{
+			// Graybox fallback — no rig in the scene (abstract-testing mode).
+			// Land it on the input frame so the beat stays testable without Cassie.
+			Debug.Log("[PlayerController] No CassieStrikeDriver — landing strike immediately.");
+			target.OnStruck(this);
+			isStriking = false;
+			return;
+		}
+
+		driver.Play(
+			onContact: () => target.OnStruck(this),
+			onComplete: () => isStriking = false);
 	}
 
 	/// <summary>

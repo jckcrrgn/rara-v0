@@ -2328,6 +2328,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d34e9a352662a5841be035c3fc231be9, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1109725796}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d34e9a352662a5841be035c3fc231be9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1109725799}
   m_SourcePrefab: {fileID: 100100000, guid: d34e9a352662a5841be035c3fc231be9, type: 3}
 --- !u!1 &1090089875
 GameObject:
@@ -2483,7 +2486,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rig: {fileID: 0}
-  order: 1
+  order: 2
   player: {fileID: 0}
   sustain: 0.45
   attack: 0.08
@@ -2506,6 +2509,41 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   animator: {fileID: 0}
+--- !u!114 &1109725799
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1109725792}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1192d62cdc27dd44b8cec3fe3ff3230, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rig: {fileID: 0}
+  order: 2
+  windupDuration: 0.22
+  swingDuration: 0.24
+  followThroughHold: 0.15
+  settleDuration: 0.9
+  contactAt: 0.6
+  swingWithRightHand: 1
+  mirrorOffArm: 1
+  torsoYaw: -35
+  torsoPitch: 12
+  chestFollow: 1.25
+  headYaw: 22
+  upperArmCoilEuler: {x: -10, y: -15, z: 0}
+  upperArmStrikeEuler: {x: -30, y: 130, z: 20}
+  forearmCoilEuler: {x: 0, y: -10, z: 0}
+  forearmStrikeEuler: {x: 0, y: 60, z: 0}
+  forearmLag: 0.35
+  offArmFollow: 0.45
+  postStrikeArmHold: 0.35
+  debugScrubEnabled: 1
+  debugScrub: -0.01
+  verboseLogging: 1
 --- !u!1 &1113943027
 GameObject:
   m_ObjectHideFlags: 0
