@@ -250,6 +250,13 @@ public class PlayerController : MonoBehaviour
 	public System.Action OnFailedStruggle;
 
 	/// <summary>
+	/// Fires on every Struggle attempt that passes the restraint's CanStruggle gate,
+	/// regardless of whether it makes bond progress. Notification only — no gameplay
+	/// depends on it. The presentation layer subscribes to play the struggle beat.
+	/// </summary>
+	public System.Action OnStruggleAttempt;
+
+	/// <summary>
 	/// Fires when SetRestraint changes the active restraint. UI subscribes to
 	/// this so it can re-bind to the new restraint's OnHintsChanged event and
 	/// rebuild the hints panel.
@@ -373,6 +380,10 @@ public class PlayerController : MonoBehaviour
 			return;
 		}
 
+		// Presentation hook: she's committing to a struggle (pass or fail). Fired
+		// before progress is computed so even a zero-progress yank still animates.
+		OnStruggleAttempt?.Invoke();
+
 		ToolType activeTool = heldItem != null ? heldItem.ToolType : ToolType.BareHands;
 		int struggleAmount = bond.GetStruggleProgress(activeTool);
 
@@ -391,7 +402,7 @@ public class PlayerController : MonoBehaviour
 
 		if (struggleAmount <= 0)
 		{
-			StartCoroutine(ShakeVisual());
+			TriggerShake();
 			if (AudioManager.Instance != null && struggleFailClip != null)
 				AudioManager.Instance.PlaySFX(struggleFailClip, 1f, Random.Range(0.95f, 1.05f));
 			OnFailedStruggle?.Invoke();
@@ -740,25 +751,56 @@ public class PlayerController : MonoBehaviour
 		}
 	}
 
+	// Shake re-entrancy state. ShakeVisual used to be fired bare on every failed
+	// struggle, so mashing Struggle stacked overlapping coroutines: each captured
+	// its own "origin" from an already-rotated pose (compounding drift) and each
+	// ended by hard-setting localRotation, producing visible snaps. One routine at
+	// a time now, with a stable origin and a continuous hand-off between restarts.
+	private Coroutine shakeRoutine;
+	private Quaternion shakeOrigin;
+	private float shakeAngle;
+
+	/// <summary>
+	/// Start (or restart) the failed-struggle shake. Safe to call at any rate.
+	/// The rest rotation is captured only when no shake is in flight; a restart
+	/// inherits the current angle so the motion continues rather than popping.
+	/// </summary>
+	void TriggerShake()
+	{
+		if (visualRoot == null) return;
+
+		if (shakeRoutine == null)
+		{
+			shakeOrigin = visualRoot.localRotation;   // nothing in flight: this IS rest
+			shakeAngle = 0f;
+		}
+		else
+		{
+			StopCoroutine(shakeRoutine);              // keep origin + current angle
+		}
+
+		shakeRoutine = StartCoroutine(ShakeVisual());
+	}
+
 	System.Collections.IEnumerator ShakeVisual()
 	{
-		if (visualRoot == null) yield break;
-		Quaternion origin = visualRoot.localRotation;
-
 		float direction = Random.value < 0.5f ? -1f : 1f;
 		float windupAngle = shakeMagnitude * direction;
 		float snapbackAngle = -shakeMagnitude * direction * 1.2f;
 
-		float windupTime = shakeDuration * 0.6f;
-		float snapbackTime = shakeDuration * 0.4f;
+		float windupTime = Mathf.Max(0.01f, shakeDuration * 0.6f);
+		float snapbackTime = Mathf.Max(0.01f, shakeDuration * 0.4f);
+
+		// Continue from wherever the previous shake left off — never from 0.
+		float startAngle = shakeAngle;
 
 		float elapsed = 0f;
 		while (elapsed < windupTime)
 		{
 			float t = elapsed / windupTime;
 			float eased = t * t;
-			float angle = Mathf.Lerp(0f, windupAngle, eased);
-			visualRoot.localRotation = origin * Quaternion.Euler(0f, angle, 0f);
+			shakeAngle = Mathf.Lerp(startAngle, windupAngle, eased);
+			visualRoot.localRotation = shakeOrigin * Quaternion.Euler(0f, shakeAngle, 0f);
 			elapsed += Time.deltaTime;
 			yield return null;
 		}
@@ -774,12 +816,15 @@ public class PlayerController : MonoBehaviour
 				float settleT = (t - 0.66f) / 0.34f;
 				angle = Mathf.Lerp(angle, 0f, settleT);
 			}
-			visualRoot.localRotation = origin * Quaternion.Euler(0f, angle, 0f);
+			shakeAngle = angle;
+			visualRoot.localRotation = shakeOrigin * Quaternion.Euler(0f, shakeAngle, 0f);
 			elapsed += Time.deltaTime;
 			yield return null;
 		}
 
-		visualRoot.localRotation = origin;
+		shakeAngle = 0f;
+		visualRoot.localRotation = shakeOrigin;
+		shakeRoutine = null;
 	}
 
 	void TryPickUp()
