@@ -463,16 +463,15 @@ public class FailureLoopController : MonoBehaviour
 		// to "no swap available" — case 1 if in chair, case 3 if on floor.
 		HandleChairManagement(player);
 
-		// --- Confiscate held item ---
-		// The guard takes back any tool Cassie picked up before failing (e.g.
-		// the L6 pen). Per spec §7: "pen state — gone if picked up before
-		// failure." This is the code that enforces it. Confiscation is
-		// one-way: the held item's GameObject is disabled, not destroyed,
-		// and the player's heldItem reference is cleared. Chair shards
-		// and lamp shards are NOT held items at this point (they're
-		// scene-rooted floor debris until the player picks one up) so
-		// this only affects whatever's literally in Cassie's hand.
-		player.ConfiscateHeldItem();
+		// --- Disarm ---
+		// The guard takes whatever's in Cassie's hand. Whether it comes back is the
+		// item's own policy (Pickupable.returnedOnDisarm), not the level's: the L6 pen
+		// is confiscated outright per spec §7, while the VS bottle is returned to the
+		// table it came from so the slice stays solvable — she re-cuts her wrists,
+		// re-acquires it, tries the turnaround again. Chair and lamp shards are NOT
+		// held items here (scene-rooted floor debris until picked up), so this only
+		// touches what's literally in her hand.
+		player.DisarmHeldItem();
 
 		// --- Bond escalation ---
 		// EscalationAdditions is 0-indexed. attempt 1 → 2 uses index 0.

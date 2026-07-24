@@ -644,12 +644,11 @@ public class GuardController : MonoBehaviour
 		// if she was caught after having freed her wrists.
 		player.ResetBondProgress();
 
-		// Disarm on re-bind: the guard takes any weapon out of her hands and it
-		// goes back to the world (the table), NOT into the void. Confiscating it
-		// for good would softlock the slice — the bottle is the only weapon and
-		// the only win path. Returning it keeps the level solvable and reads as
-		// his hubris: he keeps leaving it within her reach.
-		player.ReturnHeldItemToWorld();
+		// Disarm on re-bind: the guard takes what's in her hands. Whether it comes
+		// back is the item's policy (Pickupable.returnedOnDisarm) — the bottle is
+		// returned to the table because it's the only weapon and the only win path,
+		// and it reads as his hubris: he keeps leaving it within her reach.
+		player.DisarmHeldItem();
 
 		// Position reset.
 		if (caughtRespawnPoint != null)

@@ -341,7 +341,10 @@ public class CassieStrikeDriver : CassieRigLayer
 	/// </summary>
 	private void ApplyTorso(float s)
 	{
-		float side = swingWithRightHand ? 1f : -1f;
+		// Right-hand swing uncoils to her LEFT: the right shoulder travels forward and
+		// across, so the torso yaws negative through follow-through. The old +1 pulled
+		// that shoulder back while the arm swung front — the two fought.
+		float side = swingWithRightHand ? -1f : 1f;
 		float sw = s * side;
 
 		float yaw = torsoYaw * sw;
@@ -364,23 +367,35 @@ public class CassieStrikeDriver : CassieRigLayer
 	/// </summary>
 	private void ApplyArms(float s, float sLag)
 	{
-		Vector3 upperE = s    < 0f ? upperArmCoilEuler * -s    : upperArmStrikeEuler * s;
-		Vector3 lowerE = sLag < 0f ? forearmCoilEuler  * -sLag : forearmStrikeEuler  * sLag;
+		Vector3 upperTarget = Shortest(s < 0f ? upperArmCoilEuler : upperArmStrikeEuler);
+		Vector3 lowerTarget = Shortest(sLag < 0f ? forearmCoilEuler : forearmStrikeEuler);
+		float upperAmt = Mathf.Abs(s);
+		float lowerAmt = Mathf.Abs(sLag);
 
 		HumanBodyBones swingUpper = swingWithRightHand ? HumanBodyBones.RightUpperArm : HumanBodyBones.LeftUpperArm;
 		HumanBodyBones swingLower = swingWithRightHand ? HumanBodyBones.RightLowerArm : HumanBodyBones.LeftLowerArm;
-		HumanBodyBones offUpper   = swingWithRightHand ? HumanBodyBones.LeftUpperArm  : HumanBodyBones.RightUpperArm;
-		HumanBodyBones offLower   = swingWithRightHand ? HumanBodyBones.LeftLowerArm  : HumanBodyBones.RightLowerArm;
+		HumanBodyBones offUpper = swingWithRightHand ? HumanBodyBones.LeftUpperArm : HumanBodyBones.RightUpperArm;
+		HumanBodyBones offLower = swingWithRightHand ? HumanBodyBones.LeftLowerArm : HumanBodyBones.RightLowerArm;
 
-		AddOffset(swingUpper, Quaternion.Euler(upperE));
-		AddOffset(swingLower, Quaternion.Euler(lowerE));
+		AddOffset(swingUpper, Blend(upperTarget, upperAmt));
+		AddOffset(swingLower, Blend(lowerTarget, lowerAmt));
 
 		if (offArmFollow > 0f)
 		{
-			AddOffset(offUpper, Quaternion.Euler(OffArm(upperE) * offArmFollow));
-			AddOffset(offLower, Quaternion.Euler(OffArm(lowerE) * offArmFollow));
+			AddOffset(offUpper, Blend(OffArm(upperTarget), upperAmt * offArmFollow));
+			AddOffset(offLower, Blend(OffArm(lowerTarget), lowerAmt * offArmFollow));
 		}
 	}
+
+	// Folds any component authored past 180 to its short equivalent: 370.9 → 10.9.
+	// Endpoint pose is identical; the path stops detouring through 185°.
+	private static Vector3 Shortest(Vector3 e) => new Vector3(
+		Mathf.DeltaAngle(0f, e.x), Mathf.DeltaAngle(0f, e.y), Mathf.DeltaAngle(0f, e.z));
+
+	// Slerp from rest, so the bone sweeps one arc instead of three independently
+	// scaled Euler channels racing each other.
+	private static Quaternion Blend(Vector3 targetEuler, float amt)
+		=> Quaternion.Slerp(Quaternion.identity, Quaternion.Euler(targetEuler), Mathf.Clamp01(amt));
 
 	// Mirroring a local Euler across the body plane negates the yaw and roll and
 	// keeps the pitch. Whether that's correct here depends on the bone rolls the

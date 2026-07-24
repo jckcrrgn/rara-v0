@@ -31,6 +31,22 @@ public class Pickupable : InteractableBase
 		"chair via the drawer, not from the floor until Stand-Up debuts in L7).")]
 	[SerializeField] private bool requiresUprightReach = false;
 
+	[Tooltip("Visual-only copy of this item parented to Cassie's hand bone. Enabled " +
+	"while held, disabled when returned or confiscated. MUST be a child of the " +
+	"hand bone in the scene — NOT a child of this GameObject, which gets " +
+	"SetActive(false) on pickup and would take the hand copy down with it. " +
+	"Strip the Pickupable, colliders and Rigidbody off the copy: it's presentation, " +
+	"and the strike's contact is a callback, not a physical hit.")]
+	[SerializeField] private GameObject heldVisual;
+
+	[Tooltip("On a caught failure, does the guard put this back where he found it?\n\n" +
+	"Set TRUE when the item is the level's ONLY route to the solve — the VS " +
+	"bottle, where confiscation would leave the slice unsolvable.\n\n" +
+	"Leave FALSE when other paths exist and losing this one should cost her — " +
+	"the L6 pen, where the lamp and the chair are still on the table.")]
+	[SerializeField] private bool returnedOnDisarm = false;
+	public bool ReturnedOnDisarm => returnedOnDisarm;
+
 	[Tooltip("True if this item can be used as the Strike weapon. " +
 	"The blunt object Cassie conceals for the turnaround beat.")]
 	[SerializeField] private bool isWeapon = false;
@@ -87,13 +103,24 @@ public class Pickupable : InteractableBase
 		}
 
 		player.HoldItem(this);
-		// Hide the world version while held — visually represented by player holding it.
+		// Hide the world version while held — the hand copy takes over.
+		if (heldVisual != null) heldVisual.SetActive(true);
 		gameObject.SetActive(false);
 	}
 
 	// Called by player when they drop or use up the item
 	public void DropFromPlayer()
 	{
+		HideHeldVisual();
 		gameObject.SetActive(true);
+	}
+
+	/// Take the item out of her hand without restoring the world version.
+	/// Confiscation needs this — it disables the world object directly and
+	/// never routes through DropFromPlayer, so without it the hand copy
+	/// would stay visible in a hand that isn't holding anything.
+	public void HideHeldVisual()
+	{
+		if (heldVisual != null) heldVisual.SetActive(false);
 	}
 }

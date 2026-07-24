@@ -906,6 +906,7 @@ public class PlayerController : MonoBehaviour
 	{
 		if (heldItem == null) return;
 		Debug.Log($"[PlayerController] Confiscating held item: {heldItem.ItemName}.");
+		heldItem.HideHeldVisual();
 		if (heldItem.gameObject.activeSelf) heldItem.gameObject.SetActive(false);
 		heldItem = null;
 	}
@@ -932,6 +933,15 @@ public class PlayerController : MonoBehaviour
 		Debug.Log($"[PlayerController] Returning held item to world: {heldItem.ItemName}.");
 		heldItem.DropFromPlayer();
 		heldItem = null;
+	}
+
+	/// The guard takes what's in her hands. Whether it comes back is the item's
+	/// call — see Pickupable.returnedOnDisarm.
+	public void DisarmHeldItem()
+	{
+		if (heldItem == null) return;
+		if (heldItem.ReturnedOnDisarm) ReturnHeldItemToWorld();
+		else ConfiscateHeldItem();
 	}
 
 	InteractableBase FindNearestInteractable()

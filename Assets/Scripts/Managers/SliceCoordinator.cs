@@ -46,7 +46,7 @@ public class SliceCoordinator : MonoBehaviour
         "  \"Next time, use the zip ties.\"\n" +
         "  \"Should've checked my hands.\"")]
     [TextArea(2, 4)]
-    [SerializeField] private string victoryMutterLine = "I've had worse. He hasn't.";
+    [SerializeField] private string victoryMutterLine = "Should've been watching my HANDS.";
 
     [Header("Debug")]
     [SerializeField] private bool verboseLogging = true;
