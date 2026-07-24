@@ -52,12 +52,19 @@ using UnityEngine;
 /// local Euler mirrors or duplicates across the body depends on the bone rolls
 /// in the symmetrized armature, which is not knowable from here.
 ///
-/// CONTACT FRAME (spec §11 — the fix for the Day 59 "finicky" instant-strike)
+/// CONTACT FRAME (spec §13 — the fix for the Day 59 "finicky" instant-strike)
 /// -------------------------------------------------------------------------
-/// The KO does NOT fire on the input frame. `onContact` fires the frame `_s`
-/// crosses `contactAt` going up — when the bottle is visually at the guard.
-/// Keyed to _s rather than elapsed time so retuning the easing or the durations
-/// can't desync the hit from the pose.
+/// The KO does NOT fire on the input frame. `onContact` fires the frame the
+/// FOREARM scalar `sLag` crosses `contactAt` going up — when the bottle is
+/// visually at the guard. Keyed to a pose scalar rather than elapsed time so
+/// retuning the easing or the durations can't desync the hit from the pose.
+///
+/// It is keyed to `sLag`, not `_s` (changed Day 80). The bottle rides the hand,
+/// which hangs off the forearm, so the forearm is the last link that decides
+/// where the bottle actually is. Under the old `_s` keying the whip made the hit
+/// unlandable: at forearmLag 0.35 on a 0.24s swing the forearm is still at
+/// sLag = -0.16 when `_s` saturates at +1, and `_s` then pins at +1 through the
+/// hold, so no value of contactAt could reach the bottle's actual arrival.
 ///
 /// PLACEMENT
 /// ---------
@@ -85,10 +92,11 @@ public class CassieStrikeDriver : CassieRigLayer
 	[SerializeField] private float settleDuration = 0.9f;
 
 	[Header("Contact")]
-	[Tooltip("Value of the swing scalar at which the blow lands and onContact fires. " +
-		"Runs -1 (coiled) to +1 (full follow-through); 0 is the seated pass-through. " +
-		"0.5-0.7 puts contact near full extension, just before the arm decelerates. " +
-		"Scrub to the value where the bottle reaches him and use that number.")]
+	[Tooltip("Value of the FOREARM swing scalar at which the blow lands and onContact " +
+		"fires — not the torso scalar. Runs -1 (coiled) to +1 (elbow fully open, bottle " +
+		"extended). The forearm trails the upper arm by forearmLag, and keeps climbing " +
+		"into the follow-through hold, so values near +1 land the hit inside the held " +
+		"beat. Scrub to where the bottle reaches him and use that number.")]
 	[Range(-1f, 1f)]
 	[SerializeField] private float contactAt = 0.6f;
 
@@ -157,10 +165,14 @@ public class CassieStrikeDriver : CassieRigLayer
 	[SerializeField] private float offArmFollow = 0.45f;
 
 	[Header("After the strike")]
-	[Tooltip("How much of the strike pose the ARMS retain once the settle finishes, " +
-		"0-1. The torso always returns to the seated pose, but her hands should not " +
-		"go back behind her back — the freed hands are the reveal. 0.25-0.45 leaves " +
-		"them forward and spent. Set 0 for a full return to the bound pose.")]
+	[Tooltip("Floor on how much of the strike pose the ARMS retain, 0-1. Applies from " +
+		"the contact frame onward — the settle ramps the arms down TO this value and " +
+		"holds there, rather than returning to the bound pose. The torso always goes " +
+		"back to the seated pose, but her hands should not go back behind her back — " +
+		"the freed hands are the reveal. 0.25-0.45 leaves them forward and spent. " +
+		"Set 0 for a full return to the bound pose. Note this is a fraction of the " +
+		"STRIKE pose, not an authored rest pose; if no value of it reads as 'spent', " +
+		"the fix is an explicit post-strike pose target, not a different fraction.")]
 	[Range(0f, 1f)]
 	[SerializeField] private float postStrikeArmHold = 0.35f;
 
@@ -182,7 +194,7 @@ public class CassieStrikeDriver : CassieRigLayer
 	private bool _playing;
 	private float _t;                 // seconds elapsed since Play()
 	private float _s;                 // signed swing scalar, -1..+1
-	private float _sPrev;             // last frame's _s, for the contact crossing test
+	private float _sLagPrev;          // last frame's sLag, for the contact crossing test
 	private bool _contactFired;
 	private bool _holdingArms;        // true after a completed strike, drives postStrikeArmHold
 
@@ -236,7 +248,7 @@ public class CassieStrikeDriver : CassieRigLayer
 		_playing = true;
 		_t = 0f;
 		_s = 0f;
-		_sPrev = 0f;
+		_sLagPrev = 0f;
 		_contactFired = false;
 		_onContact = onContact;
 		_onComplete = onComplete;
@@ -279,24 +291,49 @@ public class CassieStrikeDriver : CassieRigLayer
 		}
 
 		_t += dt;
-		_sPrev = _s;
 		_s = EvaluateSwing(_t);
-
-		// Contact test: the frame _s crosses the threshold going UP. Keyed to the
-		// pose, not the clock, so retuning the easing can't desync the hit.
-		if (!_contactFired && _sPrev < contactAt && _s >= contactAt)
-		{
-			Log($"CONTACT at t={_t:F3}s (s={_s:F2}).");
-			FireContactOnce();
-		}
 
 		// Forearm trails the upper arm — the whip. Sampling the swing scalar
 		// slightly in the past is the cheapest honest way to lag a joint without
 		// a second timeline.
 		float sLag = EvaluateSwing(Mathf.Max(0f, _t - forearmLag * Mathf.Max(0.01f, swingDuration)));
 
+		// Contact test: the frame the FOREARM scalar crosses the threshold going UP.
+		//
+		// Keyed to sLag, not _s (changed Day 80). The bottle rides the hand, which
+		// hangs off the forearm, so the forearm's progress is what decides where the
+		// bottle actually is. Keying to _s fired the KO with the elbow still folded:
+		// at forearmLag 0.35 on a 0.24s swing the forearm is still at sLag = -0.16
+		// when _s saturates at +1, so NO value of contactAt could land the hit on the
+		// bottle's arrival — and _s pins at +1 through the hold, so it can't cross
+		// anything later either. sLag keeps climbing into the follow-through hold
+		// (it catches up forearmLag * swingDuration seconds in), which is what makes
+		// contact-during-the-held-beat expressible at all.
+		if (!_contactFired && _sLagPrev < contactAt && sLag >= contactAt)
+		{
+			Log($"CONTACT at t={_t:F3}s (sLag={sLag:F2}, s={_s:F2}).");
+			FireContactOnce();
+		}
+		_sLagPrev = sLag;
+
 		ApplyTorso(_s);
-		ApplyArms(_s, sLag);
+
+		// Once contact has landed her hands do not go back behind her back — the
+		// freed hands are the reveal. Floor the arm blend at postStrikeArmHold so
+		// the settle ramps down TO the hold value instead of ramping to the bound
+		// pose and then popping up to it when the timeline ends.
+		//
+		// The floor is gated on _contactFired for two reasons: the coil needs to
+		// reach negative s on the way out (a Mathf.Max against a positive floor
+		// would clamp the windup to rest), and a swing that never connects should
+		// return her fully to the bound pose.
+		//
+		// This is what makes the last settle frame and the residual frame in the
+		// !_playing branch the same pose, which is what removes the pop.
+		if (_contactFired && postStrikeArmHold > 0f)
+			ApplyArms(Mathf.Max(_s, postStrikeArmHold), Mathf.Max(sLag, postStrikeArmHold));
+		else
+			ApplyArms(_s, sLag);
 
 		if (_t >= TotalDuration)
 		{
@@ -418,7 +455,7 @@ public class CassieStrikeDriver : CassieRigLayer
 		if (!_playing) return;
 		_playing = false;
 		_s = 0f;
-		_sPrev = 0f;
+		_sLagPrev = 0f;
 		_holdingArms = _contactFired;
 
 		System.Action cb = _onComplete;

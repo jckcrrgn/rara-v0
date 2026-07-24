@@ -2537,7 +2537,7 @@ MonoBehaviour:
   swingDuration: 0.24
   followThroughHold: 0.15
   settleDuration: 0.9
-  contactAt: 0.6
+  contactAt: 0.8
   swingWithRightHand: 1
   mirrorOffArm: 1
   torsoYaw: 35
@@ -2551,7 +2551,7 @@ MonoBehaviour:
   forearmLag: 0.35
   offArmFollow: 0.45
   postStrikeArmHold: 0.35
-  debugScrubEnabled: 1
+  debugScrubEnabled: 0
   debugScrub: 1
   verboseLogging: 1
 --- !u!1 &1113943027
