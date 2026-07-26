@@ -2320,6 +2320,9 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: d34e9a352662a5841be035c3fc231be9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1954020749}
     - targetCorrespondingSourceObject: {fileID: 8727927942516596988, guid: d34e9a352662a5841be035c3fc231be9, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1205098897}
@@ -2553,8 +2556,8 @@ MonoBehaviour:
   postStrikeOffArmFollow: 0.9
   postStrikeUpperArmEuler: {x: -46.3, y: 156.9, z: 25.57}
   postStrikeForearmEuler: {x: -2.41, y: -31.8, z: 102.5}
-  debugScrubEnabled: 1
-  debugScrub: 2
+  debugScrubEnabled: 0
+  debugScrub: 0.8
   verboseLogging: 1
 --- !u!1 &1113943027
 GameObject:
@@ -5175,6 +5178,77 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f297c5e83e308824f84fb5ef1031e185, type: 3}
+--- !u!1 &1954020748
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1954020749}
+  - component: {fileID: 1954020752}
+  - component: {fileID: 1954020751}
+  m_Layer: 0
+  m_Name: BottleSmashFX
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1954020749
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1954020748}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1109725795}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1954020751
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1954020748}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da7ba6dad15667c41ba45ff8c24e11f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  strikeDriver: {fileID: 1109725799}
+  smashOrigin: {fileID: 1205098897}
+  bottleVisual: {fileID: 1205098894}
+--- !u!114 &1954020752
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1954020748}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b6fd90b8c8c0b494d981f67353a8492f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shardPrefab: {fileID: 15743928798064051, guid: 43d3bdae2b005cc49a34fd3479641f8c, type: 3}
+  sizeRange: {x: 0.4, y: 1.6}
+  sizeBias: 2
+  proportionRange: {x: 0.7, y: 1.4}
+  shardCount: 6
+  scatterRadius: 0.12
+  launchSpeed: 1.8
+  spin: 8
+  shardLifetime: 8
+  smashClip: {fileID: 0}
+  smashVolume: 1
 --- !u!1 &2006802562
 GameObject:
   m_ObjectHideFlags: 0

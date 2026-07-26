@@ -222,6 +222,17 @@ public class CassieStrikeDriver : CassieRigLayer
 	private System.Action _onContact;
 	private System.Action _onComplete;
 
+	/// <summary>
+	/// Multicast contact-frame event for PRESENTATION consumers (bottle smash, SFX,
+	/// camera shake). Distinct from the `onContact` callback passed to Play(), which
+	/// is the single gameplay consumer PlayerController owns and which is nulled
+	/// after firing. Fires at most once per strike — same _contactFired guard — and
+	/// also from OnDisable's soft-lock path. Subscribers unsubscribe in OnDisable;
+	/// this layer outlives them. Per spec §13 nothing subscribed here touches
+	/// gameplay state.
+	/// </summary>
+	public event System.Action OnContact;
+
 	/// <summary>True while the swing is running. PlayerController folds this into IsBusy.</summary>
 	public bool IsPlaying => _playing;
 
@@ -517,6 +528,10 @@ public class CassieStrikeDriver : CassieRigLayer
 		System.Action cb = _onContact;
 		_onContact = null;
 		cb?.Invoke();
+
+		// Presentation last: a throwing VFX subscriber must not be able to prevent
+		// the KO. Gameplay is already committed by the time we reach this line.
+		OnContact?.Invoke();
 	}
 
 	private void Complete()

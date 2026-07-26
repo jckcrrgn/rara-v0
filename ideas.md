@@ -727,3 +727,10 @@ restraint and contextual sources. Two instances justify it; one doesn't.
 Apply object scale (0.5249) + reconcile guard unit scale (~9u vs her 3.96u) — rig/export time
 REF_Guard linked collection, excluded from view layer — Link not Append, repeatable silhouette check
 Refine pass: ribcage/bust mass, then re-judge torso; candidate crotch 3.75→3.65 only if still short after
+
+- **Cone-biased shard burst.** ShardBurst scatters on a full sphere; a bottle
+  broken on a head throws glass forward and down, not backward into Cassie's
+  face. Bias the launch direction into a cone around the swing vector (driver
+  already knows it — swingWithRightHand + torso yaw). Spherical is honest enough
+  at 1.8 m/s; the cone is what sells the fiction. Pairs with the
+  LampSmashTrigger → ShardBurst convergence item.
