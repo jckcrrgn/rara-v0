@@ -42,11 +42,14 @@ using UnityEngine;
 /// TUNING (use the scrub slider)
 /// -----------------------------
 /// Enter Play Mode, tick `debugScrubEnabled`, and drag `debugScrub` from -1 to
-/// +1. The pose follows the slider live and the strike never fires, so you can
-/// dial the Eulers while watching her instead of re-triggering the beat. Work
-/// one axis of one bone at a time: get the SWING arm's strike pose reading
-/// first (hands in front of her, bottle toward the guard), then its coil pose,
-/// then the forearm, then the off arm. Untick when you're done.
+/// +2 — the -1..+1 stretch is the swing, and +1..+2 is the settle into the
+/// post-strike pose. The pose follows the slider live and the strike never fires,
+/// so you can dial the Eulers while watching her instead of re-triggering the
+/// beat. Work one axis of one bone at a time: get the SWING arm's strike pose
+/// reading first (hands in front of her, bottle toward the guard), then its coil
+/// pose, then the forearm, then the off arm. The post-strike pose is authored
+/// last, parked at +2, in the same order — upper arm, then forearm. Untick when
+/// you're done.
 ///
 /// If the off arm swings the wrong way, flip `mirrorOffArm` — whether the same
 /// local Euler mirrors or duplicates across the body depends on the bone rolls
@@ -164,17 +167,33 @@ public class CassieStrikeDriver : CassieRigLayer
 	[Range(0f, 1f)]
 	[SerializeField] private float offArmFollow = 0.45f;
 
-	[Header("After the strike")]
-	[Tooltip("Floor on how much of the strike pose the ARMS retain, 0-1. Applies from " +
-		"the contact frame onward — the settle ramps the arms down TO this value and " +
-		"holds there, rather than returning to the bound pose. The torso always goes " +
-		"back to the seated pose, but her hands should not go back behind her back — " +
-		"the freed hands are the reveal. 0.25-0.45 leaves them forward and spent. " +
-		"Set 0 for a full return to the bound pose. Note this is a fraction of the " +
-		"STRIKE pose, not an authored rest pose; if no value of it reads as 'spent', " +
-		"the fix is an explicit post-strike pose target, not a different fraction.")]
+	[Tooltip("Fraction of the POST-STRIKE pose the off arm adopts. Separate from " +
+		"offArmFollow because they mean different things: offArmFollow is a " +
+		"motion-follow fraction (the bottle hand leads, the off arm trails), which " +
+		"is right for the swing. The post-strike pose is a DESTINATION, not a " +
+		"motion — both wrists just came free, both hands end up down and forward. " +
+		"At offArmFollow's 0.45 the off arm settles 45% along an arc that STARTS " +
+		"behind her back, i.e. still partly behind her back — and the smaller the " +
+		"bone's authored delta the worse it reads, which is why the off forearm " +
+		"looked anatomically impossible while the off upper arm looked fine. Keep " +
+		"slightly under 1 so the rest isn't mirror-symmetric — she did just swing " +
+		"with the other one. 0.8-1.0.")]
 	[Range(0f, 1f)]
-	[SerializeField] private float postStrikeArmHold = 0.35f;
+	[SerializeField] private float postStrikeOffArmFollow = 0.9f;
+
+	[Header("After the strike")]
+	[Tooltip("UPPER ARM offset she settles INTO after the blow lands. Not a fraction " +
+		"of the strike pose — an authored pose in its own right. That's the whole " +
+		"point: the strike pose is the far end of an arc that STARTS behind her " +
+		"back, so any fraction of it is a point partway back there, which is why " +
+		"no value of the old postStrikeArmHold read as 'spent'. Keep most of the " +
+		"strike's yaw (hands stay in front) and add the drop. Scrub past +1 to author.")]
+	[SerializeField] private Vector3 postStrikeUpperArmEuler = new Vector3(15f, 95f, 5f);
+
+	[Tooltip("FOREARM offset she settles INTO after the blow lands. The elbow re-folds " +
+		"part way as the arm comes down — full extension is the follow-through, not " +
+		"the rest. Author after the upper arm, same order as the strike pose.")]
+	[SerializeField] private Vector3 postStrikeForearmEuler = new Vector3(0f, 30f, 0f);
 
 	[Header("Debug")]
 	[Tooltip("Overrides the timeline with the scrub slider below so you can tune " +
@@ -183,8 +202,10 @@ public class CassieStrikeDriver : CassieRigLayer
 	[SerializeField] private bool debugScrubEnabled = false;
 
 	[Tooltip("Manual swing scalar. -1 = full coil, 0 = seated rest, +1 = full " +
-		"follow-through. Only active while Debug Scrub Enabled is ticked.")]
-	[Range(-1f, 1f)]
+		"follow-through, +2 = the authored post-strike pose. The 1→2 stretch is the " +
+		"settle blend — drag right past 1 to author where she comes to rest. Only " +
+		"active while Debug Scrub Enabled is ticked.")]
+	[Range(-1f, 2f)]
 	[SerializeField] private float debugScrub = 0f;
 
 	[SerializeField] private bool verboseLogging = true;
@@ -196,7 +217,7 @@ public class CassieStrikeDriver : CassieRigLayer
 	private float _s;                 // signed swing scalar, -1..+1
 	private float _sLagPrev;          // last frame's sLag, for the contact crossing test
 	private bool _contactFired;
-	private bool _holdingArms;        // true after a completed strike, drives postStrikeArmHold
+	private bool _holdingArms;        // true after a completed strike, holds the post-strike pose
 
 	private System.Action _onContact;
 	private System.Action _onComplete;
@@ -208,7 +229,8 @@ public class CassieStrikeDriver : CassieRigLayer
 		Mathf.Max(0.01f, windupDuration) +
 		Mathf.Max(0.01f, swingDuration) +
 		Mathf.Max(0f, followThroughHold) +
-		Mathf.Max(0.01f, settleDuration);
+		Mathf.Max(0.01f, settleDuration) +
+		forearmLag * Mathf.Max(0.01f, swingDuration);   // let the lagged clock finish
 
 	protected override void DeclareBones()
 	{
@@ -277,16 +299,22 @@ public class CassieStrikeDriver : CassieRigLayer
 		// Tuning mode: pose follows the slider, nothing else runs.
 		if (debugScrubEnabled)
 		{
-			ApplyTorso(debugScrub);
-			ApplyArms(debugScrub, debugScrub);
+			// Past +1 the slider drives the settle: the torso comes home (1 → 0)
+			// while the arms blend strike → post-strike. So scrub = 2 is the exact
+			// frame the player is left looking at.
+			float scrubS = debugScrub <= 1f ? debugScrub : Mathf.Lerp(1f, 0f, debugScrub - 1f);
+			float scrubSettle = Mathf.Clamp01(debugScrub - 1f);
+			ApplyTorso(scrubS);
+			ApplyArms(scrubS, scrubS, scrubSettle, scrubSettle);
 			return;
 		}
 
 		if (!_playing)
 		{
-			// Post-strike residual: hands stay forward, torso is back at rest.
-			if (_holdingArms && postStrikeArmHold > 0f)
-				ApplyArms(postStrikeArmHold, postStrikeArmHold);
+			// Post-strike residual: torso is home, arms hold the authored post-strike
+			// pose. settleP = 1 makes this bit-identical to the last settle frame,
+			// which is what removes the pop. s is ignored in the settle branch.
+			if (_holdingArms) ApplyArms(0f, 0f, 1f, 1f);
 			return;
 		}
 
@@ -295,8 +323,9 @@ public class CassieStrikeDriver : CassieRigLayer
 
 		// Forearm trails the upper arm — the whip. Sampling the swing scalar
 		// slightly in the past is the cheapest honest way to lag a joint without
-		// a second timeline.
-		float sLag = EvaluateSwing(Mathf.Max(0f, _t - forearmLag * Mathf.Max(0.01f, swingDuration)));
+		// a second timeline. The settle reads the same shifted clock below.
+		float tLag = Mathf.Max(0f, _t - forearmLag * Mathf.Max(0.01f, swingDuration));
+		float sLag = EvaluateSwing(tLag);
 
 		// Contact test: the frame the FOREARM scalar crosses the threshold going UP.
 		//
@@ -319,21 +348,16 @@ public class CassieStrikeDriver : CassieRigLayer
 		ApplyTorso(_s);
 
 		// Once contact has landed her hands do not go back behind her back — the
-		// freed hands are the reveal. Floor the arm blend at postStrikeArmHold so
-		// the settle ramps down TO the hold value instead of ramping to the bound
-		// pose and then popping up to it when the timeline ends.
+		// freed hands are the reveal. The settle blends the arms from full
+		// follow-through into the AUTHORED post-strike pose, not toward the bound
+		// pose at a floor. The forearm settles on the lagged clock, so the upper
+		// arm starts down while the hand is still out, and the hand lands last.
 		//
-		// The floor is gated on _contactFired for two reasons: the coil needs to
-		// reach negative s on the way out (a Mathf.Max against a positive floor
-		// would clamp the windup to rest), and a swing that never connects should
-		// return her fully to the bound pose.
-		//
-		// This is what makes the last settle frame and the residual frame in the
-		// !_playing branch the same pose, which is what removes the pop.
-		if (_contactFired && postStrikeArmHold > 0f)
-			ApplyArms(Mathf.Max(_s, postStrikeArmHold), Mathf.Max(sLag, postStrikeArmHold));
-		else
-			ApplyArms(_s, sLag);
+		// Gated on _contactFired for the same reason the old floor was: a swing
+		// that never connects should return her fully to the bound pose.
+		float settleP = _contactFired ? EvaluateSettle(_t) : 0f;
+		float settlePLag = _contactFired ? EvaluateSettle(tLag) : 0f;
+		ApplyArms(_s, sLag, settleP, settlePLag);
 
 		if (_t >= TotalDuration)
 		{
@@ -342,6 +366,21 @@ public class CassieStrikeDriver : CassieRigLayer
 			FireContactOnce();
 			Complete();
 		}
+	}
+
+	/// <summary>
+	/// Settle progress, 0 → 1 across the settle segment only, on the same EaseOut the
+	/// torso settles with so arms and torso stay in phase. Returns 0 everywhere before
+	/// the settle begins — which is what makes the handoff continuous: at settle start
+	/// s is exactly +1, and Slerp(strike, post, 0) is the strike pose.
+	/// </summary>
+	private float EvaluateSettle(float t)
+	{
+		float settleStart = Mathf.Max(0.01f, windupDuration)
+			+ Mathf.Max(0.01f, swingDuration)
+			+ Mathf.Max(0f, followThroughHold);
+		if (t <= settleStart) return 0f;
+		return EaseOut((t - settleStart) / Mathf.Max(0.01f, settleDuration));
 	}
 
 	/// <summary>
@@ -397,31 +436,61 @@ public class CassieStrikeDriver : CassieRigLayer
 	/// positive s toward the strike pose, and s = 0 is rest — so the arm sweeps
 	/// through the bound pose on its way around rather than snapping.
 	///
+	/// Once settleP goes positive it takes over entirely: the arm blends from full
+	/// strike into the authored post-strike pose and s stops mattering. Upper arm
+	/// and forearm carry their own settle scalars so the hand trails on the way down
+	/// exactly as it trails on the way out.
+	///
+	/// The off arm carries TWO weights — offArmFollow through the swing,
+	/// postStrikeOffArmFollow at the destination. See ArmQuat for why.
+	///
 	/// Both arms move the SAME direction (optionally mirrored across the body).
 	/// They do NOT counter-rotate — that's the Struggle driver's wrist grind, and
 	/// applying it here is what pulled her hands apart instead of bringing them
 	/// around together.
 	/// </summary>
-	private void ApplyArms(float s, float sLag)
+	private void ApplyArms(float s, float sLag, float settleP, float settlePLag)
 	{
-		Vector3 upperTarget = Shortest(s < 0f ? upperArmCoilEuler : upperArmStrikeEuler);
-		Vector3 lowerTarget = Shortest(sLag < 0f ? forearmCoilEuler : forearmStrikeEuler);
-		float upperAmt = Mathf.Abs(s);
-		float lowerAmt = Mathf.Abs(sLag);
-
 		HumanBodyBones swingUpper = swingWithRightHand ? HumanBodyBones.RightUpperArm : HumanBodyBones.LeftUpperArm;
 		HumanBodyBones swingLower = swingWithRightHand ? HumanBodyBones.RightLowerArm : HumanBodyBones.LeftLowerArm;
 		HumanBodyBones offUpper = swingWithRightHand ? HumanBodyBones.LeftUpperArm : HumanBodyBones.RightUpperArm;
 		HumanBodyBones offLower = swingWithRightHand ? HumanBodyBones.LeftLowerArm : HumanBodyBones.RightLowerArm;
 
-		AddOffset(swingUpper, Blend(upperTarget, upperAmt));
-		AddOffset(swingLower, Blend(lowerTarget, lowerAmt));
+		AddOffset(swingUpper, ArmQuat(upperArmCoilEuler, upperArmStrikeEuler,
+			postStrikeUpperArmEuler, s, settleP, 1f, 1f));
+		AddOffset(swingLower, ArmQuat(forearmCoilEuler, forearmStrikeEuler,
+			postStrikeForearmEuler, sLag, settlePLag, 1f, 1f));
 
 		if (offArmFollow > 0f)
 		{
-			AddOffset(offUpper, Blend(OffArm(upperTarget), upperAmt * offArmFollow));
-			AddOffset(offLower, Blend(OffArm(lowerTarget), lowerAmt * offArmFollow));
+			AddOffset(offUpper, ArmQuat(OffArm(upperArmCoilEuler), OffArm(upperArmStrikeEuler),
+				OffArm(postStrikeUpperArmEuler), s, settleP, offArmFollow, postStrikeOffArmFollow));
+			AddOffset(offLower, ArmQuat(OffArm(forearmCoilEuler), OffArm(forearmStrikeEuler),
+				OffArm(postStrikeForearmEuler), sLag, settlePLag, offArmFollow, postStrikeOffArmFollow));
 		}
+	}
+
+	// One bone's offset for a given phase.
+	//
+	// TWO WEIGHTS, ON PURPOSE. `weight` is the swing-motion fraction (1 for the
+	// swing arm, offArmFollow for the off arm); `settleWeight` is the fraction of
+	// the post-strike DESTINATION. They differ because they mean different things:
+	// trailing the lead hand by 45% is right for a motion, but landing 45% of the
+	// way along an arc that starts behind her back is not a resting pose, it's a
+	// half-bound arm. Continuity is unaffected — at settleP = 0 the Slerp returns
+	// Blend(strike, weight) no matter what settleWeight is — so the weight shifts
+	// gradually across the settle, which is also the right read: the off arm trails
+	// through the swing and catches up as she comes down.
+	private static Quaternion ArmQuat(Vector3 coil, Vector3 strike, Vector3 post,
+		float s, float settleP, float weight, float settleWeight)
+	{
+		if (settleP > 0f)
+			return Quaternion.Slerp(
+				Blend(Shortest(strike), weight),
+				Blend(Shortest(post), settleWeight),
+				settleP);
+
+		return Blend(Shortest(s < 0f ? coil : strike), Mathf.Abs(s) * weight);
 	}
 
 	// Folds any component authored past 180 to its short equivalent: 370.9 → 10.9.

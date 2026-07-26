@@ -2550,9 +2550,11 @@ MonoBehaviour:
   forearmStrikeEuler: {x: 0.65, y: -41.6, z: 52.95}
   forearmLag: 0.35
   offArmFollow: 0.45
-  postStrikeArmHold: 0.35
-  debugScrubEnabled: 0
-  debugScrub: 1
+  postStrikeOffArmFollow: 0.9
+  postStrikeUpperArmEuler: {x: -46.3, y: 156.9, z: 25.57}
+  postStrikeForearmEuler: {x: -2.41, y: -31.8, z: 102.5}
+  debugScrubEnabled: 1
+  debugScrub: 2
   verboseLogging: 1
 --- !u!1 &1113943027
 GameObject:
