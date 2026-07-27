@@ -734,3 +734,32 @@ Refine pass: ribcage/bust mass, then re-judge torso; candidate crotch 3.75→3.6
   already knows it — swingWithRightHand + torso yaw). Spherical is honest enough
   at 1.8 m/s; the cone is what sells the fiction. Pairs with the
   LampSmashTrigger → ShardBurst convergence item.
+
+  - ~~**Cone-biased shard burst.**~~ SHIPPED Day 83. Directional Burst(pos, dir)
+  overload with coneAngle / coneBias / coneLift / speedVariance; aim comes from
+  BottleSmashOnContact's swingTarget + tangentSkew, not from the driver. Values
+  still untuned.
+
+  ## Day 83 — Shard burst deferrals
+
+- **Burst point is one frame stale.** OnContact fires synchronously inside
+  CassieStrikeDriver.Contribute, which runs before CassieRig writes the frame's
+  bone poses, so smashOrigin.position reports last frame. ~8 cm at peak hand
+  speed, about one scatterRadius. Real fix is an after-write event on CassieRig
+  for presentation to hang off. Deferring the burst a frame trades a spatial
+  error for a temporal one on the payoff beat — worse trade.
+- **Measured-tangent aim.** swingTarget + tangentSkew is a stable approximation
+  chosen because a measured hand velocity is noisy between runs and makes cone
+  tuning unreadable. Once the values are locked, the true tangent is more
+  correct. Wants the CassieRig after-write hook above.
+- **Size-speed coupling on shards.** Small splinters should fly faster than big
+  chunks — one line off the existing size draw. Cut from Day 83 as a refinement
+  on a refinement; speedVariance covers the same legibility need.
+- **Shards as escape tool.** Bottle shards are pure VFX and self-destruct at 8 s.
+  Lamp shards are BladeTool pickups. Converging them is the LampSmashTrigger
+  item; making bottle glass usable is a design question, not a refactor.
+- **Bottle-neck stub.** Held remnant after the smash, instead of hiding the
+  visual outright.
+- **Security cam that tracks Cassie.** The fixed overhead framing is thematically
+  right and a static reframe is worse. A camera that pans to follow her is
+  better than either. Not a reframe — a behaviour.
