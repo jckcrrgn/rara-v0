@@ -5226,6 +5226,8 @@ MonoBehaviour:
   strikeDriver: {fileID: 1109725799}
   smashOrigin: {fileID: 1205098897}
   bottleVisual: {fileID: 1205098894}
+  swingTarget: {fileID: 1299264755}
+  tangentSkew: -25
 --- !u!114 &1954020752
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5247,8 +5249,13 @@ MonoBehaviour:
   launchSpeed: 1.8
   spin: 8
   shardLifetime: 8
+  coneAngle: 70
+  coneBias: 1.6
+  coneLift: 12
+  speedVariance: {x: 0.55, y: 1.45}
   smashClip: {fileID: 0}
   smashVolume: 1
+  drawConeGizmo: 1
 --- !u!1 &2006802562
 GameObject:
   m_ObjectHideFlags: 0
@@ -5735,6 +5742,10 @@ PrefabInstance:
     - target: {fileID: 3751153978251006614, guid: 046ff1e148847414782d65dd2597ab51, type: 3}
       propertyPath: m_ClearFlags
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3751153978251006614, guid: 046ff1e148847414782d65dd2597ab51, type: 3}
+      propertyPath: field of view
+      value: 70
       objectReference: {fileID: 0}
     - target: {fileID: 3751153978251006614, guid: 046ff1e148847414782d65dd2597ab51, type: 3}
       propertyPath: m_BackGroundColor.b
