@@ -293,7 +293,7 @@ ModelImporter:
     - name: UpperArm.R
       parentName: Shoulder.R
       position: {x: 0.0000000020116566, y: 0.0037483333, z: 8.1956386e-10}
-      rotation: {x: -0.08275546, y: 0.046466384, z: 0.00817678, w: -0.9954525}
+      rotation: {x: -0.082755454, y: 0.046466384, z: 0.008176779, w: -0.9954525}
       scale: {x: 1.0000002, y: 1.0000005, z: 1.0000002}
     - name: LowerArm.R
       parentName: UpperArm.R
@@ -323,7 +323,7 @@ ModelImporter:
     - name: Foot.L.001
       parentName: Foot.L
       position: {x: 3.7252902e-11, y: 0.0028792298, z: -1.4901161e-10}
-      rotation: {x: -0.00029350255, y: 0.9999979, z: 0.0020110903, w: 0.00000008381901}
+      rotation: {x: -0.00029350258, y: 0.999998, z: 0.0020110905, w: 0.00000008381902}
       scale: {x: 1.0000006, y: 1.0000001, z: 1.0000002}
     - name: UpperLeg.R
       parentName: Hips
