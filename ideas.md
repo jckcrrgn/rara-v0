@@ -763,3 +763,8 @@ Refine pass: ribcage/bust mass, then re-judge torso; candidate crotch 3.75→3.6
 - **Security cam that tracks Cassie.** The fixed overhead framing is thematically
   right and a static reframe is worse. A camera that pans to follow her is
   better than either. Not a reframe — a behaviour.
+
+  Scene Cassie has 11 bone position overrides pinning pre-retarget lengths
+(LowerArm.L 0.0035 vs FBX 0.0025). FBX and brief are correct, scene is not.
+Harmless while drivers write localRotation directly. Resolve when the real
+Cassie model replaces the blockout, or before any humanoid clip work.
