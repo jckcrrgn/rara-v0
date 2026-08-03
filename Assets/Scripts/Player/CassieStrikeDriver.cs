@@ -134,6 +134,38 @@ public class CassieStrikeDriver : CassieRigLayer
 		"opposite in feel to Struggle, where the head turns away to search. 15-30.")]
 	[SerializeField] private float headYaw = 22f;
 
+	/// AUTHORED VALUES LIVE IN THE SCENE, NOT HERE (recorded Day 117, 2026-08-03)
+	/// -------------------------------------------------------------------------
+	/// Every field initializer below is a PLACEHOLDER. The real, hand-tuned poses
+	/// were authored via the scrub slider and serialized into VS_Turnaround.unity.
+	/// They are far from these defaults — upperArmStrikeEuler is (-105.8, 138.6,
+	/// 14.7) in the scene against (-30, 130, 20) here. The defaults are plausible
+	/// enough that a silent revert to them may not be obvious in the viewport.
+	///
+	/// This means the authored strike exists in exactly ONE place. It is destroyed
+	/// by: Revert All on the prefab, removing and re-adding this component, or a
+	/// bad merge on the scene file. NEVER PRESS REVERT ALL.
+	///
+	/// Verified against the scene, Day 117:
+	///
+	///     upperArmCoilEuler        (-10,    -15,     0    )
+	///     upperArmStrikeEuler      (-105.8,  138.6,  14.7 )
+	///     forearmCoilEuler         (  0,    -10,     0    )
+	///     forearmStrikeEuler       (  0.65, -41.6,  52.95 )
+	///     postStrikeUpperArmEuler  (-46.3,  156.9,  25.57 )
+	///     postStrikeForearmEuler   ( -2.41, -31.8, 102.5  )
+	///
+	/// mirrorOffArm = true. Correct ONLY because the armature's L/R rolls mirror
+	/// exactly (Shoulder ±102.26, UpperArm ±146.81, LowerArm ±146.70, Hand
+	/// ±147.35). The rolls are a project invariant — changing one silently
+	/// invalidates every value above.
+	///
+	/// DO NOT RETUNE THESE. The wrist drift chased through Day 115 was never the
+	/// Eulers — it was a 12.8% forearm scale asymmetry (LowerArm.L 0.356 vs R
+	/// 0.316), fixed Day 116. Both forearms now symmetric to seven decimals and
+	/// the authored poses read correctly untouched. If wrists drift again, check
+	/// the scale chain FIRST.
+
 	[Header("Swing arm — pose targets (local Euler, degrees)")]
 	[Tooltip("UPPER ARM offset at full coil (s = -1). Small: she draws the bound " +
 		"hands tighter and turns the shoulder back. Tune with the scrub slider.")]
