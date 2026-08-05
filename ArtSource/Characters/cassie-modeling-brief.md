@@ -78,10 +78,42 @@ Bone count, names, hierarchy, and parenting stay as-is. Mesh work only.
 
 ---
 
-## Locked proportions (current)
+## Skeletal landmarks vs. mesh silhouette
+
+**These are two different sets of numbers. Do not use one for the other.**
+
+The proportions table below is *skeletal* — joint positions and bone lengths. The
+mesh silhouette sits outside it by whatever the muscle and cloth mass adds. The
+shoulder is the case that bites: the skeletal half-width is 0.152 (the joint, where
+`UpperArm` roots), but the **mesh** shoulder edge sits outside that by the deltoid.
+
+Setting mesh verts to skeletal numbers pins the widest upper point to the joint
+centre and reads narrow-shouldered no matter what happens below it.
+
+**Measured mesh values (Day 118, set by eye against `refBodyFront`):**
+
+| Ring     | Mesh half-width | As ratio of shoulder |
+|----------|-----------------|----------------------|
+| Shoulder | 0.170           | 1.00                 |
+| Chest    | ~0.145          | 0.85                 |
+| Waist    | ~0.112          | 0.66                 |
+| Hip      | ~0.153          | 0.90                 |
+
+**The ratios are the durable thing, not the absolutes.** If the shoulder ever
+changes, re-derive the rest from it. Waist ring goes at the waistband line, not the
+anatomical waist — the high trouser line is the silhouette's waist break and two
+competing horizontals read muddy.
+
+Same failure mode as the forearm: three "discrepancies" to date were all
+transcription or category errors, never rig errors. **If a number disagrees with
+this document, read the .blend.**
+
+---
+
+## Locked proportions (skeletal)
 
 Final height **1.68 m**. Blender data 3.88 BU; scale 0.4330 and apply, then Unity
-Scale Factor 1.0. Verify against `_Ruler_2m`.
+Scale Factor 1.0. Verify against `_Ruler_Heads`.
 
 | Measure             | Length (m) | % of height |
 |---------------------|-----------|-------------|
@@ -106,11 +138,6 @@ arc. Short arms compress every one of those reads.
 >
 > Also confirmed in the file: scale applied (1,1,1) on both mesh and rig;
 > hip z = 0.9070; hip→shoulder 0.386; shoulder→crown 0.387. All on spec.
->
-> **If a number ever disagrees with this document again, read the .blend.** It
-> takes minutes. Do not put it on a list, do not treat it as a gate on mesh work.
-> Three flagged "discrepancies" to date were all transcription errors, not rig
-> errors.
 
 ### Measured armature (Day 117 — the reference)
 
@@ -135,18 +162,75 @@ This is the verified foundation the authored strike Eulers rest on.
 
 ---
 
+## Reference setup (built Day 118)
+
+Everything below lives in the `_REF` collection with **Selectable off**. At export
+time, tick Exclude on `_REF` — this hides the rulers and refs in one click and
+keeps them out of a Selected Objects FBX. Do not parent any of it to `Cassie_Rig`.
+
+| Object | What it is | What it's for |
+|---|---|---|
+| `_Ruler_Heads` | 8 bands, 0.224 m pitch, array | Head-unit landmarks. 7.5 heads = 1.68 |
+| `refBodyFront` | Proportions sheet, front figure | Silhouette + proportion only |
+| `refBodySide` | Proportions sheet, side figure | Depth / Y profile |
+| `refFrontWardrobe` | Generated Cassie render | Wardrobe, hair, colour only |
+
+**Head unit = 0.224 m.** Landmarks: hip 0.907 = 4.05 heads, shoulder 1.293 = 5.77,
+crown 1.680 = 7.50.
+
+Image empties: **Size sets the largest dimension** — both body refs take Size 1.7,
+same value, and must display at identical height. Align on **crown and hip**, never
+the floor; both figures are on pointed/heeled feet.
+
+### The three-source hierarchy — do not let any source do another's job
+
+- **Proportions and silhouette → the armature**, which encodes the proportions
+  sheet. Locked. Never re-derived from a picture.
+- **Wardrobe, hair, colour, face landmarks → `refFrontWardrobe`.** *Which* features
+  Cassie has, never how big or how dense.
+- **Rendering → neither.** The generated refs are soft-shaded. The blush, lash
+  detail, nose shadow, and lip gradient all die on the cel shader.
+
+The two reference styles disagree about head-to-body ratio, and that ratio is
+already baked into the armature. This is a hierarchy, not a blend. Her head is
+larger relative to the body than the generated render's, so the face gets **fewer,
+larger, simpler** features than that render shows.
+
+---
+
 ## Refine pass — target design
 
 Canonical Cassie. This is the reference the pass is aiming at.
 
-- **Hair:** shoulder-length auburn-red, worn **down** — wavy, tousled, side-swept.
-  Not a ponytail. Not tied back.
+> **Hair and neckline resolved Day 118.** This supersedes the hair-down /
+> crew-neck version, which is deleted rather than kept, because carrying both is
+> what caused the contradiction. Reasoning is recorded below so the decision
+> doesn't get relitigated on feel.
+
+- **Hair:** auburn-red, **high ponytail** — slightly loose and tousled, with
+  face-framing strands escaping at the temples. Small gold hair tie.
 - **Face:** defined, light freckles, full lips, arched brows, hazel-green eyes.
-- **Top:** ivory ribbed cropped crew-neck sweater.
-- **Trousers:** ultra high-waisted brown, waistband **above the navel**. The high
-  waist is the silhouette's waist break — it does structural work, not just styling.
+- **Top:** cream/ivory ribbed cropped long-sleeve, **high mock/funnel neck**.
+- **Trousers:** ultra high-waisted brown/camel, pleated, waistband **above the
+  navel**. The high waist is the silhouette's waist break — it does structural
+  work, not just styling.
 - **Midriff:** narrow strip only. The high trouser line keeps it narrow by design.
 - **Jewellery:** small gold hoops.
+
+**Why ponytail, on the merits and not on taste:**
+1. It is symmetric at the crown, so it mirrors cleanly and does not fight the live
+   Mirror modifier. Side-swept hair is asymmetric by definition and would have
+   forced either a separate object or an early Mirror apply.
+2. It survives the strike arc. Loose shoulder-length hair at `debugScrub` 0.8 and
+   2.0 needs either cheating or sim, and sim is explicitly out of scope.
+3. *Capable, not helpless*: hair tied back reads as someone who expects to move.
+
+**Open wardrobe question — decide before trouser geometry:** the generated refs
+show **wide-leg** trousers, straight from hip to hem. That's a strong noir read and
+cheap geometry, but it conflicts with "slim tapered limbs" in the silhouette
+priorities and adds mass low in the figure that moves her *toward* the guard's
+planted silhouette, not away. If wide-leg is kept, the hip flare must read at the
+waistband or it will not read at all.
 
 ---
 
@@ -155,11 +239,12 @@ Canonical Cassie. This is the reference the pass is aiming at.
 Outline is still everything in cel-shade. Order of what must read at a glance:
 
 1. **V-to-waist taper** — shoulders to a nipped waist. The defining read.
-2. **Visible neck** — head lifted clear off the shoulders.
+2. **Visible neck** — head lifted clear off the shoulders. The mock neck eats some
+   of this; keep the chin-to-collar gap open or the read is lost.
 3. **Hip flare** — the widen below the waist.
-4. **Hair mass** — now a silhouette element, not a placeholder blob. Down and
-   asymmetric (side-swept) breaks the head's symmetry and is a strong noir read
-   against a slat-lit background.
+4. **Hair mass** — the ponytail is a silhouette element, not a placeholder blob. It
+   breaks the head's outline up and back, and gives a strong diagonal against a
+   slat-lit background.
 5. **Slim tapered limbs.**
 
 ---
@@ -180,9 +265,12 @@ run in flat shading, at poster distance, not a poly count.**
 - **Stop the moment you want to add a crease.** Cel shading will not show it.
 
 **Hair — done when:**
-- It is a small number of carved masses with a clear side-sweep, not strands.
-- Silhouette reads shoulder-length and tousled from front, side, and back ortho.
-- It survives the strike arc — check it at `debugScrub` 0.8 and 2.0.
+- Crown and tail are a small number of carved masses, not strands.
+- Silhouette reads high-ponytail from front, side, and back ortho — the tail must
+  break the head outline in *side* view, which is where it does the most work.
+- Face-framing strands are two or three carved shapes at most, not locks.
+- It survives the strike arc — check at `debugScrub` 0.8 and 2.0. The tail is
+  rigid; if it reads stiff, that is the correct trade.
 - **Stop the moment you start separating individual locks.**
 
 **Hands — done when:**
@@ -193,7 +281,8 @@ run in flat shading, at poster distance, not a poly count.**
 
 **Clothing — done when:**
 - Sweater, trousers, and waistband read as separate masses in silhouette.
-- Crop hem and waistband edges are clean enough to hold a hard shader terminator.
+- Crop hem, waistband, and mock-neck roll are clean enough to hold a hard shader
+  terminator.
 - Ribbing is texture or a shallow repeat, never modelled folds.
 - **Stop the moment you start simulating cloth.** No sim, no wrinkle passes.
 
@@ -213,6 +302,8 @@ perfectionism risk is unchanged.
 
 FBX: **−Y Forward, Z Up**, Apply Scalings: FBX All, Selected Objects, **no Leaf
 Bones**. Unity Scale Factor 1.0.
+
+Tick Exclude on `_REF` before exporting.
 
 After every export, before anything else: confirm both forearms still read
 symmetric, and confirm the strike still lands. Scale chain first, always.
@@ -238,28 +329,34 @@ above instead.
 
 ---
 
-## Starting state (Day 117)
+## State (Day 118)
 
 Read from the file, not from recall:
 
-- **112 verts / 93 polys.** Pure blockout, as intended.
+- **124 verts / 103 faces** base mesh. Mirror unapplied, so this is the number to
+  track — the viewport corner figure is the frame counter, not a vert count.
 - **Skinned.** All 21 vertex groups present and matching bone names.
-- **Modifiers: Mirror + Armature.** Mirror is live and unapplied — it halves the
-  body work.
+- **Modifiers: Mirror (X, Clipping on) + Armature.** Mirror is live and unapplied —
+  it halves the body work.
+- Torso rings set: V-to-waist taper and hip flare read correctly in front ortho.
+- Y depth 0.318 m total. **The side profile is still essentially flat** — no chest
+  projection forward, no seat projection back. Next mesh work.
 
-**Decide before you start hair:** the side-swept hair is asymmetric by definition
-and fights the Mirror modifier. Either build hair as its own object outside the
-mirror, or finish the mirrored body and apply first. Decide up front — this is
-much cheaper than unpicking a symmetric hair blob three sessions in.
+**Mirror and hair:** resolved by the ponytail decision. A centred ponytail is
+symmetric on X, so it can be built inside the mirror with the rest of the body. No
+early apply, no separate object.
 
 ---
 
 ## Open items
 
-- [x] ~~Resolve the forearm length discrepancy.~~ **Closed Day 117 — no
-      discrepancy. See verified table above.**
-- [x] ~~Mirror the six authored Eulers into a dated comment block in
-      `CassieStrikeDriver.cs`.~~ **Applied Day 117.**
+- [x] ~~Resolve the forearm length discrepancy.~~ **Closed Day 117.**
+- [x] ~~Mirror the six authored Eulers into `CassieStrikeDriver.cs`.~~ **Day 117.**
+- [x] ~~Hair and neckline contradiction between brief and refs.~~ **Closed Day 118
+      — ponytail and mock neck.**
+- [ ] Side profile: chest projection forward, seat projection back. The torso is a
+      plank in right ortho.
+- [ ] Wide-leg vs. tapered trousers. See target design above.
 - [ ] `Hair_Mass` y-scale reads 0.3 in scene; the 0.34 in the recap appears to be
       an error. Moot once hair is modelled — the placeholder block goes away.
 - [ ] `rig: {fileID: 0}` on the Sit and Struggle drivers. Non-blocking (the beat
