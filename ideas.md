@@ -768,3 +768,5 @@ Refine pass: ribcage/bust mass, then re-judge torso; candidate crotch 3.75→3.6
 (LowerArm.L 0.0035 vs FBX 0.0025). FBX and brief are correct, scene is not.
 Harmless while drivers write localRotation directly. Resolve when the real
 Cassie model replaces the blockout, or before any humanoid clip work.
+
+DiD: Detective in Distress — Day 123. Deliberate genre targeting, not accidental. Open question: whether the title needs to carry the signal when tags and communities do the discovery. Revisit before the page build, week 7.
