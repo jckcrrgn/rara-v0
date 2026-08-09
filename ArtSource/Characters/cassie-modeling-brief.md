@@ -1,5 +1,6 @@
 # Cassie Modeling Brief — VS / Rara
 *Cel-shaded noir, low-poly. Pin next to Blender.*
+*Last read against `Cassie_Blockout.blend`: Rara Day 122 / 2026-08-08.*
 
 **Status: REFINE PASS.** The blockout is closed (see appendix). This document now
 governs turning the existing blockout mesh into the shippable Slice 1 character.
@@ -90,14 +91,32 @@ shoulder is the case that bites: the skeletal half-width is 0.152 (the joint, wh
 Setting mesh verts to skeletal numbers pins the widest upper point to the joint
 centre and reads narrow-shouldered no matter what happens below it.
 
-**Measured mesh values (Day 118, set by eye against `refBodyFront`):**
+**Measured mesh values (read from the .blend, Day 122).** The Day 118 four-row
+table was set by eye and only its shoulder entry survived contact with the file.
+Replaced wholesale rather than patched — patching entry by entry is what let three
+wrong numbers sit in this document for four days.
 
-| Ring     | Mesh half-width | As ratio of shoulder |
-|----------|-----------------|----------------------|
-| Shoulder | 0.170           | 1.00                 |
-| Chest    | ~0.145          | 0.85                 |
-| Waist    | ~0.112          | 0.66                 |
-| Hip      | ~0.153          | 0.90                 |
+| Ring | z | Half-width | Ratio to shoulder |
+|------|---|-----------|-------------------|
+| Shoulder | 1.323 | 0.1700 | 1.00 |
+| Upper chest | 1.224 | 0.1177 | 0.69 |
+| Lower chest | 1.184 | 0.0879 | 0.52 |
+| **Waistband** | **1.120** | **0.0621** | **0.37** |
+| Upper belly | 1.043 | 0.1042 | 0.61 |
+| Lower belly | 0.964 | 0.1463 | 0.86 |
+| Hip | 0.907 | 0.1648 | 0.97 |
+
+The *shape* is correct — monotonic taper down to the waistband, monotonic flare out
+to the hip. That is silhouette priority #1 doing its job.
+
+**Open: the waistband pinch is 0.0621, which may be too deep.** Full width 0.124 m
+= 0.55 head units. Note that the old 0.112 cannot simply be reinstated — it exceeds
+the 0.0879 ring above it and would invert the taper. If this gets opened, the range
+to test in front ortho is roughly 0.075–0.085, and it is a two-vertex edit.
+
+Note the tension before deciding: an extreme hourglass serves the **anti-guard**
+test (slim, tapered, mobile against his slab) but pushes toward decorative, which
+fails **capable, not helpless**. Both tests apply; neither wins automatically.
 
 **The ratios are the durable thing, not the absolutes.** If the shoulder ever
 changes, re-derive the rest from it. Waist ring goes at the waistband line, not the
@@ -279,6 +298,11 @@ run in flat shading, at poster distance, not a poly count.**
 - Read as dextrous — normal-to-small, not a grabber. Opposite of his mitts.
 - **Stop at knuckle planes. No nails, no tendons, no palm creases.**
 
+> **Left hand CLOSED, Day 122.** Thumb built Day 121, grip curl authored Day 122.
+> Full record in *Hand and grip (Day 122)* below. Remaining test is wrist-to-wrist
+> bound, which is a Unity check against the mirrored right hand, not a Blender one.
+> **Finger-separation notches were considered and deferred** — see the same section.
+
 **Clothing — done when:**
 - Sweater, trousers, and waistband read as separate masses in silhouette.
 - Crop hem, waistband, and mock-neck roll are clean enough to hold a hard shader
@@ -295,6 +319,80 @@ wrists still hold. Then stop.
 `ideas.md`, not into the mesh. The prior Cassie stall came from perfectionism at
 exactly this stage, on the wrong pipeline. The pipeline is right now. The
 perfectionism risk is unchanged.
+
+---
+
+## Hand and grip (Day 122)
+
+All values read from `Cassie_Blockout.blend`, not from recall.
+
+### Measured
+
+| Measure | Value |
+|---|---|
+| Hand length, wrist ring centre → tip ring centre | **0.159798** |
+| Finger section, knuckle ring → tip ring | 0.048266 |
+| Finger section thickness | 0.0216 |
+| Knuckle ring spread (Y) | 0.0749 |
+| Tip ring spread (Y) | 0.0584 |
+| Thumb length | 0.0797 |
+
+**The hand length is 0.1598, not 0.170.** Any 0.170 in an older recap is the
+shoulder mesh half-width, mislabelled — the same category error that produced the
+forearm ghost. Skeletal `Hand.L` bone length is 0.106629 and is a *different
+number again*; it is the bone, not the silhouette.
+
+### The grip curl
+
+The finger section is one segment from knuckle to tip and there are **no finger
+bones** — the grip is modelled geometry in a fixed pose, not a posed rig. One rigid
+segment cannot grip: a 90° pivot drives the tips 0.034 through the palm, and any
+angle shallow enough to clear reads as a loose cup. So the section carries **one
+mid-ring loop cut** at its midpoint, giving two bends.
+
+Authored Day 122, measured back out of the file:
+
+| | Target | Achieved |
+|---|---|---|
+| Knuckle bend | 75° | 74.59° |
+| Mid-ring bend | 30° | 29.82° |
+| Tip centre vs knuckle line | 0 | +0.4 mm proximal |
+| **Grip tunnel** | 21.6 mm | **21.2 mm** |
+
+Both segments came through at 0.024133 — pure rotation, no scale contamination.
+Nearest fingertip sits 24 mm clear of the thumb.
+
+**Past 90° cumulative, more rotation makes the tunnel smaller, not larger.** The
+tips swing back up toward the knuckles. This is counterintuitive and will be
+rediscovered painfully if it is not written down.
+
+### Derived constraint — bottle neck ≤ 21 mm
+
+The tunnel is 21.2 mm and the hard ceiling for this finger section is about
+23.5 mm, reached only at a dead-straight 90° plate with no visible curl. **The hand
+sets the bottle, not the other way round.** Full prop spec lives in the GDD; the
+number originates here.
+
+If the bottle is ever specced wider, the options are: lengthen the finger section
+(changes hand length, currently on spec), shrink the bottle, or accept fingers
+sinking into it and rely on camera distance. The third is probably survivable at L6
+distance but should be a decision, not a discovery while framing shot 5.
+
+### Finger-separation notches — DEFERRED to `ideas.md`
+
+Considered Day 122 as the last silhouette item on the hand. Not built, for two
+reasons that should stand unless the cel-shader test contradicts them:
+
+1. **Resolution.** Tip spread is 0.0584. Three notches gives 0.0146-wide lobes,
+   0.87% of her height — below the read at L6 camera distance. Two notches gives
+   three lobes, which is the wrong finger count.
+2. **Order.** Notches are a silhouette judgement, and the curl is what determines
+   the silhouette. On a curled fist the tip cap stops being a silhouette element
+   at all; what reads is the dorsal knuckle mass.
+
+Notches are not in the hands stop condition. The curl is. Revisit only if the fist
+reads as a mitten in the actual cel shader at poster distance — and if it does, the
+fix is dorsal knuckle definition, not tip notches.
 
 ---
 
@@ -329,18 +427,22 @@ above instead.
 
 ---
 
-## State (Day 118)
+## State (Day 122)
 
 Read from the file, not from recall:
 
-- **124 verts / 103 faces** base mesh. Mirror unapplied, so this is the number to
-  track — the viewport corner figure is the frame counter, not a vert count.
-- **Skinned.** All 21 vertex groups present and matching bone names.
+- **154 verts / 132 faces / 279 edges** base mesh. Mirror unapplied, so this is the
+  number to track — the viewport corner figure is the frame counter, not a vert
+  count. (124 at Day 118, 138 pre-thumb, 150 post-thumb, 154 post-curl.)
+- **Skinned.** All 21 vertex groups present and matching bone names. 21 bones.
 - **Modifiers: Mirror (X, Clipping on) + Armature.** Mirror is live and unapplied —
   it halves the body work.
 - Torso rings set: V-to-waist taper and hip flare read correctly in front ortho.
-- Y depth 0.318 m total. **The side profile is still essentially flat** — no chest
-  projection forward, no seat projection back. Next mesh work.
+  Seven-ring profile measured — see *Skeletal landmarks vs. mesh silhouette*.
+- **Left hand closed.** Thumb (12 verts, all 100% `Hand.L`) and grip curl authored.
+- Side profile is **no longer flat** — this reverses the Day 118 note, which was
+  already stale when written. Chest projects forward to y = −0.13727 at z = 1.224;
+  seat projects back to y = +0.15348 at z = 0.907. Body depth 0.291 excluding feet.
 
 **Mirror and hair:** resolved by the ponytail decision. A centred ponytail is
 symmetric on X, so it can be built inside the mirror with the rest of the body. No
@@ -354,9 +456,25 @@ early apply, no separate object.
 - [x] ~~Mirror the six authored Eulers into `CassieStrikeDriver.cs`.~~ **Day 117.**
 - [x] ~~Hair and neckline contradiction between brief and refs.~~ **Closed Day 118
       — ponytail and mock neck.**
-- [ ] Side profile: chest projection forward, seat projection back. The torso is a
-      plank in right ortho.
+- [x] ~~Side profile: chest projection forward, seat projection back.~~ **Closed
+      Day 122 — both present in the file. The item was stale, not open.**
+- [ ] **Waistband pinch: keep 0.0621 or open it toward 0.075–0.085?** Two verts.
+      Silhouette priority #1. See the ring table for the argument on both sides.
 - [ ] Wide-leg vs. tapered trousers. See target design above.
+- [ ] **Wrist ring weight split.** On the ring where the hand meets the forearm,
+      one edge reads `Hand.L 0.94 / LowerArm.L 0.05` and the opposite edge of the
+      *same ring at the same axial position* reads `Hand.L 0.525 / LowerArm.L 0.471`
+      — automatic weights doing proximity math on a diagonal ring. Risk is wrist
+      shear during the strike, in the hand that holds the bottle. **Do not fix
+      blind.** Check at `debugScrub` 0.8 next time the hand goes to Unity; if it
+      shears, match the 0.525 edge to the 0.94 edge. Mesh weights only — nothing
+      near the rig.
+- [ ] **Weight sums run 0.94–0.99 mesh-wide**, left over from the original
+      automatic weights. Blender's armature deform normalises internally and Unity
+      normalises on FBX import, which is why nothing is broken and nothing has ever
+      looked wrong. Recorded so it is not rediscovered as a mystery. **Do not run
+      Normalize All under deadline pressure** — that is a whole-mesh operation on a
+      rig whose behaviour is already verified end-to-end.
 - [ ] `Hair_Mass` y-scale reads 0.3 in scene; the 0.34 in the recap appears to be
       an error. Moot once hair is modelled — the placeholder block goes away.
 - [ ] `rig: {fileID: 0}` on the Sit and Struggle drivers. Non-blocking (the beat

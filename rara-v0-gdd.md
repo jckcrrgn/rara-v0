@@ -1,19 +1,35 @@
 # Rara v0 — Game Design Document
 
+> **Scope note (Rara Day 122).** This document governs *design* — verbs, levels,
+> restraints, mutters, architecture. It does **not** govern schedule, platform, or
+> release scope; `game-dev-plan.md` supersedes it on all three. Where this document
+> still says "60 days", "itch.io", or "v0 ships in 9 weeks", read `game-dev-plan.md`
+> instead. Cassie's model, proportions, and wardrobe are governed by
+> `cassie-modeling-brief.md`, which is the source of truth for every number.
+
 ## One-Line Pitch
-A quirky third-person low-poly escape game where a captured detective uses Struggle, Move, Pick Up, and Kick to break free from increasingly absurd restraint scenarios.
+A low-poly noir escape game where a captured detective uses Struggle, Move, Pick Up, and Kick to break free from a series of restraint scenarios — grounded rooms, escalating stakes.
 
 ## Core Info
 | | |
 |---|---|
 | **Engine** | Unity (latest LTS, URP) |
 | **Platform** | PC (itch.io release) |
-| **Perspective** | Third-person, fixed or semi-fixed camera per room |
+| **Perspective** | Third-person, fixed or semi-fixed camera per room — **⚠ UNRESOLVED, see below** |
 | **Art Style** | Low-poly 3D, cel-shaded with bold outlines; noir lighting — hard directional light, crushed shadows, cool/warm color split |
-| **Tone** | Dry humor, noir-to-spy-thriller escalation |
-| **Target Playtime** | 30–60 minutes |
-| **Dev Timeline** | ~60 days at 1 hr/day |
-| **Target Release** | itch.io, free or pay-what-you-want |
+| **Tone** | Dry humor, noir-to-thriller escalation |
+| **Target Playtime** | 30–60 minutes *(v0 figure; 12 levels is not a 30-minute game)* |
+| **Dev Timeline** | ~~60 days at 1 hr/day~~ → see `game-dev-plan.md` |
+| **Target Release** | ~~itch.io, free or PWYW~~ → Patreon launch Sep 19 2026; itch.io is the permanent neutral address. See `game-dev-plan.md` |
+
+> **⚠ Perspective conflict — needs a call, not a silent edit.** This document says
+> third-person throughout. Recent project notes describe Rara as first-person. These
+> cannot both be true, and the answer changes what the character model is for: a
+> first-person game does not need a refined Cassie at all, and the six-shot hook
+> clip is six shots *of her*. Left as written until decided. If it resolves to
+> third-person, delete this box. If it resolves to first-person, the hook clip is a
+> cinematic showcase rather than gameplay footage, and that needs saying out loud on
+> the Patreon page.
 
 ---
 
@@ -102,7 +118,20 @@ Each restraint type changes how the four verbs behave, giving levels distinct fe
 
 ## Character
 
-**Cassie** — the detective. Low-poly, expressive face, trench coat or rumpled suit. Animate for personality: frustrated squirming, exasperated head shakes, smug grin when she figures something out.
+**Cassie** — the detective. Low-poly, cel-shaded, defined face. Animate for personality: frustrated squirming, exasperated head shakes, smug grin when she figures something out.
+
+**Canonical design is locked and lives in `cassie-modeling-brief.md`.** Summary only, and if this summary and the brief ever disagree, the brief wins:
+
+- **Hair:** auburn-red, high ponytail, slightly loose and tousled, face-framing strands at the temples, small gold hair tie.
+- **Face:** defined, light freckles, full lips, arched brows, hazel-green eyes. Resting expression reads dry and unimpressed — never afraid.
+- **Top:** cream/ivory ribbed cropped long-sleeve, high mock/funnel neck.
+- **Trousers:** ultra high-waisted brown/camel, pleated, waistband above the navel. Beltless contoured waistband, no belt loops.
+- **Midriff:** narrow strip only. **Jewellery:** small gold hoops.
+- Height 1.68 m, 7.5 heads — half a head shorter than the guard.
+
+The trench-coat/rumpled-suit description in earlier drafts is dead. Superseded Rara Day 118.
+
+**The governing test, everywhere:** *capable, not helpless.* Peril is the cover promise; competence is the payoff. Both, simultaneously, never one at the expense of the other. She escapes on her own competence, every time, with no rescuer.
 
 **Voice / Muttering:** Cassie thinks aloud. This serves three purposes:
 1. **Personality** — "Tied to a chair. Again. Wonderful."
@@ -171,6 +200,32 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 
   **Scene-design constraint from Beat 4:** the tool's landing position after the nightstand bump must be visible from chair-height — Cassie shouldn't react to something she can't see. Verify when L6 is blocked out. If the tool lands out of line-of-sight (under nightstand, behind chair), Beat 4 needs to fire on tool *audible* (drawer rattle + thud) rather than visible.
 
+  **⚠ L6 design vs. the vertical slice beat — unresolved, Rara Day 122.** The VS
+  beat built in `VS_Turnaround.unity` runs *struggle → free → pick up → conceal →
+  check-in → strike → KO*, with a bottle and a guard who is physically present and
+  gets hit. The L6 design above has no bottle, no strike, no KO, and rests on a
+  **pacing principle that the L6 guard is never seen** — he becomes a body in the
+  room in L7, and Feign debuts there so the finale lands.
+
+  Both cannot be L6. Three ways out, in rough order of cheapness:
+
+  1. **The clip is a showcase, not L6 gameplay.** The launch plan already says the
+     September scope is a 48-second clip and explicitly not a playable build. The
+     beat can be staged in the L6 *set* without being the L6 *level*. Costs nothing
+     today; costs honesty on the Patreon page, which should not claim the clip is
+     gameplay if it isn't.
+  2. **Move the beat to L7** and dress L7's set instead. Preserves the pacing
+     principle intact. Expensive — L7 is TBD and undesigned, and the whole
+     September schedule is built on L6.
+  3. **Rewrite L6** to include the visible guard and the strike. Cheapest for the
+     clip, but it spends the unseen-guard pacing beat and pulls Feign's setup
+     forward, which weakens the L12 payoff the whole three-act structure is aimed at.
+
+  **Do not resolve this by drifting.** Pick one and write it down here. This does
+  not block Cassie, the September 1 gate, or anything on the critical path — it
+  blocks page copy in week 7, which is exactly the kind of thing that becomes
+  expensive when discovered late.
+
 - **L7 — TBD** *(Feign debut, visible guard)*: Continuation of L6's hotel/thriller setting. The offstage guard from L6 becomes physical — visible model, line-of-sight or proximity awareness, investigation behavior. Cassie escapes initial restraint, hears the guard approaching, must **Feign** (debut) to avoid detection: re-pose into bound posture, drift threshold determines whether guard is fooled or escalates to re-restraint. Pays off the offstage threat seeded in L6. Builds: guard AI, Feign verb + drift/detection mechanic, visible guard model + animations.
 
 ### Act 3 — Showpiece + Finale (Levels 11–12)
@@ -199,11 +254,26 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 - Interactive objects are visually distinct — slight glow, brighter color, or subtle animation (a drawer slightly ajar, a blade catching the light, a rope fraying)
 
 ### Character
-- Low-poly, ~500–1000 tris. Big head, simple face with eyebrows that emote
-- Trench coat / rumpled suit reads as "detective" instantly
+- Low-poly, cel-shaded. Head is large relative to the body, so the face gets **fewer, larger, simpler** features than a realistic reference would suggest
+- Silhouette read order: V-to-waist taper → visible neck → hip flare → ponytail mass → slim tapered limbs
+- Second test, always paired with *capable, not helpless*: **the anti-guard.** Where he is a bald slab — broad, heavy, planted — she is slim, tapered, mobile, poised. Drop the two silhouettes side by side; if the reads are close, the pass failed
 - Needs idle animations per restraint type (squirming in chair, struggling on floor, swinging while hanging)
 - Needs a kick animation per kick-capable restraint (free-leg side kick, floor-bound mule kick, hanging swing-kick)
 - Satisfying "freed" animation when you escape
+
+### Props — locked dimensions
+
+Dimensions that other geometry depends on. Locked means a change here breaks something downstream, so change it deliberately.
+
+**Bottle — neck outer diameter ≤ 21 mm.** *(Locked Rara Day 122.)*
+
+Derived from the hand, not chosen for the bottle. Cassie's grip tunnel — the clear gap between palm surface and nearest fingertip — measures 21.2 mm, and the hard ceiling for her finger section is about 23.5 mm, reachable only at a dead-straight 90° plate with no visible curl. She has no finger bones; the grip is modelled geometry in a fixed pose and cannot open wider at runtime.
+
+Build to 21 and keep the margin. **Only the neck is constrained** — she grips the neck and swings the body.
+
+Suggested full prop: **21 mm neck, 55–60 mm body, 260–280 mm tall.** That is wine/spirits proportion rather than beer — a slimmer neck on a full body. Reads more noir, gives the shard burst more mass to throw, and lands at roughly 1.7× her hand length, which is what a real bottle-to-hand ratio looks like.
+
+If the bottle is ever specced wider: lengthen the finger section (changes hand length, currently on spec), shrink the bottle, or accept the fingers sinking into it and rely on camera distance. The third is probably survivable at L6 distance, but it should be a decision rather than a discovery while framing shot 5.
 
 ### UI
 - Minimal HUD. Verb selection along the bottom (icons, highlights active verb)
@@ -309,7 +379,15 @@ rara-v0/
 
 ---
 
-## Milestone Schedule (~60 days)
+## Milestone Schedule (~60 days) — **SUPERSEDED, kept as a build record**
+
+> This schedule assumed a small complete game shipped to itch.io in 13 weeks. Rara
+> is a 12-level three-act game and will take years, not weeks; every milestone below
+> was measuring the wrong thing. **`game-dev-plan.md` is the live schedule.**
+>
+> Kept because the ticked boxes are an accurate record of what actually exists in
+> the project. Do not plan against the unticked ones — plan against the vertical
+> slice.
 
 ### Weeks 1–2 (Days 1–14): Foundation
 - [x] Repo setup, Unity project, folder structure
