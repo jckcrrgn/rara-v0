@@ -480,3 +480,5 @@ early apply, no separate object.
 - [ ] `rig: {fileID: 0}` on the Sit and Struggle drivers. Non-blocking (the beat
       verifies end-to-end, and `player` resolves the same way). Confirm against
       `CassieRigLayer.Awake` when convenient.
+
+on a beveled box, corner verts are rounding geometry, not rings. Move them with a ring and a flat corner cap becomes a spike. If a group of verts needs to move together, scale the whole bevel about a plane — don't translate its parts by matching deltas.
