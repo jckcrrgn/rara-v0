@@ -724,7 +724,7 @@ any system can push/pop hints into, with `ControlHintsUI` consuming both
 restraint and contextual sources. Two instances justify it; one doesn't.
 
 ## Cassie Blockout — Deferred (Day 72)
-Apply object scale (0.5249) + reconcile guard unit scale (~9u vs her 3.96u) — rig/export time
+~~Apply object scale (0.5249)~~ **STALE — see Day 126.** + reconcile guard unit scale (~9u vs her 3.96u) — rig/export time
 REF_Guard linked collection, excluded from view layer — Link not Append, repeatable silhouette check
 Refine pass: ribcage/bust mass, then re-judge torso; candidate crotch 3.75→3.65 only if still short after
 
@@ -770,3 +770,41 @@ Harmless while drivers write localRotation directly. Resolve when the real
 Cassie model replaces the blockout, or before any humanoid clip work.
 
 DiD: Detective in Distress — Day 123. Deliberate genre targeting, not accidental. Open question: whether the title needs to carry the signal when tags and communities do the discovery. Revisit before the page build, week 7.
+
+## Day 126 — Cassie refine, file read
+
+- **Finger-separation notches.** (Owed from Day 122 — the brief said this was
+  deferred here and it never arrived.) Tip spread 0.0584; three notches gives
+  0.0146-wide lobes, 0.87% of height, below the read at L6 distance. Two notches
+  gives the wrong finger count. Order also wrong: on a curled fist the tip cap
+  isn't a silhouette element, the dorsal knuckle mass is. Revisit only if the fist
+  reads as a mitten in the real cel shader at poster distance — and if it does,
+  the fix is knuckle definition, not notches.
+
+- **Elbow and knee landmarks.** LowerArm.L and LowerLeg.L own zero vertices. The
+  strike bends clean at debugScrub 0.8 and 1.0, no pinch, so this is not a
+  deformation bug. It's a silhouette absence. Cost is ~8 verts against a budget
+  that is already at 240/240. **Do not open until shot 5 is framed** — if the shot
+  doesn't resolve an elbow, there's nothing to add.
+
+- **Vert cap is a project decision, not a platform limit.** 240 is self-imposed and
+  now fully spent, 43% of it in the head. If geometry is genuinely needed later,
+  raising the cap is legitimate. Raising it *at the gate* is not. Decide in advance
+  or not at all.
+
+- **Ribcage/bust mass** — carried forward from Day 72, still unscheduled. Current
+  read: probably already sufficient. Chest projects forward to y = −0.13727 at
+  z = 1.224 and the seven-ring taper reads in front ortho. Under a ribbed mock-neck
+  sweater in flat colour with a hard terminator, that may be the whole read. Treat
+  as a decision to close, not a task to schedule.
+
+- **Guard silhouette check is not repeatable.** Day 72 called for REF_Guard as a
+  linked collection excluded from the view layer, Link not Append. That didn't
+  happen — the guard is local objects and the Day 126 arrangement was unsaved when
+  the file was read, which made a file-only read show him unassembled. Do the
+  linked-collection version before the whole-figure exit condition, or the check
+  has to be rebuilt by hand every time.
+
+- **STALE — strike this Day 72 line:** `Apply object scale (0.5249)`. Superseded.
+  The brief specifies 0.4330 and apply, and Day 117 verified scale is already
+  (1,1,1) on both mesh and rig. The 0.5249 is from a dead scaling attempt.

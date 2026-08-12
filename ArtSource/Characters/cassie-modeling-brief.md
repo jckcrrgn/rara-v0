@@ -1,6 +1,6 @@
 # Cassie Modeling Brief — VS / Rara
 *Cel-shaded noir, low-poly. Pin next to Blender.*
-*Last read against `Cassie_Blockout.blend`: Rara Day 122 / 2026-08-08.*
+*Last read against `Cassie_Blockout.blend`: Rara Day 126 / 2026-08-12.*
 
 **Status: REFINE PASS.** The blockout is closed (see appendix). This document now
 governs turning the existing blockout mesh into the shippable Slice 1 character.
@@ -275,13 +275,23 @@ shading dies on contact with the shader. **Every stop condition below is a test 
 run in flat shading, at poster distance, not a poly count.**
 
 **Face — done when:**
-- Brow, nose, lip, and jaw read as *planes*, not as sculpted micro-detail.
-- Eyes read at poster distance in flat colour. If they only work up close and
-  smooth-shaded, they are too fine.
-- Freckles are texture, never geometry.
-- The expression reads dry and unimpressed at rest. Not scared, not neutral-blank.
-  If the resting face reads afraid, that's a "capable, not helpless" failure.
-- **Stop the moment you want to add a crease.** Cel shading will not show it.
+
+*These five conditions split across two passes. The geometry pass can satisfy 1
+and 5. Conditions 2, 3, and 4 are texture tests and cannot be evaluated until the
+head is unwrapped and the face is authored. "Face closed" without that
+qualification is a false reading of this list.*
+
+1. **[geometry]** Brow, nose, lip, and jaw read as *planes*, not as sculpted
+   micro-detail.
+2. **[texture]** Eyes read at poster distance in flat colour. If they only work up
+   close and smooth-shaded, they are too fine.
+3. **[texture]** Freckles are texture, never geometry.
+4. **[texture]** The expression reads dry and unimpressed at rest. Not scared, not
+   neutral-blank. If the resting face reads afraid, that's a "capable, not
+   helpless" failure. **An unfeatured head has no expression at all**, which is not
+   a pass — it is an untaken test.
+5. **[geometry]** **Stop the moment you want to add a crease.** Cel shading will
+   not show it.
 
 **Hair — done when:**
 - Crown and tail are a small number of carved masses, not strands.
@@ -427,26 +437,70 @@ above instead.
 
 ---
 
-## State (Day 122)
+## State (Day 126)
 
 Read from the file, not from recall:
 
-- **154 verts / 132 faces / 279 edges** base mesh. Mirror unapplied, so this is the
-  number to track — the viewport corner figure is the frame counter, not a vert
-  count. (124 at Day 118, 138 pre-thumb, 150 post-thumb, 154 post-curl.)
-- **Skinned.** All 21 vertex groups present and matching bone names. 21 bones.
-- **Modifiers: Mirror (X, Clipping on) + Armature.** Mirror is live and unapplied —
-  it halves the body work.
-- Torso rings set: V-to-waist taper and hip flare read correctly in front ortho.
-  Seven-ring profile measured — see *Skeletal landmarks vs. mesh silhouette*.
-- **Left hand closed.** Thumb (12 verts, all 100% `Hand.L`) and grip curl authored.
-- Side profile is **no longer flat** — this reverses the Day 118 note, which was
-  already stale when written. Chest projects forward to y = −0.13727 at z = 1.224;
-  seat projects back to y = +0.15348 at z = 0.907. Body depth 0.291 excluding feet.
+- **240 verts / 200 faces / 431 edges** base mesh — **the 240 cap is hit exactly.**
+  Mirror unapplied, so this is the number to track. (124 at Day 118, 138 pre-thumb,
+  150 post-thumb, 154 post-curl, 216 post-hair, 240 post-face.)
+- **53 verts sit on the mirror plane** (x = 0), so evaluated display is 427, not 480.
+- **Modifiers: Mirror (X, clipping on, tol 0.001) + Armature.** Both still live.
+- **Skinned.** All 21 vertex groups present, 240 MDeformVerts, nothing unweighted.
 
-**Mirror and hair:** resolved by the ponytail decision. A centred ponytail is
-symmetric on X, so it can be built inside the mirror with the rest of the body. No
-early apply, no separate object.
+### Budget by dominant vertex group (Day 126)
+
+| Group | Verts | z span |
+|---|---|---|
+| Head | 104 | 1.420–1.680 |
+| Hand.L | 28 | 0.783–0.930 |
+| Spine | 24 | 1.039–1.197 |
+| UpperLeg.L | 22 | 0.115–0.964 |
+| Neck | 16 | 1.331–1.466 |
+| Foot.L | 14 | −0.001–0.115 |
+| Chest | 12 | 1.218–1.356 |
+| UpperArm.L | 8 | 1.070–1.317 |
+| Foot.L.001 | 8 | 0.000–0.043 |
+| Hips | 4 | 0.957–0.959 |
+| **LowerArm.L** | **0** | — |
+| **LowerLeg.L** | **0** | — |
+| Shoulder.L | 0 | — |
+
+**The head is 104 of 240 — 43% of the whole budget.** Any further geometry
+anywhere requires raising the cap or reclaiming from the head. The cap is a
+project decision, not a platform limit; raise it deliberately if at all, never
+under gate pressure.
+
+**No vertex is owned by the forearm or the lower leg.** The arm runs UpperArm ring
+→ 0.140 m of unringed span → Hand. The leg runs hip to ankle in one group. Neither
+is broken — the strike bends clean at `debugScrub` 0.8 and 1.0 with no pinch — but
+there is no elbow or knee landmark in the silhouette. Whether that matters is a
+**shot 5 framing question, not a geometry question.** Decide it when the shot is
+framed, not before.
+
+- Torso rings set: taper and hip flare read correctly. See *Skeletal landmarks vs.
+  mesh silhouette*.
+- **Left hand closed** (Day 122). Thumb 12 verts, grip curl authored.
+- **Hair closed** (Day 125). Ponytail lift from one loop cut plus a sign change in
+  the top edge.
+- **Face GEOMETRY pass closed** (Day 125). Brow ring, nose ring, nose column and
+  ridge, lip mass, sulcus, chin. **The face itself is not closed.** There are no
+  eyes, no mouth line, and no freckles, and there cannot be until the head is
+  unwrapped — see open items. Three of the five face stop conditions are texture
+  tests and remain untaken. Do not carry "face done" forward into scheduling.
+- Side profile no longer flat. Chest to y = −0.13727 at z = 1.224; seat to
+  y = +0.15348 at z = 0.907. Body depth 0.291 excluding feet.
+
+### Anti-guard check — PASSED, Day 126
+
+Guard imported and scaled. Crown **1.7924** vs Cassie **1.680**; delta 0.1124 m =
+**0.502 head units**. Front and right ortho, side by side: he reads as a fridge,
+she reads as a figure. Blocky, flat-topped, untapered, no neck, against her taper
+and ponytail. **The whole-figure exit condition's anti-guard half is satisfied.**
+
+*Caution recorded: the guard arrangement was unsaved at the time of the Day 126
+file read, so a file-only read showed him unassembled. If a future read disagrees
+with this section, check the title bar for the asterisk before believing the file.*
 
 ---
 
@@ -477,8 +531,33 @@ early apply, no separate object.
       rig whose behaviour is already verified end-to-end.
 - [ ] `Hair_Mass` y-scale reads 0.3 in scene; the 0.34 in the recap appears to be
       an error. Moot once hair is modelled — the placeholder block goes away.
-- [ ] `rig: {fileID: 0}` on the Sit and Struggle drivers. Non-blocking (the beat
-      verifies end-to-end, and `player` resolves the same way). Confirm against
-      `CassieRigLayer.Awake` when convenient.
+- [x] ~~`rig: {fileID: 0}` on the Sit and Struggle drivers.~~ **Closed Day 126.**
+      Verified in play mode: Rig reads None in edit, `Cassie_Blockout` once
+      playing. Binds on Awake as expected. Not a bug.
+- [ ] **The head has no usable UVs.** 801 loops collapse to 117 unique UV coords;
+      (0.375, 0.75) repeats 70 times and (0.375, 0.5) repeats 68. That is the
+      default Blender cube-cross unwrap inherited from the blockout primitives,
+      overlapping and unusable. **Face texture authoring — eyes, mouth line,
+      freckles — is blocked on a head unwrap that does not exist yet.** Seams,
+      unwrap, layout. This is a task with no slot in the week 3 schedule and it
+      needs one.
+- [ ] **The export path has not been exercised since the refine pass began.**
+      Nothing has round-tripped Blender → FBX → Unity since Day 116. The Sep 1
+      gate is "done **and exported**," and the second half is entirely untested.
+      Do one throwaway export before the gate week, not during it.
 
-on a beveled box, corner verts are rounding geometry, not rings. Move them with a ring and a flat corner cap becomes a spike. If a group of verts needs to move together, scale the whole bevel about a plane — don't translate its parts by matching deltas.
+---
+
+## Modeling learnings
+
+- **On a beveled box, corner verts are rounding geometry, not rings.** Move them
+  with a ring and a flat corner cap becomes a spike. If a group of verts needs to
+  move together, scale the whole bevel about a plane — don't translate its parts by
+  matching deltas.
+- **Alt+S on box-corner verts splits displacement ~0.68 along the normal**, not a
+  pure-axis move.
+- **Loop cuts for structural rings.** Two points can't make a curve.
+- **Planarity over quad count** when the two trade off.
+- **Mesh silhouette numbers are not skeletal landmark numbers.** Three
+  "discrepancies" to date were transcription or category errors, never rig errors.
+  If a number disagrees with this document, read the .blend.
