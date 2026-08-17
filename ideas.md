@@ -808,3 +808,89 @@ DiD: Detective in Distress — Day 123. Deliberate genre targeting, not accident
 - **STALE — strike this Day 72 line:** `Apply object scale (0.5249)`. Superseded.
   The brief specifies 0.4330 and apply, and Day 117 verified scale is already
   (1,1,1) on both mesh and rig. The 0.5249 is from a dead scaling attempt.
+
+## Day 130 — Cassie jawline pass (deferred)
+
+Surfaced after the face texture read landed. Three profile corrections shipped
+this session (nose projection, cheekbone, lip prognathism); this is the fourth
+and it was too big for the remaining time.
+
+- **The chin is square.** Bottom ring half-width is **0.0360** against a skull
+  half-width of 0.0695 — the chin is **52% of head width** at its lower edge. The
+  canon render reads closer to 30%. This is the largest remaining gap between the
+  mesh and `refFrontWardrobe`, and the one Jack's eye keeps returning to
+  ("square chin that would make Batman jealous").
+
+- **Not a two-vert nudge — it's a shaped pass across three rings.** Each ring
+  needs both its verts moved together or the chin cap goes lopsided. Narrowing
+  the outer vert without bringing its inner partner along puts two verts ~4 mm
+  apart and produces a spike instead of a taper.
+
+  | z | verts | current x (outer / mid / inner) |
+  |---|---|---|
+  | 1.4849 | 63, 66, 238 | 0.0466 / 0.0435 / 0.0217 |
+  | 1.4681 | 235, 239 | 0.0397 / 0.0199 |
+  | 1.4512 | 60, 237 | 0.0360 / 0.0180 |
+
+  Rough target shape: bottom ring outer to ~0.022 with its inner partner to
+  ~0.011, 1.4681 outer to ~0.030, 1.4849 largely held so the jaw *angle* stays
+  and only the chin cap narrows. Tune as a curve, not three independent numbers.
+
+- **Estimate:** 20–30 minutes with a read after. High-energy session task, not a
+  tail-end-of-hour task. Vert count unchanged, UVs unchanged, mirror handles the
+  right side. No rig contact.
+
+- **Stop condition before opening it:** front ortho + 3/4, flat shading, at
+  poster distance, against the guard. Done when the chin reads tapered rather
+  than slabbed. **Not** when it matches the render — see below.
+
+- **The render will always look better resolved.** `refFrontWardrobe` governs
+  *which* features Cassie has, not how big or how dense, and her head is larger
+  relative to her body than the render's. A jawline that takes two painted
+  strokes is six verts here. Judge against the guard, not against the painting.
+
+### Width readings must be filtered by material
+
+The first pass at this diagnosis measured a "widest point" of 0.0824 at
+z = 1.5301 and concluded the mass sat too low on the face. **That vertex (176) is
+material 0 — the hair shell, not the skull.** Filtering to material 1 gave the
+real profile: a constant 0.0695 half-width from 14% to 67% of head height, i.e.
+no cheekbone at all, which is a different defect with a different fix.
+
+Same category error the brief keeps logging (the forearm ghost, the 0.170 hand
+length, the 0.5249 scale). Adding it here because the trigger is new: **head
+width readings include the hair shell unless you filter by material.**
+
+## Day 131 — Neck/head junction (deferred)
+
+Surfaced right after the jawline + chin-cap Y pass closed. Jack's read: "worried
+about how her neck meets her head." Not opened — two geometry passes already ran
+this session and the chin was the gate-critical one.
+
+**The junction is interpenetration, not a seam.** Neck top ring sits at
+z=1.4662; head bottom ring sits at z=1.4512. The neck column pokes 15mm *up
+into* a flat head underside. There is no transition geometry — no submandibular
+slope, no jaw-to-neck taper. The head bottom is a flat horizontal plane.
+
+| ring | z | verts | mat | half-width | y span |
+|---|---|---|---|---|---|
+| neck top | 1.4662 | 53, 55, 57, 59 | 0 | 0.0339 | −0.0448 → +0.0231 |
+| head bottom | 1.4512 | 60, 237, 94, 76, 89 | 1 | 0.0360 (v76 rear) | −0.1020 → +0.0558 |
+| neck next | 1.4050 | 164–167 | 0 | 0.0339 | −0.0459 → +0.0242 |
+
+**Today's pass probably sharpened this read.** Chin cap outer went 0.0360 →
+0.0225. Neck half-width is 0.0339 — so the neck is now *wider than the chin*,
+which it wasn't this morning. The junction didn't change; the thing above it
+did. Expect the fix to be partly in the neck, not only at the seam.
+
+Second contributor: chin front is y=−0.1020, neck front is y=−0.0448. A 57mm
+overhang, against a head height of 0.2138. Some overhang is correct — that's
+the jaw. Whether it's this much is the open question.
+
+**Material trap, again:** the neck is material 0, the skull is material 1.
+Any width or profile reading across this junction has to be filtered or it
+mixes two objects. Same category error as the hair shell.
+
+**Not yet scoped.** Decide first whether the hook clip ever frames it — if no
+shot sees under the jaw, this is post-launch. Check against the six shots
+before spending a session on it.
