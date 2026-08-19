@@ -408,7 +408,7 @@ fix is dorsal knuckle definition, not tip notches.
 
 ## Export
 
-FBX: **−Y Forward, Z Up**, Apply Scalings: FBX All, Selected Objects, **no Leaf
+FBX: **−Z Forward, Y Up**, Apply Scalings: FBX All, Selected Objects, **no Leaf
 Bones**. Unity Scale Factor 1.0.
 
 Tick Exclude on `_REF` before exporting.
