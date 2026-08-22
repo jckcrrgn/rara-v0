@@ -894,3 +894,71 @@ mixes two objects. Same category error as the hair shell.
 **Not yet scoped.** Decide first whether the hook clip ever frames it — if no
 shot sees under the jaw, this is post-launch. Check against the six shots
 before spending a session on it.
+
+## Day 134 — Body UV unwrap (fallout and constraints)
+
+Body unwrapped. Three things banked out of it, each with the numbers needed to
+reopen without re-diagnosing.
+
+### Hand island self-overlaps
+
+The 25-face hand island (mesh z 0.78–0.93) is cut only at the wrist ring, so the
+branched blob — palm, curled finger section, thumb — pancakes onto itself.
+`UV > Select > Overlap` catches it every time.
+
+**Harmless as long as the hand stays one flat skin colour.** Nothing reads
+wrong because every overlapping texel is the same colour. It only becomes a
+defect if dorsal knuckle shading is ever painted.
+
+**The fix, if it's ever needed:** ring seam at the thumb base, making the thumb
+its own island. Not a lengthwise palm cut — the curl means the palm side is
+never a silhouette element anyway (see the Day 122 notch reasoning in the
+brief, same argument).
+
+### Mirror U is ON — painted body art must be duplicated and flipped
+
+Cassie's Mirror modifier is flag 75 = clipping + vertex groups + X axis +
+**mirror U**. The mirrored half samples `1 − u`, not the same UVs.
+
+So the base half's islands live in **u 0–0.5** and the right side of her body
+reads from **u 0.5–1**, which is empty until it's painted. Workflow: paint the
+left half, then duplicate the layer and flip horizontally in Photopea. Region
+[a, b] maps exactly onto [1−b, 1−a].
+
+This is why the body was packed and then squashed with `S X 0.5` rather than
+filling the square. The head unwrap already followed this convention — face
+islands sit at u[0.138, 0.500] — so it's the file's existing rule, not a new one.
+
+Texels are 2:1 horizontally as a result. Invisible on flat colour, and a
+horizontal hem line stays horizontal. Do not "fix" it.
+
+**Why keep Mirror U on:** it's one modifier for the whole mesh, so it's
+all-or-nothing, and the face wants asymmetric freckles. The face wins.
+
+### Body and face are separate materials — separate textures
+
+`Cassie_Body` and `Cassie_Face` are different material slots with different
+images (`cassie_body_D.png`, `cassie_face_D.png`). The body does **not** need
+to pack around the head islands and doesn't.
+
+**If they're ever atlased into one material** — for the draw-call saving — the
+body needs a full repack, because both currently occupy overlapping regions of
+0–1 in the same UV layer. Cheap now, annoying later. Decide before painting
+anything detailed.
+
+### Material slot trap (cost: ~10 min this session)
+
+The material-name field in the shader editor header **replaces the material in
+the active slot**. It does not switch which slot you're editing — that's the
+`Slot N` dropdown to its left.
+
+Selecting `Cassie_Body` from that field while slot 3 was active overwrote
+`Cassie_Hair`. It dropped to zero users, and zero-user datablocks are not
+written on save. Recovered from the browse list before Blender restarted; had
+it restarted, yesterday's `#B84921` would have been gone.
+
+Face assignments survive this — the 28 crown/ponytail faces stayed on slot 3
+throughout. Only the material datablock is at risk.
+
+**Related:** `Ctrl+S` does not save image pixels. `Image > Save` is a separate
+action, every time.
