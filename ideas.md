@@ -962,3 +962,59 @@ throughout. Only the material datablock is at risk.
 
 **Related:** `Ctrl+S` does not save image pixels. `Image > Save` is a separate
 action, every time.
+
+## Day 136 — FBX round trip (first since Day 116)
+
+Throwaway export, 15 minutes, budgeted as a de-risk. It found two things and
+both were worth the trip.
+
+**All four checks passed.** Upright, correct axis (−Z Forward / Y Up), three
+material slots survived, nothing shears in the arms.
+
+### Textures do not travel through FBX
+
+FBX carries a filepath string and material slots, not images. Both textures
+are file-backed and unpacked (`//cassie_body_D.png`, `//cassie_face_D.png`,
+`packedfile = 0`) and live next to the .blend, outside `Assets/`. Unity had
+nothing to resolve, so it generated untextured materials. Nothing was lost —
+the clothing block-in is intact in the PNGs.
+
+The hair still came through auburn in the Project thumbnail. That is
+`#B84921` arriving as a Principled base colour, which is the one material
+property FBX carries without a file. Do not read it as "textures worked."
+
+**Real-export material step (~15 min, do once):** copy both PNGs to
+`Assets/Textures/`, build materials on `Rara/CelShaded` with each as Base
+Map, assign to the three slots, then set the model importer's Materials to
+None so Unity stops generating throwaway materials on every reimport.
+
+### Scale: NOTHING NEEDS APPLYING
+
+Round trip ran with no scale applied and put her at ~1.68 m against
+`_Ruler_2m`, and ~0.11 m under the guard's crown — matching the Day 126
+anti-guard delta. The chain already produces correct height end to end.
+
+**STRIKE from `cassie-modeling-brief.md`, Export section:** *"Blender data
+3.88 BU; scale 0.4330 and apply, then Unity Scale Factor 1.0."* Wrong number
+— 0.4330 is the armature span, the mesh factor is 0.4245 (mesh height
+3.9572 BU) — but more importantly the wrong *instruction*. Applying either
+value on top of a chain that already lands at 1.68 shrinks her to ~0.71 m.
+
+Same double-discount shape as the already-struck 0.5249 line: a correction
+applied to something that was corrected upstream. Third occurrence. The
+tell is a scale factor written down before the pipeline it describes exists.
+
+### Anti-guard condition now confirmed in-engine
+
+Front-on under the actual slat lighting, not only in Blender ortho. He reads
+as a fridge, she reads as a figure. The whole-figure exit condition's
+anti-guard half holds in the shipping renderer.
+
+Palette (exact, read from cassie_body_D.png Day 136):
+skin #E8B79A / camel #9B7346 / ivory #EDE3D1 / hair #B84921
+Four colours, zero anti-aliasing. Keep it that way — hard edges are the
+cel read.
+
+Face texture: fill the FULL 1024 canvas with skin before painting.
+cassie_body_D is 59% black between islands, which is invisible on the body
+but would bleed a dark rim at the jaw and hairline on the face.
