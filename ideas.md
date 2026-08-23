@@ -1018,3 +1018,24 @@ cel read.
 Face texture: fill the FULL 1024 canvas with skin before painting.
 cassie_body_D is 59% black between islands, which is invisible on the body
 but would bleed a dark rim at the jaw and hairline on the face.
+
+CASSIE SEATED BOUND POSE — Cassie_Blockout scene overrides
+Captured Rara Day 137 from VS_ShaderCheck.unity (identical in VS_Turnaround.unity).
+NOT in the FBX, NOT in the prefab asset. Scene-only. Destroyed by Revert All.
+fileIDs are Cassie_Blockout model-asset IDs; D136 is a different asset, so
+transfer is manual either way.
+
+fileID                 Euler (x, y, z)                quat (x, y, z, w)
+---------------------  -----------------------------  -----------------------------------
+-8679921383154817045   0, 0, 0        [ROOT]          0, 0, 0, 1     pos y -0.838
+-8790819200991850735   1.855, -4.231, 1.044           0.0158, -0.0371, 0.0097, 0.9991
+-5729378154859122509   7.906, (y/z not overridden)    0.0689, 0, 0, 0.9976
+ 5545462827199411212   -5.613, -0.463, -1.369         -0.0489, -0.0046, -0.0121, 0.9987
+-6131915425308919250   -0.047, -0.278, 48.052         -0.0014, -0.0021, 0.4071, 0.9134
+-5933143353430679065   9.006, -12.148, 88.01          -0.0171, -0.1301, 0.6947, 0.7073
+ 2965579352698239797   -7.585, 12.464, -61.797        -0.112, 0.0592, -0.5032, 0.8548
+ 392872707865606862    -7.39, 2.52, -79.733           -0.0635, -0.0245, -0.6384, 0.7667
+-1907169310371057590   63.229, -103.654, -103.742     0.7267, -0.1585, -0.1596, 0.6491
+-719924342113578459    100.528, 32.265, 47.16         0.7481, -0.1327, 0.0498, 0.6483
+ 8259906762516723408   67.219, 137.824, 141.052       0.799, 0.0713, 0.1103, 0.5868
+ 8407238315529531089   110.027, 39.83, 68.735         0.7461, -0.2736, 0.074, 0.6025

@@ -131,8 +131,9 @@ this document, read the .blend.**
 
 ## Locked proportions (skeletal)
 
-Final height **1.68 m**. Blender data 3.88 BU; scale 0.4330 and apply, then Unity
-Scale Factor 1.0. Verify against `_Ruler_Heads`.
+Final height **1.68 m**. Blender data 3.88 BU; scale already applied (1,1,1)
+on mesh and rig — do NOT apply any further factor. Unity Scale Factor 1.0.
+Verify against `_Ruler_Heads`.
 
 | Measure             | Length (m) | % of height |
 |---------------------|-----------|-------------|
