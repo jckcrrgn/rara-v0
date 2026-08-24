@@ -50,8 +50,37 @@ a roll silently invalidates the entire strike.
 | Foot     | ∓8.30     |
 | Toe      | ±171.70   |
 
-### Authored strike Eulers
-Six hand-tuned local-Euler pose targets, live in the **scene**, not the script.
+### Seated rest pose
+Cassie's bound-and-seated pose is **12 prefab overrides on the scene instance** —
+11 bone local rotations plus the root transform at y = -0.838. It exists in no
+.blend, no FBX, and no prefab asset. Every pose bone in `Cassie_Blockout.blend` is
+identity; the armature ships standing.
+
+`CassieRig` captures REST from these transforms at Awake, so the six authored
+strike Eulers are offsets *from this pose*. Lose it and the strike is meaningless
+even if the Eulers survive.
+
+Same destruction modes as the strike values below: Revert All, a bad scene merge,
+`git checkout` on the scene. Extracted to text Day 137 — keep that extract current.
+
+Verified Day 138: all four leg bones **are** posed, contrary to the Day 137 note
+that the legs did not transfer.
+
+| Bone         | Rotation (local Euler)     |
+|--------------|----------------------------|
+| `UpperLeg.L` | (100.528, 32.265, 47.16)   |
+| `LowerLeg.L` | (67.219, 137.82, 141.05)   |
+
+Both are ~99–106° about **local X** — the knee/hip bend axis — with matching
+values on the R side. The legs were never the problem; see the lower-leg
+deformation item under Open items.
+
+Retiring this is the point of authoring the seated pose in the .blend. Until that
+happens, this is the most fragile thing in the project.
+
+### Authored strike values
+Six hand-tuned local-Euler pose targets plus one contact scalar, live in the
+**scene**, not the script.
 The `CassieStrikeDriver.cs` field initializers are placeholder defaults and differ
 from every one of these. **Reverting the prefab or re-adding the component destroys
 them.** Never press Revert All.
@@ -64,10 +93,19 @@ them.** Never press Revert All.
 | `forearmStrikeEuler`       | (0.65, -41.6, 52.95)         |
 | `postStrikeUpperArmEuler`  | (-46.3, 156.9, 25.57)        |
 | `postStrikeForearmEuler`   | (-2.41, -31.8, 102.5)        |
+| `contactAt`                | 0.8                          |
 
 *Verified against VS_Turnaround.unity, Rara Day 117.* Mirrored into a dated
 comment block at the head of the pose-target fields in `CassieStrikeDriver.cs`
 (applied Day 117), so the values survive loss of the scene file.
+
+`contactAt` re-verified Day 138 in VS_ShaderCheck.unity — both scenes carry 0.8.
+The script's initializer is 0.6. Like the Eulers, the default is plausible enough
+that a silent revert would not be obvious in the viewport. It was omitted from the
+Day 117 audit because it is not an Euler; it is exactly as scene-only and exactly
+as destroyable. **The comment-block mirror in `CassieStrikeDriver.cs` does not yet
+carry it** — until it does, the redundancy has a hole in the place it was built to
+cover.
 
 **These Eulers were never wrong.** The wrist drift chased for weeks was a 12.8%
 forearm scale asymmetry (LowerArm.L 0.356 vs R 0.316), fixed on Day 116 — both now
@@ -535,17 +573,40 @@ with this section, check the title bar for the asterisk before believing the fil
 - [x] ~~`rig: {fileID: 0}` on the Sit and Struggle drivers.~~ **Closed Day 126.**
       Verified in play mode: Rig reads None in edit, `Cassie_Blockout` once
       playing. Binds on Awake as expected. Not a bug.
-- [ ] **The head has no usable UVs.** 801 loops collapse to 117 unique UV coords;
-      (0.375, 0.75) repeats 70 times and (0.375, 0.5) repeats 68. That is the
-      default Blender cube-cross unwrap inherited from the blockout primitives,
-      overlapping and unusable. **Face texture authoring — eyes, mouth line,
-      freckles — is blocked on a head unwrap that does not exist yet.** Seams,
-      unwrap, layout. This is a task with no slot in the week 3 schedule and it
-      needs one.
-- [ ] **The export path has not been exercised since the refine pass began.**
-      Nothing has round-tripped Blender → FBX → Unity since Day 116. The Sep 1
-      gate is "done **and exported**," and the second half is entirely untested.
-      Do one throwaway export before the gate week, not during it.
+- [x] ~~**The head has no usable UVs.**~~ **Closed Day 137.** Head unwrapped to two
+      clean disc islands, centerline pinned, Mirror U enabled, Select Overlap clean.
+      Face texture authored and validated in-engine Day 138.
+- [x] ~~**The export path has not been exercised since the refine pass began.**~~
+      **Closed Day 138.** Full round-trip done: Blender → `Cassie_D136.fbx` →
+      Unity, Humanoid avatar, arm chain mapped, seated pose transferred, all four
+      presentation layers firing, cel shader validated on the real mesh with real
+      textures. Wrists read clean at `debugScrub` 0.8 — no drift. The second half
+      of the Sep 1 gate is no longer untested.
+- [ ] **Lower-leg deformation. The pose is correct; the geometry is not.**
+      Loop heights down one leg: 0.783 thigh top, 0.660 mid-thigh, 0.469 knee,
+      0.115 ankle top, 0.063 ankle. The knee ring sits at exactly `LowerLeg`'s bone
+      head — correct. But there is **no loop anywhere between 0.469 and 0.115**:
+      35 cm of shin as one unsubdivided span absorbing a 106° bend. The knee ring's
+      verts split their weights between `UpperLeg` and `LowerLeg` and rotate
+      partway, which drags the silhouette corner off the knee and down the shin.
+      That is the visible kink. Fix: support loops at z ≈ 0.51 and z ≈ 0.43,
+      weighted 100% `UpperLeg` and 100% `LowerLeg` respectively, knee ring left
+      blended. +8 verts on the authored half, 240 → 248. Consider dialing
+      `LowerLeg` from 106° toward 90° at the same time — seated does not need 106,
+      and it halves what the geometry has to absorb. ~30 min, Blender, before
+      export.
+- [ ] **Skin tone is a multiply that exists only in a `.mat` file.** Both PNGs
+      paint skin at `#E8B79A`. The shipped tone is `#E8B79A × E9C6A7 = #D48E65`,
+      from `cassie_body_D.mat`'s Base Color. `cassie_face_D.mat` was set to match
+      Day 138. If the FBX importer ever regenerates these materials they come back
+      white and Cassie goes pale — and nothing will look broken enough to notice
+      quickly. Durable version: bake `#D48E65` into both PNGs, set both Base Colors
+      to white, one source of truth. That is a repaint, so it is a later decision.
+- [ ] **Textures live in two places.** Source PNGs are in `ArtSource/` (sibling of
+      `Assets/`, outside Unity's reach); working copies were copied into
+      `Assets/Art/Textures/` Day 138. Two files that can drift, and the one that
+      drifts silently is the one Unity reads. Eventual fix: point Photopea's export
+      target at `Assets/Art/Textures/` and let `ArtSource/` hold only the `.psd`.
 
 ---
 
