@@ -3,12 +3,27 @@ guid: 22d31df2335b87a43ab5befae53c9344
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Cassie_Body
+    second: {fileID: 2100000, guid: 73e91fcb9778ae84f98b0516fb996423, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Cassie_Face
+    second: {fileID: 2100000, guid: 50de971b3dcae444591a93d5540b6ef4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Cassie_Hair
+    second: {fileID: 2100000, guid: 7fc670ed38e2ab448bdc79a26076aa3b, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
     materialSearch: 2
-    materialLocation: 0
+    materialLocation: 1
   animations:
     legacyGenerateAnimations: 4
     bakeSimulation: 0
