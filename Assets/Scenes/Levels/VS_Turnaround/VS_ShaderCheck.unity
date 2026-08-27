@@ -2143,8 +2143,8 @@ MonoBehaviour:
   postStrikeOffArmFollow: 0.9
   postStrikeUpperArmEuler: {x: -46.3, y: 156.9, z: 25.57}
   postStrikeForearmEuler: {x: -2.41, y: -31.8, z: 102.5}
-  debugScrubEnabled: 0
-  debugScrub: 0.8
+  debugScrubEnabled: 1
+  debugScrub: -0.01
   verboseLogging: 1
 --- !u!114 &979654074
 MonoBehaviour:

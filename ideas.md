@@ -1039,3 +1039,48 @@ fileID                 Euler (x, y, z)                quat (x, y, z, w)
 -719924342113578459    100.528, 32.265, 47.16         0.7481, -0.1327, 0.0498, 0.6483
  8259906762516723408   67.219, 137.824, 141.052       0.799, 0.0713, 0.1103, 0.5868
  8407238315529531089   110.027, 39.83, 68.735         0.7461, -0.2736, 0.074, 0.6025
+
+## Day 140 — Forearm roll: thumbs wrong at rest
+
+Found at debugScrub 0.8 once the thumb existed. Not a regression — roll
+about the forearm axis was invisible on a thumbless hand, so it was never
+constrained when the strike was authored. Same class as the lower-leg kink:
+correct pose, wrong-looking geometry, only visible after a later refine.
+
+**BOTH forearms, at rest (s = 0). Not a mirror fault** — a bad mirror breaks
+one side. Thumbs face into the body; should face up. Systematic hand-to-bone
+orientation, present since the blockout.
+
+Twist axis on the forearm is **Y**, not X.
+
+**Measured:** forearmCoilEuler Y = 174.23 puts thumbs right AT COIL, in play
+mode only (not saved). That is a **184° delta** from the authored -10, but
+the eyeball estimate was 90°. Those disagree by 2×. Read the real angle off
+the Hand bone in Blender before committing to any rotation amount.
+
+**Coil is not the fix.** s = 0 is the seated bound pose — Sit, Struggle base,
+and the shot 2 poster frame. Patching coil fixes the one instant nobody
+photographs. It also makes Y sweep 174.23 → -41.6 = 216° across a 0.24s
+whip. Any correction composes WITH the authored -10, not instead of it.
+
+**Three fix classes:**
+1. *Rest pose (12 scene overrides).* Fixes all four layers at once. But
+   composition is `rest * offset`, so rolling rest moves every authored
+   strike pose, not just rolls it. Cost = fix + full strike re-author.
+2. *Per-layer Euler patches.* Preserves everything verified. Fixes nothing
+   at s = 0 unless Sit and Struggle carry their own offsets too. Three
+   drivers. Poster frame is the hardest one.
+3. *Roll the hand verts in Blender about the forearm axis.* Rig, bone rolls,
+   six Eulers, 12 overrides all untouched. Correct in every pose free,
+   because the hand rides the bone. **Likely cheapest correct fix.** Risk:
+   the wrist ring already splits Hand 0.94/0.05 one edge, 0.525/0.471 the
+   other (existing open item) — rolling introduces twist across that
+   junction. Probably invisible at 248 verts at poster distance; check it.
+
+**Gated on shot framing, not on geometry.** If hands read at ~40px in the
+poster frame, option 3 is a 20-min edit and the wrist twist is free. If
+shot 2 is close on bound wrists, different budget. Do not pick a fix
+before L6 shots 2 and 5 are framed.
+
+Any fix: re-verify wrist-to-wrist bound at 0.8 (validated Day 138 under the
+old orientation) and post-strike at 2.0 separately.
