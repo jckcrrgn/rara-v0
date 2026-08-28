@@ -582,19 +582,11 @@ with this section, check the title bar for the asterisk before believing the fil
       presentation layers firing, cel shader validated on the real mesh with real
       textures. Wrists read clean at `debugScrub` 0.8 — no drift. The second half
       of the Sep 1 gate is no longer untested.
-- [ ] **Lower-leg deformation. The pose is correct; the geometry is not.**
-      Loop heights down one leg: 0.783 thigh top, 0.660 mid-thigh, 0.469 knee,
-      0.115 ankle top, 0.063 ankle. The knee ring sits at exactly `LowerLeg`'s bone
-      head — correct. But there is **no loop anywhere between 0.469 and 0.115**:
-      35 cm of shin as one unsubdivided span absorbing a 106° bend. The knee ring's
-      verts split their weights between `UpperLeg` and `LowerLeg` and rotate
-      partway, which drags the silhouette corner off the knee and down the shin.
-      That is the visible kink. Fix: support loops at z ≈ 0.51 and z ≈ 0.43,
-      weighted 100% `UpperLeg` and 100% `LowerLeg` respectively, knee ring left
-      blended. +8 verts on the authored half, 240 → 248. Consider dialing
-      `LowerLeg` from 106° toward 90° at the same time — seated does not need 106,
-      and it halves what the geometry has to absorb. ~30 min, Blender, before
-      export.
+- [x] ~~**Lower-leg deformation. The pose is correct; the geometry is not.**~~
+      **Closed Day 139.** Support loops added at z ≈ 0.51 and z ≈ 0.43, weighted
+      100% `UpperLeg` / 100% `LowerLeg`, knee ring left blended. **Vert cap is now
+      248** (was 240) — the 240 figures throughout the Day 126 state snapshot above
+      are historical, not current.
 - [ ] **Skin tone is a multiply that exists only in a `.mat` file.** Both PNGs
       paint skin at `#E8B79A`. The shipped tone is `#E8B79A × E9C6A7 = #D48E65`,
       from `cassie_body_D.mat`'s Base Color. `cassie_face_D.mat` was set to match
