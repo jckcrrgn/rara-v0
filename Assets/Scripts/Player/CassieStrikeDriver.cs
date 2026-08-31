@@ -137,12 +137,12 @@ public class CassieStrikeDriver : CassieRigLayer
 	/// AUTHORED VALUES LIVE IN THE SCENE, NOT HERE (recorded Day 117, 2026-08-03)
 	/// -------------------------------------------------------------------------
 	/// Every field initializer below is a PLACEHOLDER. The real, hand-tuned poses
-	/// were authored via the scrub slider and serialized into VS_Turnaround.unity.
+	/// were authored via the scrub slider and serialized into VS_Turnaround.unity and VS_ShaderCheck.unity.
 	/// They are far from these defaults — upperArmStrikeEuler is (-105.8, 138.6,
 	/// 14.7) in the scene against (-30, 130, 20) here. The defaults are plausible
 	/// enough that a silent revert to them may not be obvious in the viewport.
 	///
-	/// This means the authored strike exists in exactly ONE place. It is destroyed
+	/// This means the authored strike exists in exactly 3 places: this block, VS_Turnaround.unity, and VS_ShaderCheck.unity. It is destroyed
 	/// by: Revert All on the prefab, removing and re-adding this component, or a
 	/// bad merge on the scene file. NEVER PRESS REVERT ALL.
 	///
@@ -154,11 +154,18 @@ public class CassieStrikeDriver : CassieRigLayer
 	///     forearmStrikeEuler       (  0.65, -41.6,  52.95 )
 	///     postStrikeUpperArmEuler  (-46.3,  156.9,  25.57 )
 	///     postStrikeForearmEuler   ( -2.41, -31.8, 102.5  )
+	///     contactAt                (  0.8               )
+	///
+	/// contactAt added Day 143. It is not an Euler, which is why the Day 117 audit
+	/// missed it — but it is exactly as scene-only and exactly as destroyable. The
+	/// initializer above is 0.6; a silent revert would move the hit earlier in the
+	/// swing without looking broken. Verified 0.8 in both VS_Turnaround.unity and
+	/// VS_ShaderCheck.unity, Day 138 and Day 143.
 	///
 	/// mirrorOffArm = true. Correct ONLY because the armature's L/R rolls mirror
 	/// exactly (Shoulder ±102.26, UpperArm ±146.81, LowerArm ±146.70, Hand
 	/// ±147.35). The rolls are a project invariant — changing one silently
-	/// invalidates every value above.
+	/// invalidates every Euler above.
 	///
 	/// DO NOT RETUNE THESE. The wrist drift chased through Day 115 was never the
 	/// Eulers — it was a 12.8% forearm scale asymmetry (LowerArm.L 0.356 vs R

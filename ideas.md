@@ -892,7 +892,7 @@ Any width or profile reading across this junction has to be filtered or it
 mixes two objects. Same category error as the hair shell.
 
 **Not yet scoped.** Decide first whether the hook clip ever frames it — if no
-shot sees under the jaw, this is post-launch. Check against the six shots
+shot sees under the jaw, this is post-launch. Check against the seven shots
 before spending a session on it.
 
 ## Day 134 — Body UV unwrap (fallout and constraints)

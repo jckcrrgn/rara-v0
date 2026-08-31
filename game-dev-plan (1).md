@@ -9,7 +9,7 @@
 
 The original plan scoped a small complete game shipped to itch.io in 13 weeks,
 with Patreon as an afterthought. Rara is not that. It's a 12-level, three-act
-first-person noir puzzle-escape game, and it will take years, not weeks. Every
+third-person noir puzzle-escape game, and it will take years, not weeks. Every
 milestone in the old document was measuring the wrong thing.
 
 What replaced it: **ship a vertical slice, launch on the strength of it, fund the
@@ -68,11 +68,30 @@ The playable demo becomes the **first post-launch milestone, mid-October** — w
 was the honest Slice 1 date all along. Day-one backers get something imminent to
 wait for rather than arriving after the interesting part.
 
+### The seven shots (locked Day 143)
+
+| # | Shot | Function |
+|---|------|----------|
+| 1 | **Knot** | Establish. Bound wrists, close. The cover promise. |
+| 2 | **Poster** | The hero frame. Page banner comes from here. |
+| 3 | **Stills** | The room. Noir texture, slat light, atmosphere. |
+| 4 | **Check** | She clocks the moment. Setup for the strike. |
+| 5 | **Strike** | Dramatic peak, mid-clip. Bottle, contact, shards. |
+| 6 | **Back On It** | Back to the bond. Competence, not victory lap. |
+| 7 | **Free** | Hands free. The clip ends here, always. |
+
+The peak sits at 5 and the clip still ends on escape. That ordering is the
+genre read: puzzle-escape, not action. A clip that ends on the strike is a
+different game than the one being built.
+
+Two dressing zones cover all seven: the **chair corner** (1, 2, 3, 6, 7) and
+the **contact zone** (4, 5).
+
 ### In scope for September 19
 
 - L6 dressed and lit, camera-side only
 - Cassie refined — one character model, shippable
-- The 6-shot hook clip, ~48 seconds, cut
+- The seven-shot hook clip, ~48 seconds, cut
 - Bottle smash + SFX pass
 - Cel shader validated on the real character
 - Patreon page live
@@ -91,7 +110,7 @@ wait for rather than arriving after the interesting part.
 
 *Rate revised Day 126.* Observed rate is ~99 sessions across 126 days = **0.79
 sessions/day**. Against 38 days remaining to launch that is **~30 sessions**, not
-40. The table below floors at 32.
+40. The table below floors at 30.
 
 **The plan's own arithmetic no longer clears its own minimum.** Week 2 finishing on
 day 2 of 7 is real recovered slack the rate figure doesn't capture, so this is
@@ -103,9 +122,9 @@ insurance and become a live schedule. Bottle SFX is first.
 | Cassie refine — **critical path** | 15–20 |
 | L6 dressing + lighting | 8–10 |
 | Hook clip shoot + cut | 4–5 |
-| Bottle SFX + audio | 3 |
+| Bottle SFX + audio | 1 |
 | Page build + copy | 2–3 |
-| **Total** | **32–41** |
+| **Total** | **30–39** |
 
 There is no meaningful slack. That is a known property of this plan, not an
 oversight — see *Pre-committed cuts* below.
@@ -121,7 +140,7 @@ oversight — see *Pre-committed cuts* below.
 | 3 | Aug 17–23 | Cassie: **head unwrap (seams, unwrap, layout) → face texture authoring.** Cel shader validation. Strike + struggle re-verify. **Test export early in the week, not at the gate.** |
 | 4 | Aug 24–30 | L6 dressing. Set pieces, props, the bar. |
 | 5 | Aug 31–Sep 6 | L6 lighting. Slat shadow, key/rim, poster frame composition. |
-| 6 | Sep 7–13 | Shoot six shots. Cut to ~48s. Bottle SFX. |
+| 6 | Sep 7–13 | Shoot the seven shots. Cut to ~48s. Bottle SFX (one session). |
 | 7 | Sep 14–19 | Page build, copy, hero image. **Launch Sat Sep 19.** |
 
 ### The one gate
@@ -138,12 +157,15 @@ discover it on September 14 instead of September 1 when it's still cheap.
 Decided now, in advance, so a bad week doesn't turn into a scope argument in
 week 6. If sessions are lost, cut **in this order**:
 
-1. **Bottle SFX.** The clip works silent with title-card text.
-2. **Shots 4 and 6.** A 4-shot clip ending on hands free still lands. Shot 2 (the
-   poster) and shot 5 (the strike) are never cut.
+1. **Bottle SFX.** Scoped at one session. The clip works silent with
+   title-card text.
+2. **Stills, then Back On It.** A five-shot clip still lands: establish,
+   poster, the beat before, the strike, hands free. **Poster, Strike, and
+   Free are never cut, and Knot is the only thing that establishes bound.**
 3. **Tiers down to two.** $3 and $8, nothing else.
-4. **L6 dressing reduced to what shots 2 and 5 frame.** Dress the corners of the
-   room that no camera sees never, but especially not under pressure.
+4. **L6 dressing reduced to the chair corner and the contact zone.** Dress
+   the corners of the room that no camera sees never, but especially not
+   under pressure.
 
 **What is never cut:** Cassie. She's the critical path and the only thing that
 can't be faked, shot around, or added later.
