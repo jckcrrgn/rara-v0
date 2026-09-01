@@ -3062,9 +3062,6 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
-    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: d34e9a352662a5841be035c3fc231be9, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1954020749}
     - targetCorrespondingSourceObject: {fileID: -4114265985620090974, guid: d34e9a352662a5841be035c3fc231be9, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1674656237}
@@ -5978,12 +5975,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1954020748}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: -0, y: 0.9949802, z: -0, w: -0.10007172}
+  m_LocalPosition: {x: 5.6990514, y: 0.022000015, z: 7.150012}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1109725795}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1954020751
 MonoBehaviour:
@@ -5997,7 +5994,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da7ba6dad15667c41ba45ff8c24e11f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  strikeDriver: {fileID: 1109725799}
+  strikeDriver: {fileID: 979654073}
   smashOrigin: {fileID: 1205098897}
   bottleVisual: {fileID: 1205098894}
   swingTarget: {fileID: 1299264755}
@@ -6020,13 +6017,13 @@ MonoBehaviour:
   proportionRange: {x: 0.7, y: 1.4}
   shardCount: 6
   scatterRadius: 0.12
-  launchSpeed: 1.8
+  launchSpeed: 1.6
   spin: 8
   shardLifetime: 8
   coneAngle: 70
   coneBias: 1.6
   coneLift: 12
-  speedVariance: {x: 0.55, y: 1.45}
+  speedVariance: {x: 0.55, y: 1.15}
   smashClip: {fileID: 0}
   smashVolume: 1
   drawConeGizmo: 1
@@ -6678,6 +6675,7 @@ SceneRoots:
   - {fileID: 325089616}
   - {fileID: 1885064324}
   - {fileID: 300691259}
+  - {fileID: 1954020749}
   - {fileID: 8205259987904620297}
   - {fileID: 51733068}
   - {fileID: 1007953697}
