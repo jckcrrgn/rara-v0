@@ -3530,7 +3530,8 @@ Transform:
   m_LocalPosition: {x: -0.0069999294, y: 0.07700016, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1837236014}
   m_Father: {fileID: 1790634289}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: -84.625}
 --- !u!1 &1264245222
@@ -5430,6 +5431,37 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 365fda585fa1f51479202df9d29876b2, type: 3}
   m_PrefabInstance: {fileID: 115692142}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1837236013
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1837236014}
+  m_Layer: 0
+  m_Name: SmashPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1837236014
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1837236013}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.168, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1205098897}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1885064321
 GameObject:
   m_ObjectHideFlags: 0
@@ -5995,7 +6027,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   strikeDriver: {fileID: 979654073}
-  smashOrigin: {fileID: 1205098897}
+  smashOrigin: {fileID: 1837236014}
   bottleVisual: {fileID: 1205098894}
   swingTarget: {fileID: 1299264755}
   tangentSkew: -25
@@ -6026,7 +6058,7 @@ MonoBehaviour:
   speedVariance: {x: 0.55, y: 1.15}
   smashClip: {fileID: 0}
   smashVolume: 1
-  drawConeGizmo: 1
+  drawConeGizmo: 0
 --- !u!1 &2006802562
 GameObject:
   m_ObjectHideFlags: 0
@@ -6616,7 +6648,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4707550437705702102, guid: 046ff1e148847414782d65dd2597ab51, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5128466075513445714, guid: 046ff1e148847414782d65dd2597ab51, type: 3}
       propertyPath: m_LocalPosition.x
