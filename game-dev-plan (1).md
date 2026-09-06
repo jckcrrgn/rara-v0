@@ -106,28 +106,24 @@ the **contact zone** (4, 5).
 
 ---
 
-## Budget
+## Budget (revised Day 150)
 
-*Rate revised Day 126.* Observed rate is ~99 sessions across 126 days = **0.79
-sessions/day**. Against 38 days remaining to launch that is **~30 sessions**, not
-40. The table below floors at 30.
+Structure changed Day 149. The exterior scene, the rope prop, and
+recorded VO are all new; audio stopped being cuttable when it became
+the spine of the story.
 
-**The plan's own arithmetic no longer clears its own minimum.** Week 2 finishing on
-day 2 of 7 is real recovered slack the rate figure doesn't capture, so this is
-tight rather than broken — but the pre-committed cut order below has stopped being
-insurance and become a live schedule. Bottle SFX is first.
+~11 sessions remain against 12–17 of work. **The plan is over budget
+at best case.** Cut #1 below is taken now, not held in reserve.
 
 | Work | Sessions |
 |---|---|
-| Cassie refine — **critical path** | 15–20 |
-| L6 dressing + lighting | 8–10 |
-| Hook clip shoot + cut | 4–5 |
-| Bottle SFX + audio | 1 |
+| `VS_Exterior` build + dress + light | 2–3 |
+| Rope prop — bound state, absent at strike | 1–2 |
+| Guard LeanIn static pose | 1 |
+| VO — script, record, edit | 2–3 |
+| Shoot seven + cut | 4–5 |
 | Page build + copy | 2–3 |
-| **Total** | **30–39** |
-
-There is no meaningful slack. That is a known property of this plan, not an
-oversight — see *Pre-committed cuts* below.
+| **Total** | **12–17** |
 
 ---
 
@@ -152,23 +148,28 @@ discover it on September 14 instead of September 1 when it's still cheap.
 
 ---
 
-## Pre-committed cuts
+## Pre-committed cuts (re-derived Day 150)
 
-Decided now, in advance, so a bad week doesn't turn into a scope argument in
-week 6. If sessions are lost, cut **in this order**:
+The Day 117 order is dead. #1 was Bottle SFX — audio is load-bearing
+now. #2 was Stills and Back On It — those shots no longer exist.
 
-1. **Bottle SFX.** Scoped at one session. The clip works silent with
-   title-card text.
-2. **Stills, then Back On It.** A five-shot clip still lands: establish,
-   poster, the beat before, the strike, hands free. **Poster, Strike, and
-   Free are never cut, and Knot is the only thing that establishes bound.**
-3. **Tiers down to two.** $3 and $8, nothing else.
-4. **L6 dressing reduced to the chair corner and the contact zone.** Dress
-   the corners of the room that no camera sees never, but especially not
-   under pressure.
+Cuts have expiry dates. A cut is only cheap before the session that
+builds the thing.
 
-**What is never cut:** Cassie. She's the critical path and the only thing that
-can't be faked, shot around, or added later.
+1. **EXT warehouse.** ~2–3 sessions for one establishing shot in a
+   scene that exists nowhere yet. Knot establishes instead — it always
+   did. **Cut by: before `VS_Exterior` is opened.**
+2. **Rope, cheap version.** Untextured cylinders at the wrists, no
+   swap — frame the strike off the hands instead of hiding a prop.
+   Recovers ~1. **Cut by: rope session start.**
+3. **VO down to noir title cards.** Recovers 1–2. Stops being
+   available the day recording happens. **Cut by: record day.**
+4. **Tiers down to two.** $3 and $8.
+5. **Dressing reduced to chair corner and contact zone.**
+
+**Never cut:** Cassie. Poster (the page hero comes from it). Strike
+(the peak). Knot (the only thing that establishes bound). Page build
+— no page, no launch.
 
 ---
 
