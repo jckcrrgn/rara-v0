@@ -1,6 +1,8 @@
 # Cassie Modeling Brief — VS / Rara
 *Cel-shaded noir, low-poly. Pin next to Blender.*
 *Last read against `Cassie_Blockout.blend`: Rara Day 126 / 2026-08-12.*
+*Amended Rara Day 153 / 2026-09-08 — rope section added, finger-notch deferral reopened.
+No new file read; the Day 126 state snapshot is still historical and the vert cap is 248.*
 
 **Status: REFINE PASS.** The blockout is closed (see appendix). This document now
 governs turning the existing blockout mesh into the shippable Slice 1 character.
@@ -442,6 +444,114 @@ reasons that should stand unless the cel-shader test contradicts them:
 Notches are not in the hands stop condition. The curl is. Revisit only if the fist
 reads as a mitten in the actual cel shader at poster distance — and if it does, the
 fix is dorsal knuckle definition, not tip notches.
+
+> **REOPENED Day 153 — the deferral was argued at L6 distance and the Knot shot
+> is not at L6 distance.**
+>
+> Reason 1 above is entirely a distance argument: 0.0146-wide lobes are 0.87% of
+> her height, which is below the read *at L6 camera distance*. Shot 1 (Knot) is
+> TIGHT ON the bound wrists. It is the closest the camera ever gets to anything
+> in the clip, and it is the first eight seconds of the launch asset. At that
+> distance 0.87% of height is not below the read — it is most of the frame.
+>
+> Reason 2 still stands and is not a distance argument: on a curled fist the tip
+> cap is not the silhouette, the dorsal knuckle mass is. **But the Knot hands are
+> not curled.** The curl was authored to close on the bottle. In Knot the fingers
+> are working at rope — open, extended, tips forward. Reason 2 is about the grip
+> pose and does not transfer to the knot pose.
+>
+> Neither reason survives the shot. This does not mean build notches — it means
+> the question is now open on evidence rather than closed on the Day 122
+> argument. **Test first:** frame `CAM_Shot5_Alt` (or whatever ends up shooting
+> Knot) on the hands in the real cel shader and look. Build only what fails.
+>
+> Related and larger: **the entire hand was authored to L6-distance stop
+> conditions** — "stop at knuckle planes, no nails, no tendons, no palm creases."
+> Those stop conditions were correct for every shot in the clip except this one.
+> Hand length 0.1598 with a single mid-ring loop cut per finger is a lot of
+> geometry to put in a macro frame. If Knot reads poor, the cheap fixes in order
+> are: pull the camera back until it reads (free), soften the key so the shader
+> terminator does less work (free), then geometry (not free).
+>
+> **Also promoted by this shot:** the open *Wrist ring weight split* item below.
+> A 0.94 / 0.525 mismatch on the same ring is a shear risk that was acceptable at
+> L6 and is not obviously acceptable eight seconds into a macro shot of that exact
+> ring. Check it at `debugScrub` 0.8 when the hand next goes to Unity.
+
+---
+
+## Rope (Day 153)
+
+Found as a gap while framing Shot 5: the script has called for rope since it was
+written and there is no rope in the project. Shot 1 is TIGHT ON it.
+
+### The decision — separate object, not part of `Cassie_Mesh`
+
+**Locked.** The rope is its own object, exported separately, parented to a bone
+in Unity the same way `Bottle_Held` is.
+
+The reason is not modelling convenience. Adding rope geometry to `Cassie_Mesh`
+touches, in one operation, every fragile thing in the project at once:
+
+- the **248 vert cap** (247 of which are budgeted; the head alone is 104)
+- the **skinning** — 21 vertex groups, 248 MDeformVerts, nothing unweighted, and
+  weight sums already running 0.94–0.99 mesh-wide
+- the **12 scene-level prefab overrides** that are the entire seated bound pose
+  and exist in no `.blend`, no FBX, and no prefab asset
+- the **six authored strike Eulers plus `contactAt`**, which are offsets from
+  that pose and are meaningless without it
+
+A separate object touches none of them. It also makes the rope disable-able as a
+single object at the shot 3→4 gap, which is a hard continuity requirement — see
+staging, below. Geometry welded into `Cassie_Mesh` cannot be turned off.
+
+### Measurements
+
+| Measure | Value |
+|---|---|
+| Wrist-to-wrist loop, enclosed area | ~0.112 × 0.056 |
+| Strand thickness | 0.008–0.012 |
+| Carved loops | two or three, then stop |
+
+Cross-check against the hand table above: hand length is **0.1598**, knuckle ring
+spread 0.0749, tip ring spread 0.0584. The 0.112 enclosure is wider than a single
+knuckle ring and narrower than two hands side by side, which is the correct read
+for wrists crossed and bound.
+
+The 0.008–0.012 strand at 1.68 m height is 0.5–0.7% of the figure. That is below
+the read at L6 and is **deliberately not being sized for L6** — Knot is a macro
+shot and the rope is its subject. Do not thin it toward the L6 read.
+
+### Stop condition
+
+**Two or three carved loops, then stop.** Same failure mode as hair: the moment
+you start modelling individual strands or a braid twist, you are past the shader.
+Cel shading is flat colour plus outline; a twist that only exists under soft
+shading dies on contact.
+
+The rope is also the one place in the clip where "capable, not helpless" is being
+tested at maximum resolution. It reads as *a thing being worked* — her fingers
+are already on it in the first frame — not as a restraint doing its job. If the
+rope looks more competent than she does, the shot has failed.
+
+### Open
+
+- [ ] **Wrist-to-wrist bound test is still untaken.** The hands stop condition
+      requires the two hands sit wrist-to-wrist without interpenetrating, and
+      that has always been a Unity check against the mirrored right hand rather
+      than a Blender one. The rope is what forces it — build the loop to the
+      enclosure above and the interpenetration shows up immediately or does not.
+- [ ] **Which bone.** `Bottle_Held` is the pattern. The rope spans both wrists,
+      so parenting to one hand means the other hand's motion slides through it.
+      At Knot framing and a locked pose this is probably invisible; decide it
+      deliberately rather than discovering it.
+
+### Staging — the rope disables at the shot 3→4 gap, not at the Strike
+
+`Rope` off and `Bottle_Held` on are **the same off-camera beat**, between Peek
+and Gloat. This is why her hands are out of frame in Gloat. Disabling the rope at
+the Strike is one shot too late. Full staging notes live in
+`cassie-hook-clip.md`.
 
 ---
 

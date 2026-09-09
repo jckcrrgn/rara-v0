@@ -2,26 +2,10 @@
                         CASSIE CONROY: SUB ROSA
 
                              Hook Clip
-                          Approx. 48 seconds
+                          Approx. 39 seconds
 
 
 FADE IN:
-
-EXT. WAREHOUSE DISTRICT - NIGHT
-
-Rain lances through the halogen glow of a solitary street lamp.
-
-Beyond the light, the dark hulk of a warehouse. One window, dimly
-lit, high in the black mass.
-
-                    THUG (V.O.)
-          We got a problem, boss. We found
-          that snoop digging around.
-
-                    BOSS (V.O.)
-          And where is she now?
-
-CUT TO:
 
 INT. WAREHOUSE - NIGHT
 
@@ -83,21 +67,66 @@ FADE OUT.
 
 | # | Shot | Sec |
 |---|------|-----|
-| 1 | EXT. Warehouse | 9 |
-| 2 | Knot | 8 |
-| 3 | Poster | 7 |
-| 4 | Peek | 6 |
-| 5 | Gloat | 7 |
-| 6 | Strike | 5 |
-| 7 | Title | 6 |
-| | **Total** | **48** |
+| 1 | Knot | 8 |
+| 2 | Poster | 7 |
+| 3 | Peek | 6 |
+| 4 | Gloat | 7 |
+| 5 | Strike | 5 |
+| 6 | Title | 6 |
+| | **Total** | **39** |
 
-The cut from 5 to 6 lands on the word *helpless*. Everything else can
+The cut from 4 to 5 lands on the word *helpless*. Everything else can
 flex; that one cannot.
+
+> **EXT. Warehouse cut (Day 153).** Was shot 1, 9 seconds. Knot establishes
+> instead. Every shot number below renumbered down by one — if you find an
+> old reference to "shot 6 / the strike" anywhere, it means shot 5 now.
+> `game-dev-plan.md` was already written in this numbering and needs no change
+> except its stale "~48 seconds."
+>
+> **The opening V.O. went with it.** The exchange *"We got a problem, boss.
+> We found that snoop digging around." / "And where is she now?"* played over
+> the EXT and does not fit on an 8-second Knot. Cut rather than kept — the clip
+> opens cold on "Secured," which is an answer to a question you never hear, and
+> that is the right register. To restore it, Knot goes to ~13s and the clip
+> back to 44s.
 
 ## Continuity
 
-- Shot 2 plants that she is working the knots. Shot 6 reveals she won.
+- Shot 1 plants that she is working the knots. Shot 5 reveals she won.
   Nothing between them may show her hands.
-- She reads bound in shot 3. No bottle visible anywhere before shot 6.
-- She acquires the bottle off-camera between shots 4 and 5.
+- She reads bound in shot 2. No bottle visible anywhere before shot 5.
+- She acquires the bottle off-camera between shots 3 and 4.
+
+---
+
+## Staging invariants
+
+**The rope-off and bottle-on are the same off-camera beat.** Between shot 3
+(Peek) and shot 4 (Gloat), `Rope` disables and `Bottle_Held` enables. This is
+why her hands are out of frame in Gloat — the rope is already gone by then, not
+at the Strike. "Gone by Strike" is one shot too late; author the disable at the
+3→4 gap.
+
+Consequence: `Bottle_Held` exists in the scene across shots 1–3 even though the
+continuity rule says no bottle before shot 5. **Cast Shadows off on
+`Bottle_Held`** — an object out of frame still throws a shadow into it.
+
+**Guard shoulder / upper-arm vs. the light shaft cone.** `armNear` currently has
+**4 of 8 verts inside the cone**. That margin is the staging invariant, not the
+guard's position — he was moved in to put the bottle on his temple, and the cone
+intersection is the cost of that move. If the guard or the shaft is ever
+re-staged, re-count. Zero verts inside reads as him standing outside his own
+key; all eight reads as him lit like a subject rather than a slab.
+
+**Before capture:** `verboseLogging` off on the live strike driver. Exactly one
+Shot 5 camera enabled — `CAM_Shot5_Strike` and `CAM_Shot5_Alt` are both at
+depth −1 and will fight for the output.
+
+**`CAM_Shot5_Alt` is undecided.** Either it replaces the Shot 5 framing, or it
+becomes the Knot angle and Shot 5 keeps `CAM_Shot5_Strike`. Ortho size untuned
+either way. Decide before dressing anything to it.
+
+**Frame Shot 5 in play mode only.** Cassie's runtime crown sits ~0.36 m below
+her edit-mode position (Player y settles to 0.5 on Play from an edit-mode 0.86).
+Edit-mode framing of this shot is wrong every time.
