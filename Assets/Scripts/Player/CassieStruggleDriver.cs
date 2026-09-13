@@ -25,6 +25,20 @@ using UnityEngine;
 ///
 /// Only fires on real struggles: the event can't fire while feigning (Struggle input
 /// is suppressed there), so it's naturally silent during inspections.
+///
+/// DAY 156
+/// -------
+/// Two changes, both found while testing the wrist lashing against this layer.
+///
+/// 1. `wristTwistAxis` had never been tuned off its placeholder (0,0,1), which is a
+///    TRANSVERSE axis on this rig. Every struggle since Day 77 has been swinging the
+///    forearms, not rolling them — the hands came apart instead of grinding together,
+///    which is the opposite of the motion this file's header describes. Long axis is
+///    local Y. See the note on the field.
+///
+/// 2. Added a debug scrub, mirroring CassieStrikeDriver's. Unlike the strike this
+///    layer has no timeline to scrub — the pose exists only while a press is decaying,
+///    so there was no way to hold a frame, judge it, or shoot it.
 /// </summary>
 public class CassieStruggleDriver : CassieRigLayer
 {
@@ -61,13 +75,38 @@ public class CassieStruggleDriver : CassieRigLayer
 	[SerializeField] private float headTwist = 10f;
 
 	[Header("Wrists (twist against each other)")]
-	[Tooltip("Local axis of the FOREARM to roll about — the wrist-twist axis. Unknown " +
-		"until you see it on the blockout; tune against the viewport. Normalised at runtime.")]
-	[SerializeField] private Vector3 wristTwistAxis = new Vector3(0f, 0f, 1f);
+	[Tooltip("Local axis of the FOREARM to roll about — the wrist-twist axis. This MUST " +
+		"be the bone's LONG axis (the one pointing at the hand), or AngleAxis becomes a " +
+		"swing instead of a roll and the wrists translate apart instead of grinding " +
+		"together. On Cassie_D136 the long axis is local Y — verified Day 156 against " +
+		"LowerArm.R in the scene view. Normalised at runtime.")]
+	// Day 156: was (0,0,1) — the untuned initializer, which is TRANSVERSE on this rig.
+	// A 20 deg swing about it walks the wrist ~0.238 * sin(20) = 0.081 m, roughly nine
+	// cord widths, which is what made the left wrist slide out of the lashing. The
+	// scene instances serialize their own copy of this value: fixing it here does NOT
+	// fix them. Set it on each Cassie instance by hand.
+	[SerializeField] private Vector3 wristTwistAxis = new Vector3(0f, 1f, 0f);
 	[Tooltip("Peak wrist roll in degrees. L and R roll in OPPOSITE directions so they " +
 		"grind against each other — if they twist the SAME way on your rig, negate this " +
 		"amplitude for one side or flip the axis.")]
 	[SerializeField] private float wristTwistAmplitude = 20f;
+
+	[Header("Debug")]
+	[Tooltip("Overrides the press envelope with the two sliders below so you can HOLD a " +
+		"struggle frame in Play Mode. Presses are ignored while this is on. Needed for " +
+		"anything you have to judge or photograph — the struggle is event-driven and has " +
+		"no timeline, so without this the only way to see it is to mash. Remember to untick.")]
+	[SerializeField] private bool debugScrubEnabled = false;
+
+	[Tooltip("Effort level to hold. 1 = the intensity a sustained mash settles at.")]
+	[Range(0f, 1f)]
+	[SerializeField] private float debugIntensity = 1f;
+
+	[Tooltip("Position within one grind cycle, 0..1. The twist extremes — and so the " +
+		"worst case for anything bound to a wrist — are at 0.25 and 0.75. 0 and 0.5 are " +
+		"the neutral crossings.")]
+	[Range(0f, 1f)]
+	[SerializeField] private float debugPhase01 = 0.25f;
 
 	private float _energy;      // press target: topped to 1 per attempt, decays over `sustain`
 	private float _intensity;   // smoothed follower of _energy — what actually scales the motion
@@ -109,6 +148,17 @@ public class CassieStruggleDriver : CassieRigLayer
 
 	public override void Contribute(float dt)
 	{
+		// Tuning mode: pose follows the sliders, the envelope doesn't run. On untick,
+		// _energy is wherever the live path left it (normally 0) and _intensity eases
+		// back to it over `attack` — so leaving scrub mode is smooth, not a pop.
+		if (debugScrubEnabled)
+		{
+			_intensity = debugIntensity;
+			_phase     = debugPhase01 * Mathf.PI * 2f;
+			ApplyPose(Mathf.Sin(_phase));
+			return;
+		}
+
 		// Effort decays toward zero; each press refunds it. Intensity chases through
 		// the attack ramp so it can never step.
 		_energy    = Mathf.MoveTowards(_energy, 0f, dt / Mathf.Max(0.01f, sustain));
@@ -123,8 +173,16 @@ public class CassieStruggleDriver : CassieRigLayer
 		}
 
 		_phase += dt * (Mathf.PI * 2f) / Mathf.Max(0.01f, cyclePeriod);
-		float w = Mathf.Sin(_phase);   // -1..1, the grind oscillation
+		ApplyPose(Mathf.Sin(_phase));   // -1..1, the grind oscillation
+	}
 
+	/// <summary>
+	/// Applies the pose for one oscillation sample. Split out Day 156 so the debug scrub
+	/// and the live envelope drive exactly the same code — a scrub that poses her by a
+	/// second route is a scrub you can't trust what you saw in.
+	/// </summary>
+	private void ApplyPose(float w)
+	{
 		// Torso: forward lean held for the duration of the effort (unipolar, with a
 		// small surge at each twist peak) plus a side-to-side search twist. Chest adds
 		// a fraction so it's a whole-upper-body strain, not a hinge at the waist.
@@ -138,7 +196,7 @@ public class CassieStruggleDriver : CassieRigLayer
 
 		// Wrists: roll about the forearm axis, counter-rotating — twisting against
 		// each other within the rope. Rotation only, so the hands stay together.
-		Vector3 axis = wristTwistAxis.sqrMagnitude > 0.0001f ? wristTwistAxis.normalized : Vector3.forward;
+		Vector3 axis = wristTwistAxis.sqrMagnitude > 0.0001f ? wristTwistAxis.normalized : Vector3.up;
 		float roll = wristTwistAmplitude * w * _intensity;
 		AddOffset(HumanBodyBones.LeftLowerArm,  Quaternion.AngleAxis( roll, axis));
 		AddOffset(HumanBodyBones.RightLowerArm, Quaternion.AngleAxis(-roll, axis));
