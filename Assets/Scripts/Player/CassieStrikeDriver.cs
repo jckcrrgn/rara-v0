@@ -606,4 +606,7 @@ public class CassieStrikeDriver : CassieRigLayer
 	{
 		if (verboseLogging) Debug.Log($"[CassieStrikeDriver] {msg}");
 	}
+
+	[ContextMenu("Debug: Play Strike")]
+	private void DebugPlayStrike() => Play();
 }
