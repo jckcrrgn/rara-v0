@@ -2668,9 +2668,9 @@ MonoBehaviour:
   rig: {fileID: 979654075}
   order: 2
   windupDuration: 0.2
-  swingDuration: 0.5
-  followThroughHold: 0.4
-  settleDuration: 0.9
+  swingDuration: 0.3
+  followThroughHold: 0.3
+  settleDuration: 0.4
   contactAt: 0.8
   swingWithRightHand: 1
   mirrorOffArm: 1
@@ -6621,7 +6621,7 @@ MonoBehaviour:
   shardLifetime: 8
   coneAngle: 70
   coneBias: 1.6
-  coneLift: 12
+  coneLift: 20
   speedVariance: {x: 0.55, y: 1.15}
   smashClip: {fileID: 0}
   smashVolume: 1
