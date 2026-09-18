@@ -201,4 +201,8 @@ public class CassieStruggleDriver : CassieRigLayer
 		AddOffset(HumanBodyBones.LeftLowerArm,  Quaternion.AngleAxis( roll, axis));
 		AddOffset(HumanBodyBones.RightLowerArm, Quaternion.AngleAxis(-roll, axis));
 	}
+
+	/// <summary>Day 162 — recording aid. Tops up effort from script exactly as a press
+	/// does. Called only by CassieShot4Driver; no gameplay path calls this.</summary>
+	public void ShotPulse() => _energy = 1f;
 }
