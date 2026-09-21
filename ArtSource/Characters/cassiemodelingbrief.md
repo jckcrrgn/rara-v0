@@ -105,9 +105,7 @@ comment block at the head of the pose-target fields in `CassieStrikeDriver.cs`
 The script's initializer is 0.6. Like the Eulers, the default is plausible enough
 that a silent revert would not be obvious in the viewport. It was omitted from the
 Day 117 audit because it is not an Euler; it is exactly as scene-only and exactly
-as destroyable. **The comment-block mirror in `CassieStrikeDriver.cs` does not yet
-carry it** — until it does, the redundancy has a hole in the place it was built to
-cover.
+as destroyable. Mirrored into the CassieStrikeDriver.cs comment block Day 143. The redundancy is complete.
 
 **These Eulers were never wrong.** The wrist drift chased for weeks was a 12.8%
 forearm scale asymmetry (LowerArm.L 0.356 vs R 0.316), fixed on Day 116 — both now
@@ -587,6 +585,8 @@ above instead.
 ---
 
 ## State (Day 126)
+
+Historical. Vert cap is 248 as of Day 139 — every 240 figure below is superseded. Read the .blend for current numbers.
 
 Read from the file, not from recall:
 

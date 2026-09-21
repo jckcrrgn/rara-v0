@@ -1,4 +1,5 @@
 # Rara — Slice 1 Launch Plan
+**Status Day 166:** Launched Sep 19 as an itch page with donations; no Patreon. Active milestone: Demo, Oct 17.
 *Written Rara Day 117 / 2026-08-03. Replaces the original game-dev-plan.md.*
 
 **Launch date: Saturday, September 19, 2026.**
@@ -292,7 +293,39 @@ under pressure.
 
 ## After launch
 
-- **Mid-October:** playable Slice 1 demo to backers. First milestone delivered.
+- **Oct 17:** public playable demo on itch — see *Demo* below.
 - Weekly devlog cadence continues.
 - Next scope decision — L7, or polish L6 further — is deferred until after launch.
   Don't plan it now.
+
+---
+
+## Demo — Slice 1 playable (added Day 166)
+
+**Date: Sat Oct 17, 2026.** Public, free, on itch. No Patreon, no tiers.
+The demo is the discovery asset now, not a backer reward.
+
+**Scene:** `VS_Demo.unity` — built from `VS_ShaderCheck` (real Cassie,
+Day 156 wrist axis, authored strike values), shoot rigging switched off.
+**Build profile:** `Demo – Windows`, scene list = VS_Demo only.
+
+**Verified Day 166:** full loop wins in VS_Demo — struggle on TableEdge →
+wrists free → bottle → feign → LeanIn → strike → victory line →
+LEVEL COMPLETE holds.
+
+### Fix list
+- [ ] Guard facing — GuardController moves him, never turns him. Fixed
+      15° yaw from Guard_Pivot for the whole route.
+- [ ] Guard lean — walks in and stays upright. Swap to Guard_D133_Lean
+      on LeanIn, back on Leaving.
+- [ ] Camera framing under the shoot lighting — judge from the Game view.
+- [ ] End card — WinText → itch link + owned channel.
+- [ ] Owned channel (Discord / email) — the end card needs it.
+- [ ] Web vs Windows — WebGL cel-shader test this week if Web.
+- [ ] Cold playtest by someone who has never seen it.
+
+### Lesson
+Shoot scenes switch off gameplay to get clean frames. VS_ShaderCheck had
+GuardController, Bottle, TableEdge, Canvas, and the guard's pivot all
+inactive. **Diff active states against the last playable scene before
+building from a shoot scene.**
