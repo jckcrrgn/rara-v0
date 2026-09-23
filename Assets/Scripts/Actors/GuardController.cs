@@ -203,6 +203,25 @@ public class GuardController : MonoBehaviour
 		"obstacle, so one point south of it gives full line-of-sight to the rest.")]
 	[SerializeField] private Transform[] leanInWaypoints;
 
+	[Tooltip("How fast the guard turns to face where he's walking, in degrees " +
+		"per second. He turns WHILE he walks, so this only shapes how the turn " +
+		"reads, never the walk timing. ~360 reads as a deliberate pivot. 0 = snap.")]
+	[SerializeField] private float turnSpeed = 360f;
+
+	// -------------------------------------------------------------------------
+	// Inspector — Lean Pose
+	// -------------------------------------------------------------------------
+
+	[Header("Lean Pose")]
+	[Tooltip("The upright guard model (Guard_D133). Active everywhere except the " +
+		"in-her-face gloat.")]
+	[SerializeField] private GameObject standingModel;
+
+	[Tooltip("The leaning guard model (Guard_D133_Lean). Swapped in once he has " +
+		"closed the distance and turned to face Cassie; swapped back out the " +
+		"moment he starts Leaving. Leave unwired to skip the swap entirely.")]
+	[SerializeField] private GameObject leanModel;
+
 	// -------------------------------------------------------------------------
 	// Inspector — Audio
 	// -------------------------------------------------------------------------
@@ -330,6 +349,14 @@ public class GuardController : MonoBehaviour
 	// Player reference — resolved once at Start.
 	private PlayerController player;
 
+	// The model's facing correction, captured from guardBody's authored LOCAL
+	// rotation at Start. Guard_Pivot's forward is the direction he's authored to
+	// face (in VS_Demo it points at Cassie's chair, ~14.9° yaw); Guard's local
+	// 146.358° is the correction that makes the D133 model's front line up with
+	// it. So "face direction d" = LookRotation(d) * facingOffset. Derived from
+	// the scene rather than hardcoded, so re-authoring the pivot just works.
+	private Quaternion facingOffset = Quaternion.identity;
+
 	// -------------------------------------------------------------------------
 	// Unity Lifecycle
 	// -------------------------------------------------------------------------
@@ -374,6 +401,11 @@ public class GuardController : MonoBehaviour
 			if (sg != null) guardBody = sg.transform;
 		}
 
+		if (guardBody != null && guardBody.parent != null)
+			facingOffset = guardBody.localRotation;
+
+		SetLean(false);
+
 		StartCoroutine(OffstagePhase());
 	}
 
@@ -405,7 +437,12 @@ public class GuardController : MonoBehaviour
 		// Snap the body to its offstage anchor — he's out of sight between
 		// check-ins. No-op if no body/anchor wired.
 		if (guardBody != null && offstageAnchor != null)
+		{
 			guardBody.position = offstageAnchor.position;
+			if (doorAnchor != null)
+				guardBody.rotation = FacingFor(doorAnchor.position - offstageAnchor.position);
+		}
+		SetLean(false);
 
 		// Auto-release feign at the start of the offstage window. The guard
 		// has left; there's no reason to hold the pose. Covers the case where
@@ -437,8 +474,14 @@ public class GuardController : MonoBehaviour
 		SetState(GuardState.AtDoor);
 		Log("Guard at door — feign window CLOSED. Inspecting...");
 
-		// Hold beat before sampling — lets the tension land.
-		yield return new WaitForSeconds(inspectionHoldDuration);
+		// Hold beat before sampling — lets the tension land. He turns to look at
+		// her inside the hold, so the total hold time is unchanged.
+		float holdStart = Time.time;
+		if (player != null)
+			yield return TurnToFace(player.transform.position);
+		float remaining = inspectionHoldDuration - (Time.time - holdStart);
+		if (remaining > 0f)
+			yield return new WaitForSeconds(remaining);
 
 		// Inspection outcome. Feign is only load-bearing once Cassie has visible
 		// escape evidence to hide. No evidence + not feigning = a bound prisoner
@@ -506,6 +549,12 @@ public class GuardController : MonoBehaviour
 		// he closes); if it lands, OnGuardDowned's StopAllCoroutines freezes him here.
 		yield return MoveBodyAtSpeed(ComputeLeanInPoint(), guardMoveSpeed);
 
+		// Square up to her, THEN lean. The last leg ends pointed along the walk
+		// (waypoint → standoff point), which is close to her but not at her.
+		if (player != null)
+			yield return TurnToFace(player.transform.position);
+		SetLean(true);
+
 		// In her face now — the taunt. He says the same kind of thing every time;
 		// he can't tell this one's different. The player can cut him off by
 		// striking (H dismisses the mutter and swings — handled in PlayerController).
@@ -531,6 +580,9 @@ public class GuardController : MonoBehaviour
 	{
 		SetState(GuardState.Leaving);
 		Log("Guard leaving — receding to offstage.");
+
+		// Straighten up before he turns away.
+		SetLean(false);
 
 		if (AudioManager.Instance != null && leaveFootstepsClip != null)
 			AudioManager.Instance.PlaySFX(leaveFootstepsClip, footstepsVolume, 1f);
@@ -703,11 +755,13 @@ public class GuardController : MonoBehaviour
 
 		Vector3 start = guardBody.position;
 		Vector3 end = target.position;
+		Quaternion face = FacingFor(end - start);
 		float t = 0f;
 		while (t < duration)
 		{
 			t += Time.deltaTime;
 			guardBody.position = Vector3.Lerp(start, end, Mathf.Clamp01(t / duration));
+			StepTurn(face);
 			yield return null;
 		}
 		guardBody.position = end;
@@ -736,14 +790,62 @@ public class GuardController : MonoBehaviour
 		}
 
 		float duration = distance / speed;
+		Quaternion face = FacingFor(end - start);
 		float t = 0f;
 		while (t < duration)
 		{
 			t += Time.deltaTime;
 			guardBody.position = Vector3.Lerp(start, end, Mathf.Clamp01(t / duration));
+			StepTurn(face);
 			yield return null;
 		}
 		guardBody.position = end;
+	}
+
+	/// <summary>
+	/// Body rotation that points the MODEL's front along a world direction
+	/// (yaw only). Zero-length direction keeps the current rotation.
+	/// </summary>
+	private Quaternion FacingFor(Vector3 direction)
+	{
+		if (guardBody == null) return Quaternion.identity;
+		direction.y = 0f;
+		if (direction.sqrMagnitude < 0.0001f) return guardBody.rotation;
+		return Quaternion.LookRotation(direction.normalized, Vector3.up) * facingOffset;
+	}
+
+	/// <summary>One frame of turning toward `target` at turnSpeed. 0 = snap.</summary>
+	private void StepTurn(Quaternion target)
+	{
+		if (guardBody == null) return;
+		guardBody.rotation = turnSpeed <= 0f
+			? target
+			: Quaternion.RotateTowards(guardBody.rotation, target, turnSpeed * Time.deltaTime);
+	}
+
+	/// <summary>Turn in place until facing a world point. Used at the door and
+	/// at the end of the lean-in walk.</summary>
+	private IEnumerator TurnToFace(Vector3 worldPoint)
+	{
+		if (guardBody == null) yield break;
+		Quaternion target = FacingFor(worldPoint - guardBody.position);
+		while (Quaternion.Angle(guardBody.rotation, target) > 0.5f)
+		{
+			StepTurn(target);
+			yield return null;
+		}
+		guardBody.rotation = target;
+	}
+
+	/// <summary>
+	/// Swap between the upright and leaning guard models. No-op if the lean
+	/// model isn't wired, so an unwired scene keeps the upright guard.
+	/// </summary>
+	private void SetLean(bool lean)
+	{
+		if (leanModel == null) return;
+		if (standingModel != null) standingModel.SetActive(!lean);
+		leanModel.SetActive(lean);
 	}
 
 	/// <summary>
