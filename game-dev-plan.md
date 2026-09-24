@@ -314,11 +314,16 @@ wrists free → bottle → feign → LeanIn → strike → victory line →
 LEVEL COMPLETE holds.
 
 ### Fix list
-- [ ] Guard facing — GuardController moves him, never turns him. Fixed
-      15° yaw from Guard_Pivot for the whole route.
-- [ ] Guard lean — walks in and stays upright. Swap to Guard_D133_Lean
-      on LeanIn, back on Leaving.
+- [x] ~~Guard facing~~ **Done Day 167.** Turns along route, faces Cassie at door.
+- [x] ~~Guard lean~~ **Done Day 167.** Swap on LeanIn/Leaving, feet matched.
+- [ ] Guard hit reaction — StrikeableGuard logs "stagger" but nothing moves.
+      Guard is one unrigged mesh (FBX checked Day 168), so no ragdoll.
+      Procedural crumple: sink + squash, then topple away from Cassie.
+- [ ] HUD — "Holding: Bottle" persists after the smash. Clear on contact.
 - [ ] Camera framing under the shoot lighting — judge from the Game view.
+      **Promoted Day 168:** scene fills ~5% of frame; strike and shards
+      unreadable. Shard-vs-head check (swingTarget sits on Guard, not the
+      lean model) is settled here, not before.
 - [ ] End card — WinText → itch link + owned channel.
 - [ ] Owned channel (Discord / email) — the end card needs it.
 - [ ] Web vs Windows — WebGL cel-shader test this week if Web.

@@ -231,6 +231,18 @@ Next steps for mutter:
   some follow) rather than global mode shift. Boundary-clamped so
   camera doesn't reveal off-room space.
 
+- Over-the-shoulder 3rd person, RE4R-style (Day 168): Reopens the Day 38
+  fixed-camera call. The Day 38 revisit condition ("if Act 2 levels start
+  feeling spatially distant") arguably fired in the Day 168 playtest —
+  scene at ~5% of frame, strike unreadable. Would also resolve the GDD's
+  UNRESOLVED perspective box. This is a camera controller, not a framing
+  pass. **Not for the Oct 17 demo** — demo ships fixed, just closer.
+  Decide at Saturday review.
+
+- Guard ragdoll (Day 168): Guard_D133 is one unrigged mesh, so a ragdoll
+  needs a rig first (= guard refinement, scoped out). Demo gets a
+  procedural crumple instead. Revisit when the guard gets a real model.
+
 ## Art / Rendering
 - Cel outline — floating outline on hard/thin geometry (Day 63): inverted-hull
   outline pass splits at divergent normals (box corners, chair tubes), so the
