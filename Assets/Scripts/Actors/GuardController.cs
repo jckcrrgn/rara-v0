@@ -425,6 +425,20 @@ public class GuardController : MonoBehaviour
 		Log("Guard DOWNED. Cycle stopped.");
 	}
 
+	/// <summary>
+	/// Stop all guard movement and turning WITHOUT changing state. Called by
+	/// StrikeableGuard the instant the strike lands, so the procedural crumple
+	/// owns the body transform from frame one — otherwise a mid-walk strike
+	/// leaves MoveBodyAtSpeed / StepTurn fighting the crumple until Downed.
+	/// State stays LeanIn until OnGuardDowned(); Downed timing is unchanged.
+	/// (Day 169)
+	/// </summary>
+	public void FreezeMovement()
+	{
+		StopAllCoroutines();
+		Log("Guard movement frozen (strike landed).");
+	}
+
 	// -------------------------------------------------------------------------
 	// State Machine Phases
 	// -------------------------------------------------------------------------

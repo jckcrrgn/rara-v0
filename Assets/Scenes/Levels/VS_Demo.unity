@@ -2109,6 +2109,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   staggerDuration: 1
+  crumpleBody: {fileID: 0}
+  buckleFraction: 0.25
+  buckleSink: 0.15
+  buckleScale: {x: 1.05, y: 0.88, z: 1.05}
+  toppleAngle: 80
+  toppleLift: 0.2
   strikeImpactClip: {fileID: 0}
   guardDownClip: {fileID: 0}
   sfxVolume: 1
@@ -4499,6 +4505,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   staggerDuration: 1
+  crumpleBody: {fileID: 0}
+  buckleFraction: 0.25
+  buckleSink: 0.15
+  buckleScale: {x: 1.05, y: 0.88, z: 1.05}
+  toppleAngle: 80
+  toppleLift: 0.3
   strikeImpactClip: {fileID: 0}
   guardDownClip: {fileID: 0}
   sfxVolume: 1
@@ -5410,6 +5422,7 @@ MonoBehaviour:
   holdingText: {fileID: 1514693542}
   player: {fileID: 1333935372}
   indicatorRoot: {fileID: 499393491}
+  strikeDriver: {fileID: 0}
 --- !u!1 &1559892572
 GameObject:
   m_ObjectHideFlags: 0
