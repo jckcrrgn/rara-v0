@@ -328,6 +328,12 @@ LEVEL COMPLETE holds.
 - [ ] Owned channel (Discord / email) — the end card needs it.
 - [ ] Web vs Windows — WebGL cel-shader test this week if Web.
 - [ ] Cold playtest by someone who has never seen it.
+- [ ] - [x] ~~HUD — "Holding: Bottle" persists after the smash.~~ **Done Day 169.** Clears on contact.
+- [x] ~~Web vs Windows~~ **Web, Day 170 (provisional).** Slat shadows + outlines survive WebGL. Face banding rechecked on the first post-framing web build.
+- [ ] Guard reads very dark in the web build — compare to editor Game view.
+- [ ] Top HUD / controls panel clipped in web build — recheck after framing.
+
+Build note: Code Optimization = Shorter Build Time for tests, Runtime Speed for the Oct 17 upload. Builds live outside Assets/ and never go in git.
 
 ### Lesson
 Shoot scenes switch off gameplay to get clean frames. VS_ShaderCheck had

@@ -80,6 +80,10 @@ using UnityEngine.Events;
 /// anchors aren't wired, movement is skipped and the slice still runs on the
 /// abstract state machine alone.
 ///
+/// HEIGHT (Day 171): with lockBodyHeight on, every move and snap keeps the
+/// guard at his authored scene Y (captured at Start). Anchor and waypoint Y
+/// is ignored, so a mis-placed anchor can no longer sink or float him.
+///
 /// SINGLETON
 /// ---------
 /// Same pattern as LevelTimer and MutterSystem. Wire one instance per VS scene.
@@ -207,6 +211,10 @@ public class GuardController : MonoBehaviour
 		"per second. He turns WHILE he walks, so this only shapes how the turn " +
 		"reads, never the walk timing. ~360 reads as a deliberate pivot. 0 = snap.")]
 	[SerializeField] private float turnSpeed = 360f;
+
+	[Tooltip("Keep the guard at his authored scene height on every move, ignoring " +
+		"anchor/waypoint Y. Off = anchors' Y drives his height (old behaviour).")]
+	[SerializeField] private bool lockBodyHeight = true;
 
 	// -------------------------------------------------------------------------
 	// Inspector — Lean Pose
@@ -357,6 +365,10 @@ public class GuardController : MonoBehaviour
 	// the scene rather than hardcoded, so re-authoring the pivot just works.
 	private Quaternion facingOffset = Quaternion.identity;
 
+	// The guard's authored world Y, captured at Start before anything moves him.
+	// With lockBodyHeight on, every move/snap target is flattened to this height.
+	private float bodyY;
+
 	// -------------------------------------------------------------------------
 	// Unity Lifecycle
 	// -------------------------------------------------------------------------
@@ -400,6 +412,8 @@ public class GuardController : MonoBehaviour
 			StrikeableGuard sg = FindFirstObjectByType<StrikeableGuard>();
 			if (sg != null) guardBody = sg.transform;
 		}
+
+		if (guardBody != null) bodyY = guardBody.position.y;
 
 		if (guardBody != null && guardBody.parent != null)
 			facingOffset = guardBody.localRotation;
@@ -452,7 +466,7 @@ public class GuardController : MonoBehaviour
 		// check-ins. No-op if no body/anchor wired.
 		if (guardBody != null && offstageAnchor != null)
 		{
-			guardBody.position = offstageAnchor.position;
+			guardBody.position = OnFloor(offstageAnchor.position);
 			if (doorAnchor != null)
 				guardBody.rotation = FacingFor(doorAnchor.position - offstageAnchor.position);
 		}
@@ -731,7 +745,7 @@ public class GuardController : MonoBehaviour
 		// seen popping from the door after fade-in. OffstagePhase will also
 		// place him there, but doing it under the fade avoids the visible pop.
 		if (guardBody != null && offstageAnchor != null)
-			guardBody.position = offstageAnchor.position;
+			guardBody.position = OnFloor(offstageAnchor.position);
 	}
 
 	// -------------------------------------------------------------------------
@@ -768,7 +782,7 @@ public class GuardController : MonoBehaviour
 		}
 
 		Vector3 start = guardBody.position;
-		Vector3 end = target.position;
+		Vector3 end = OnFloor(target.position);
 		Quaternion face = FacingFor(end - start);
 		float t = 0f;
 		while (t < duration)
@@ -791,6 +805,8 @@ public class GuardController : MonoBehaviour
 	private IEnumerator MoveBodyAtSpeed(Vector3 end, float speed)
 	{
 		if (guardBody == null) yield break;
+
+		end = OnFloor(end);
 
 		Vector3 start = guardBody.position;
 		float distance = Vector3.Distance(start, end);
@@ -826,6 +842,16 @@ public class GuardController : MonoBehaviour
 		direction.y = 0f;
 		if (direction.sqrMagnitude < 0.0001f) return guardBody.rotation;
 		return Quaternion.LookRotation(direction.normalized, Vector3.up) * facingOffset;
+	}
+
+	/// <summary>
+	/// Flatten a move/snap target to the guard's authored height when
+	/// lockBodyHeight is on. Anchor/waypoint Y is ignored. (Day 171)
+	/// </summary>
+	private Vector3 OnFloor(Vector3 p)
+	{
+		if (lockBodyHeight && guardBody != null) p.y = bodyY;
+		return p;
 	}
 
 	/// <summary>One frame of turning toward `target` at turnSpeed. 0 = snap.</summary>
