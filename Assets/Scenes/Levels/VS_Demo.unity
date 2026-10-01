@@ -6266,6 +6266,33 @@ MonoBehaviour:
   snapHiddenOnStart: 1
   peekOnStart: 1
   peekNow: 0
+--- !u!1 &1735608659 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4707550437705702102, guid: 046ff1e148847414782d65dd2597ab51, type: 3}
+  m_PrefabInstance: {fileID: 9189937284300119568}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1735608664
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1735608659}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 776110520e8c18147adf57944debc097, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  target: {fileID: 1333935376}
+  yawOffset: 0
+  offset: {x: 0.45, y: 1.35, z: -1.4}
+  lookPoint: {x: 0.15, y: 0.9, z: 2.5}
+  positionSmoothTime: 0.25
+  rotationSharpness: 6
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 0
+  cameraRadius: 0.2
 --- !u!4 &1790634289 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8727927942516596988, guid: 22d31df2335b87a43ab5befae53c9344, type: 3}
@@ -8006,7 +8033,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3751153978251006614, guid: 046ff1e148847414782d65dd2597ab51, type: 3}
       propertyPath: field of view
-      value: 70
+      value: 50
       objectReference: {fileID: 0}
     - target: {fileID: 3751153978251006614, guid: 046ff1e148847414782d65dd2597ab51, type: 3}
       propertyPath: m_BackGroundColor.b
@@ -8075,7 +8102,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4707550437705702102, guid: 046ff1e148847414782d65dd2597ab51, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1735608664}
   m_SourcePrefab: {fileID: 100100000, guid: 046ff1e148847414782d65dd2597ab51, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
