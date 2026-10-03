@@ -330,7 +330,7 @@ LEVEL COMPLETE holds.
 - [ ] Cold playtest by someone who has never seen it.
 - [ ] - [x] ~~HUD — "Holding: Bottle" persists after the smash.~~ **Done Day 169.** Clears on contact.
 - [x] ~~Web vs Windows~~ **Web, Day 170 (provisional).** Slat shadows + outlines survive WebGL. Face banding rechecked on the first post-framing web build.
-- [ ] Guard reads very dark in the web build — compare to editor Game view.
+- [x] Guard reads very dark in the web build — compare to editor Game view. Closed Day 173: shader design, reads fine in editor at LeanIn.
 - [ ] Top HUD / controls panel clipped in web build — recheck after framing.
 
 Build note: Code Optimization = Shorter Build Time for tests, Runtime Speed for the Oct 17 upload. Builds live outside Assets/ and never go in git.
