@@ -1096,3 +1096,5 @@ before L6 shots 2 and 5 are framed.
 
 Any fix: re-verify wrist-to-wrist bound at 0.8 (validated Day 138 under the
 old orientation) and post-strike at 2.0 separately.
+
+Escalation ladder (Day 175): one multi-path level where getting caught escalates the restraint (chair tie -> cuffed to post). Each rung must make escape harder and open a different route, so failing is a cost, not a reward. Decide post-demo.
