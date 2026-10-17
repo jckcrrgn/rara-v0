@@ -3223,7 +3223,7 @@ MonoBehaviour:
   isLevelComplete: 0
   levelCompleteUI: {fileID: 1264245222}
   gameCompleteUI: {fileID: 0}
-  autoAdvance: 1
+  autoAdvance: 0
   autoAdvanceDelay: 1.75
   entryMutter: 'Chair. Rope. Mid-range hotel room. Cute... '
 --- !u!4 &1007953697
@@ -3292,7 +3292,7 @@ PrefabInstance:
     - target: {fileID: 1421004131026076372, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
       propertyPath: speakerConfigs.Array.data[1].worldAnchor
       value: 
-      objectReference: {fileID: 2017001412}
+      objectReference: {fileID: 0}
     - target: {fileID: 1421004131026076372, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
       propertyPath: speakerConfigs.Array.data[0].mutterRootOverride
       value: 
@@ -6799,9 +6799,7 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'LEVEL COMPLETE
 
-    Press R to restart
-
-    Press N for next level'
+    Press R to restart'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -7218,7 +7216,7 @@ MonoBehaviour:
   coneBias: 1.6
   coneLift: 20
   speedVariance: {x: 0.55, y: 1.15}
-  smashClip: {fileID: 0}
+  smashClip: {fileID: 8300000, guid: 5eb078129e6b87e4fac4c94347dccb33, type: 3}
   smashVolume: 1
   drawConeGizmo: 0
 --- !u!1 &1975214463
@@ -8012,6 +8010,10 @@ PrefabInstance:
     - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       propertyPath: backScootLungeDuration
       value: 0.35
+      objectReference: {fileID: 0}
+    - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      propertyPath: strikeReplacesKickHint
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7026241982387864388, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       propertyPath: backScootSettleDuration

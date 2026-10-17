@@ -264,6 +264,11 @@ public class ChairRestraint : RestraintBase
 		"thud. Optional -- safe to leave empty until SFX wiring pass.")]
 	[SerializeField] private AudioClip turnHopClip;
 
+
+	[Header("Vertical Slice")]
+	[Tooltip("VS_Demo: show Strike (H) in place of Kick (F) in the control hints.")]
+	[SerializeField] private bool strikeReplacesKickHint = false;
+
 	// Rotation, forward hop are impulse-fired and grounded-gated; no busy
 	// window. Back-scoot is coroutine-based with a real lunge+settle cycle,
 	// so it DOES set IsBusy true while active — other verbs (turn-hop, forward
@@ -733,7 +738,10 @@ public class ChairRestraint : RestraintBase
 		}
 
 		hints.Add(new ControlHint("Struggle", "Space"));
-		hints.Add(new ControlHint("Kick", "F", kickSuppressed, kickSuppressed ? "(legs tied)" : null));
+		if (strikeReplacesKickHint)
+			hints.Add(new ControlHint("Strike", "H"));
+		else
+			hints.Add(new ControlHint("Kick", "F", kickSuppressed, kickSuppressed ? "(legs tied)" : null));
 		hints.Add(new ControlHint("Pick Up", "E"));
 		hints.Add(new ControlHint("Feign", "G"));
 
