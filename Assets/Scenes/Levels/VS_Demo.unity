@@ -2022,6 +2022,7 @@ GameObject:
   m_Component:
   - component: {fileID: 677440321}
   - component: {fileID: 677440320}
+  - component: {fileID: 677440322}
   m_Layer: 0
   m_Name: SliceCoordinator
   m_TagString: Untagged
@@ -2060,6 +2061,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &677440322
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 677440319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 960bf3045e3e4f14a9382e6f64b07280, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  player: {fileID: 1333935372}
+  targets:
+  - {fileID: 1385257078}
+  - {fileID: 975361372}
 --- !u!1 &680010493
 GameObject:
   m_ObjectHideFlags: 0
@@ -2666,6 +2683,11 @@ PrefabInstance:
 --- !u!4 &975361371 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+  m_PrefabInstance: {fileID: 975361370}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &975361372 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
   m_PrefabInstance: {fileID: 975361370}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &979654068
@@ -4173,7 +4195,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!23 &1205098895
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -4770,6 +4792,11 @@ PrefabInstance:
 --- !u!4 &1385257077 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+  m_PrefabInstance: {fileID: 1385257076}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &1385257078 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
   m_PrefabInstance: {fileID: 1385257076}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &1417661561
