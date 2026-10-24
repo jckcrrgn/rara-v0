@@ -427,10 +427,23 @@ MonoBehaviour:
   goodWindow: 0.6
   gainPerPull: 0.08
   spamGap: 0.25
+  noisePerPull: 0.05
   noisePerMiss: 0.15
   noisePerSpam: 0.25
   noiseDecay: 0.2
   noise: 0
+  distractedThreshold: 0.85
+  watchingThreshold: 0.045
+  distractedTime: {x: 4, y: 9}
+  turnTime: 1.2
+  watchTime: {x: 2, y: 4}
+  turnAwayTime: 0.8
+  attention: 0
+  retieTime: 1.5
+  setback: 0.3
+  tightenPerCatch: 0.3
+  glareTime: 3
+  maxCatches: 3
 --- !u!4 &1566265365
 Transform:
   m_ObjectHideFlags: 0
