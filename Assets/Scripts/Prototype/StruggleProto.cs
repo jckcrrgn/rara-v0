@@ -6,25 +6,35 @@
 //          a knot sequence, quiet and fast. The risk flips from NOISE to BEING SEEN:
 //          untying puts her hands out; he must not see free hands. Hide them before he looks.
 //          Caught with free hands = escalation (wrists re-tied from scratch, extra tight).
-// New question: does the noise -> visibility flip make untying feel like a different verb?
+// Day 199: telemetry — untie vs struggle-on-untieable, hide reaction time vs seen budget.
+// Day 199 pm: THE CAPTOR LISTENS. Two tiers of noise response:
+//          noise >= glanceNoise  -> GLANCE: short partial look. More noise during it -> inspect.
+//          noise >= inspectNoise -> INSPECT: fast turn, long full look (the lamp off the table).
+//          The sound that drew him is spent (noise zeroed). What catches you is the NEXT sound.
+//          Noise never catches her while he's on his phone — it draws him in instead.
+//          Unprompted rhythm broken: wider distracted range + random spontaneous glances.
+//          Rule: randomise WHEN he looks, never HOW FAST he turns. The turn is the tell.
+//          PAD: RT struggles (A no longer does). D-pad unties. LB hides. Y test-knock. Start restart.
+// New question: does a captor who reacts to you feel like a person instead of a metronome?
 //
 // Empty scene, no Cassie, no existing scripts touched. Drop on any GameObject, press Play.
-// Uses legacy Input. If the project is Input System-only: Project Settings > Player >
-// Active Input Handling = Both.
+// Keyboard uses legacy Input: Project Settings > Player > Active Input Handling = Both.
 //
-// Controls:
-//   WASD / left stick      select bond
-//   Space / Fire1 / RT     struggle — pull ON the pulse
-//   IJKL / D-pad           untie — follow the knot (hands free only; not elbows)
-//   F / LB                 hide hands behind your back (takes handsBackTime)
-//   R                      restart
-// (IJKL, not arrows: the default Horizontal/Vertical axes already read the arrow keys.)
+// Controls              keyboard   pad
+//   select bond         WASD       left stick
+//   struggle (on pulse) Space      RT
+//   untie (follow knot) IJKL       D-pad      (hands free only; not elbows)
+//   hide hands          F          LB
+//   test knock (loud)   N          Y          (stands in for knocking something over)
+//   restart             R          Start
 //
-// Input Manager setup (legacy). Missing axes = that input disabled with one warning.
-//   "RightTrigger"  Joystick Axis, 10th axis, Joy Num all, Dead 0.05, Sens 1
-//   "DPadX"         Joystick Axis, 6th axis,  Joy Num all, Dead 0.1,  Sens 1
-//   "DPadY"         Joystick Axis, 7th axis,  Joy Num all, Dead 0.1,  Sens 1
-// (Windows XInput numbering. LB = joystick button 4, needs no setup.)
+// PAD SETUP
+//   Input System package installed (Active Input Handling = Both): nothing to do.
+//   Legacy only: add these in the Input Manager or RT / D-pad stay dead (warning shown on screen):
+//     "RightTrigger"  Joystick Axis, 10th axis, Joy Num all, Dead 0.05, Sens 1
+//     "DPadX"         Joystick Axis, 6th axis,  Joy Num all, Dead 0.1,  Sens 1
+//     "DPadY"         Joystick Axis, 7th axis,  Joy Num all, Dead 0.1,  Sens 1
+//   (Windows XInput numbering.)
 
 using System.Collections.Generic;
 using UnityEngine;
@@ -63,16 +73,36 @@ public class StruggleProto : MonoBehaviour
     public float noiseDecay = 0.1f;       // per second
     [Range(0, 1)] public float noise;
 
-    [Header("Captor attention (activation energy)")]
-    [Tooltip("Noise needed to draw him in when fully distracted (on his phone).")]
+    [Header("Captor attention")]
+    [Tooltip("Noise that catches her the instant he starts to look. Falls to watchingThreshold as attention rises. Does not apply while he's on his phone.")]
     public float distractedThreshold = 0.85f;
-    [Tooltip("Noise needed when fully watching. Below noisePerPull = any pull while watched gets caught.")]
-    public float watchingThreshold = 0.045f;   // Day 197 playtest: below noisePerPull = freeze when watched
-    public Vector2 distractedTime = new Vector2(4f, 9f);   // random range
-    public float turnTime = 1.2f;                          // the tell: attention ramps 0 -> 1
-    public Vector2 watchTime = new Vector2(2f, 4f);        // random range
+    [Tooltip("Noise that catches her when fully watching. Below noisePerPull = any pull while watched gets caught.")]
+    public float watchingThreshold = 0.045f;
+    public Vector2 distractedTime = new Vector2(3f, 10f);   // random range
+    [Tooltip("When a distracted spell ends on its own: chance it's a glance rather than a full look.")]
+    [Range(0, 1)] public float spontaneousGlanceChance = 0.4f;
+    public float turnTime = 1.2f;                           // the tell: fixed on purpose
+    public Vector2 watchTime = new Vector2(2f, 4f);         // random range
     public float turnAwayTime = 0.8f;
     [Range(0, 1)] public float attention;
+
+    [Header("Glance (cursory)")]
+    [Tooltip("Noise that draws a glance. Two quick off-beat pulls, or two spams.")]
+    public float glanceNoise = 0.3f;
+    [Tooltip("Peak attention of a glance. Below seenAttention = a glance can't spot free hands.")]
+    [Range(0, 1)] public float glancePeak = 0.6f;
+    public float glanceUpTime = 0.35f;
+    public Vector2 glanceHoldTime = new Vector2(0.6f, 1.2f);
+    public float glanceDownTime = 0.4f;
+
+    [Header("Inspect (closer look)")]
+    [Tooltip("Noise that makes him come over. Also: any glanceNoise made DURING a glance.")]
+    public float inspectNoise = 0.6f;
+    [Tooltip("Faster than turnTime — he's reacting, not idly looking up.")]
+    public float inspectTurnTime = 0.8f;
+    public Vector2 inspectTime = new Vector2(4f, 7f);
+    [Tooltip("Test key (N / Y). Stands in for knocking something over.")]
+    public float knockNoise = 0.7f;
 
     [Header("Caught")]
     public float retieTime = 1.5f;        // input locked while he re-secures her
@@ -94,27 +124,28 @@ public class StruggleProto : MonoBehaviour
     public float untieGain = 0.1f;
     public float noisePerUntie = 0.01f;   // quiet, deliberately below watchingThreshold
     public float noisePerFumble = 0.1f;   // wrong direction
-    [Tooltip("Attention at which he sees free hands that are out. Turning ramps 0->1 over turnTime.")]
+    [Tooltip("Attention at which he sees free hands that are out.")]
     [Range(0, 1)] public float seenAttention = 0.75f;
     [Tooltip("Time to get hands back behind her. Must finish before seenAttention.")]
     public float handsBackTime = 0.4f;
     [Tooltip("Extra tightness on the wrists, on top of tightenPerCatch, when caught with free hands.")]
     public float freeHandsExtraTighten = 0.3f;
 
-    [Header("Controller")]
-    [Tooltip("Input Manager axis name for RT. Blank = disabled.")]
+    [Header("Legacy pad axes (ignored with Input System)")]
     public string pullAxis = "RightTrigger";
-    [Tooltip("RT counts as a pull when it crosses this going up...")]
     [Range(0, 1)] public float triggerPress = 0.6f;
-    [Tooltip("...and re-arms only after dropping below this. Gap = no chatter.")]
     [Range(0, 1)] public float triggerRelease = 0.3f;
     public string dpadXAxis = "DPadX";
     public string dpadYAxis = "DPadY";
+#if !ENABLE_INPUT_SYSTEM
     bool hasPullAxis, triggerHeld, hasDpad, dpadHeld;
+#endif
 
-    enum Phase { Distracted, Turning, Watching, TurningAway }
+    enum Phase { Distracted, Glance, Turning, Watching, TurningAway }
     Phase phase;
-    float phaseStart, phaseEnd;
+    float phaseStart, phaseEnd, phaseStartAttention;
+    float glanceHold;       // hold length of the current glance
+    bool inspecting;        // current Turning/Watching is a reaction, not idle
 
     int selected = -1;
     float lastPull = -99f;
@@ -135,32 +166,30 @@ public class StruggleProto : MonoBehaviour
     static readonly string[] Arrow = { "^", ">", "v", "<" };
     const int KnotPreview = 3;
 
-    // telemetry — the actual answer to today's question
+    // telemetry
     float startTime;
     int pulls, goodPulls, spams;   // pulls = non-spam pulls only
     int unties, fumbles, seenCatches;
     float accSum;
+    int struggledUntieable;        // on-beat pulls on a bond she could have untied instead
+    int hides, turnHides;          // F presses; ones made while he was turning
+    float hideReactSum;            // sum of (F press - turn start), turn hides only
+    int glancesHeard, glancesIdle, inspections, knocks;
 
     float Threshold => Mathf.Lerp(distractedThreshold, watchingThreshold, attention);
+    bool Attending => phase == Phase.Turning || phase == Phase.Watching;
     bool HandsFree => wristsIndex >= 0 && wristsIndex < bonds.Length && bonds[wristsIndex].progress >= 1f;
     bool CanUntie(int i) => HandsFree && i >= 0 && i != unreachableIndex && i != wristsIndex;
+    // Seconds from the start of a turn (from attention 0) to the last safe F press. <= 0 = unwinnable.
+    float Budget(float turn) => turn * seenAttention - handsBackTime;
 
     void Start()
     {
+#if !ENABLE_INPUT_SYSTEM
         hasPullAxis = AxisExists(pullAxis, "RT");
         hasDpad = AxisExists(dpadXAxis, "D-pad") && AxisExists(dpadYAxis, "D-pad");
+#endif
         Restart();
-    }
-
-    static bool AxisExists(string axis, string label)
-    {
-        if (string.IsNullOrEmpty(axis)) return false;
-        try { Input.GetAxisRaw(axis); return true; }
-        catch (System.ArgumentException)
-        {
-            Debug.LogWarning($"StruggleProto: no Input Manager axis '{axis}'. {label} disabled.");
-            return false;
-        }
     }
 
     void Restart()
@@ -170,16 +199,21 @@ public class StruggleProto : MonoBehaviour
         for (int i = 0; i < bonds.Length; i++) { knots[i] = new List<int>(); FillKnot(i); }
         noise = 0f; attention = 0f; catches = 0; over = false; lastCatchSeen = false;
         selected = NextUnfreed(-1); lastPull = -99f; lockedUntil = 0f; glareUntil = 0f;
-        handsOut = false; hidingUntil = 0f;
+        handsOut = false; hidingUntil = 0f; inspecting = false;
         lastResult = ""; endText = "";
         pulls = goodPulls = spams = unties = fumbles = seenCatches = 0; accSum = 0f;
+        struggledUntieable = hides = turnHides = 0; hideReactSum = 0f;
+        glancesHeard = glancesIdle = inspections = knocks = 0;
         startTime = Time.time;
         EnterPhase(Phase.Distracted);
+        Debug.Log($"StruggleProto: seen budget — idle look {Budget(turnTime):F2}s, inspect {Budget(inspectTurnTime):F2}s");
     }
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.R)) { Restart(); return; }
+        // Pad read every frame, even locked/over, so edges stay correct (no instant re-catch on unlock).
+        var pad = ReadPad();
+        if (Input.GetKeyDown(KeyCode.R) || pad.restart) { Restart(); return; }
         if (over) return;
 
         UpdateCaptor();
@@ -187,15 +221,11 @@ public class StruggleProto : MonoBehaviour
 
         if (hidingUntil > 0f && Time.time >= hidingUntil) { handsOut = false; hidingUntil = 0f; lastResult = "hands hidden"; }
 
-        // Edge state for RT and D-pad updates even while locked, so a press held through
-        // the re-tie does NOT fire the instant input unlocks (= instant re-catch).
-        bool rtPull = ReadTrigger();
-        int dpadDir = ReadDpad();
-
         if (Time.time < lockedUntil) return;   // being re-tied
 
         // --- select ---
         var input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+        if (pad.stick.sqrMagnitude > input.sqrMagnitude) input = pad.stick;
         if (input.sqrMagnitude > 0.25f)
         {
             float best = 0.5f;
@@ -207,12 +237,11 @@ public class StruggleProto : MonoBehaviour
             }
         }
 
-        // --- struggle ---
-        if (Input.GetKeyDown(KeyCode.Space) || Input.GetButtonDown("Fire1") || rtPull)
-            Pull();
+        // --- struggle --- (Space / RT only. A is no longer a pull.)
+        if (Input.GetKeyDown(KeyCode.Space) || pad.pull) Pull();
 
         // --- untie ---
-        int untieDir = dpadDir;
+        int untieDir = pad.dir;
         if (Input.GetKeyDown(KeyCode.I)) untieDir = 0;
         else if (Input.GetKeyDown(KeyCode.L)) untieDir = 1;
         else if (Input.GetKeyDown(KeyCode.K)) untieDir = 2;
@@ -220,17 +249,81 @@ public class StruggleProto : MonoBehaviour
         if (untieDir >= 0) Untie(untieDir);
 
         // --- hide hands ---
-        if ((Input.GetKeyDown(KeyCode.F) || Input.GetKeyDown(KeyCode.JoystickButton4))
-            && handsOut && hidingUntil <= 0f)
+        if ((Input.GetKeyDown(KeyCode.F) || pad.hide) && handsOut && hidingUntil <= 0f)
         {
             hidingUntil = Time.time + handsBackTime;
             lastResult = "hiding hands...";
+            hides++;
+            if (phase == Phase.Turning) { turnHides++; hideReactSum += Time.time - phaseStart; }
         }
+
+        // --- test knock ---
+        if (Input.GetKeyDown(KeyCode.N) || pad.knock)
+        {
+            knocks++;
+            noise = Mathf.Clamp01(noise + knockNoise);
+            lastResult = "CRASH — knocked something over";
+        }
+
+        ReactToNoise();
 
         // --- resolve --- (seen first: it's the worse catch)
         if (HandsFree && handsOut && attention >= seenAttention) Caught(true);
-        else if (noise >= Threshold) Caught(false);
+        else if (phase != Phase.Distracted && noise >= Threshold) Caught(false);
         else if (AllFree()) End($"FREE in {Time.time - startTime:F1}s");
+    }
+
+    // ---------------- input ----------------
+
+    struct Pad { public bool pull, hide, knock, restart; public int dir; public Vector2 stick; }
+
+    Pad ReadPad()
+    {
+        var p = new Pad { dir = -1 };
+#if ENABLE_INPUT_SYSTEM
+        var gp = UnityEngine.InputSystem.Gamepad.current;
+        if (gp == null) return p;
+        p.pull = gp.rightTrigger.wasPressedThisFrame;          // edge-detected by the Input System
+        if (gp.dpad.up.wasPressedThisFrame) p.dir = 0;
+        else if (gp.dpad.right.wasPressedThisFrame) p.dir = 1;
+        else if (gp.dpad.down.wasPressedThisFrame) p.dir = 2;
+        else if (gp.dpad.left.wasPressedThisFrame) p.dir = 3;
+        p.hide = gp.leftShoulder.wasPressedThisFrame;
+        p.knock = gp.buttonNorth.wasPressedThisFrame;
+        p.restart = gp.startButton.wasPressedThisFrame;
+        p.stick = gp.leftStick.ReadValue();
+#else
+        p.pull = ReadTrigger();
+        p.dir = ReadDpad();
+        p.hide = Input.GetKeyDown(KeyCode.JoystickButton4);    // LB
+        p.knock = Input.GetKeyDown(KeyCode.JoystickButton3);   // Y
+        p.restart = Input.GetKeyDown(KeyCode.JoystickButton7); // Start
+        // left stick arrives through legacy Horizontal/Vertical
+#endif
+        return p;
+    }
+
+    string PadStatus()
+    {
+#if ENABLE_INPUT_SYSTEM
+        return UnityEngine.InputSystem.Gamepad.current == null ? "PAD: none detected" : "";
+#else
+        if (!hasPullAxis || !hasDpad)
+            return $"PAD: {(hasPullAxis ? "" : "RT ")}{(hasDpad ? "" : "D-pad ")}not set up — see header";
+        return "";
+#endif
+    }
+
+#if !ENABLE_INPUT_SYSTEM
+    static bool AxisExists(string axis, string label)
+    {
+        if (string.IsNullOrEmpty(axis)) return false;
+        try { Input.GetAxisRaw(axis); return true; }
+        catch (System.ArgumentException)
+        {
+            Debug.LogWarning($"StruggleProto: no Input Manager axis '{axis}'. {label} disabled.");
+            return false;
+        }
     }
 
     bool ReadTrigger()
@@ -257,21 +350,30 @@ public class StruggleProto : MonoBehaviour
         if (dir >= 0) dpadHeld = true;
         return dir;
     }
+#endif
 
     // ---------------- captor ----------------
 
     void EnterPhase(Phase p, float duration = -1f)
     {
         phase = p;
+        phaseStartAttention = attention;   // turns ramp from wherever he is, not from 0
         if (duration < 0f)
         {
-            duration = p switch
+            switch (p)
             {
-                Phase.Distracted => Random.Range(distractedTime.x, distractedTime.y),
-                Phase.Turning => turnTime,
-                Phase.Watching => Random.Range(watchTime.x, watchTime.y),
-                _ => turnAwayTime,
-            };
+                case Phase.Distracted: duration = Random.Range(distractedTime.x, distractedTime.y); break;
+                case Phase.Glance:
+                    glanceHold = Random.Range(glanceHoldTime.x, glanceHoldTime.y);
+                    duration = glanceUpTime + glanceHold + glanceDownTime;
+                    break;
+                case Phase.Turning: duration = inspecting ? inspectTurnTime : turnTime; break;
+                case Phase.Watching:
+                    duration = inspecting ? Random.Range(inspectTime.x, inspectTime.y)
+                                          : Random.Range(watchTime.x, watchTime.y);
+                    break;
+                default: duration = turnAwayTime; break;
+            }
         }
         phaseStart = Time.time;
         phaseEnd = Time.time + duration;
@@ -280,23 +382,52 @@ public class StruggleProto : MonoBehaviour
     void UpdateCaptor()
     {
         float t = Mathf.InverseLerp(phaseStart, phaseEnd, Time.time);
+        float el = Time.time - phaseStart;
         switch (phase)
         {
             case Phase.Distracted: attention = 0f; break;
-            case Phase.Turning: attention = t; break;
+            case Phase.Glance:
+                if (el < glanceUpTime) attention = Mathf.Lerp(phaseStartAttention, glancePeak, el / glanceUpTime);
+                else if (el < glanceUpTime + glanceHold) attention = glancePeak;
+                else attention = Mathf.Lerp(glancePeak, 0f, (el - glanceUpTime - glanceHold) / glanceDownTime);
+                break;
+            case Phase.Turning: attention = Mathf.Lerp(phaseStartAttention, 1f, t); break;
             case Phase.Watching: attention = 1f; break;
-            case Phase.TurningAway: attention = 1f - t; break;
+            case Phase.TurningAway: attention = Mathf.Lerp(phaseStartAttention, 0f, t); break;
         }
 
-        if (Time.time >= phaseEnd)
+        if (Time.time < phaseEnd) return;
+        switch (phase)
         {
-            EnterPhase(phase switch
-            {
-                Phase.Distracted => Phase.Turning,
-                Phase.Turning => Phase.Watching,
-                Phase.Watching => Phase.TurningAway,
-                _ => Phase.Distracted,
-            });
+            case Phase.Distracted:
+                if (Random.value < spontaneousGlanceChance) { glancesIdle++; EnterPhase(Phase.Glance); }
+                else EnterPhase(Phase.Turning);
+                break;
+            case Phase.Glance: EnterPhase(Phase.Distracted); break;
+            case Phase.Turning: EnterPhase(Phase.Watching); break;
+            case Phase.Watching: inspecting = false; EnterPhase(Phase.TurningAway); break;
+            default: EnterPhase(Phase.Distracted); break;
+        }
+    }
+
+    // Noise while he's NOT looking draws him in. Noise while he IS looking is judged (Threshold).
+    void ReactToNoise()
+    {
+        if (Attending) return;
+        if (noise >= inspectNoise || (phase == Phase.Glance && noise >= glanceNoise))
+        {
+            inspections++;
+            noise = 0f;                       // that sound is spent; the next one catches her
+            inspecting = true;
+            EnterPhase(Phase.Turning);
+            lastResult = "HE HEARD THAT — coming over";
+        }
+        else if (phase != Phase.Glance && noise >= glanceNoise)
+        {
+            glancesHeard++;
+            noise = 0f;
+            EnterPhase(Phase.Glance);
+            lastResult = "he glances over";
         }
     }
 
@@ -307,6 +438,7 @@ public class StruggleProto : MonoBehaviour
         noise = 0f;
         handsOut = false; hidingUntil = 0f;
         lastCatchSeen = seenFreeHands;
+        inspecting = false;
 
         if (catches >= maxCatches)
         {
@@ -363,6 +495,7 @@ public class StruggleProto : MonoBehaviour
         if (accuracy >= goodWindow)
         {
             goodPulls++;
+            if (CanUntie(selected)) struggledUntieable++;
             var b = bonds[selected];
             float mult = HandsFree ? freeHandsStruggleMult : 1f;
             b.progress = Mathf.Clamp01(b.progress + gainPerPull * mult * accuracy / b.tightness);
@@ -446,7 +579,11 @@ public class StruggleProto : MonoBehaviour
         int nonSpam = Mathf.Max(1, pulls);
         endText = $"{text}\ncatches {catches} (seen {seenCatches})  pulls {pulls}  spam {spams}  " +
                   $"on-beat {goodPulls * 100 / nonSpam}%  avg acc {(accSum / nonSpam):P0}\n" +
-                  $"unties {unties}  fumbles {fumbles}  time {Time.time - startTime:F1}s   R to restart";
+                  $"unties {unties}  fumbles {fumbles}  struggled-untieable {struggledUntieable}\n" +
+                  $"glances heard {glancesHeard} / idle {glancesIdle}  inspections {inspections}  knocks {knocks}\n" +
+                  $"hides {hides} (on turn {turnHides}, avg react " +
+                  (turnHides > 0 ? $"{hideReactSum / turnHides:F2}s" : "—") +
+                  $" / budget {Budget(turnTime):F2}s)  time {Time.time - startTime:F1}s   R / Start to restart";
     }
 
     // ---------------- greybox UI ----------------
@@ -465,6 +602,14 @@ public class StruggleProto : MonoBehaviour
         float pulse = 1f - Mathf.Min(bp, 1f - bp) * 2f;             // 1 on beat
 
         GUI.Box(new Rect(20, 20, 60 + pulse * 120, 24), "PULSE");
+
+        string padStatus = PadStatus();
+        if (padStatus.Length > 0)
+        {
+            GUI.color = Color.yellow;
+            GUI.Label(new Rect(220, 22, 400, 22), padStatus);
+            GUI.color = prev;
+        }
 
         for (int i = 0; i < bonds.Length; i++)
         {
@@ -496,23 +641,36 @@ public class StruggleProto : MonoBehaviour
             GUI.Label(new Rect(20, 172, 500, 22), $"KNOT   {seq}");
         }
 
-        // noise bar with the captor's threshold as a moving line
+        // noise bar. Yellow ticks: glance / inspect (only matter while he's not looking).
+        // Red line: catch threshold (only exists once he's looking).
         const float barX = 20f, barY = 202f, barW = 300f;
         GUI.Box(new Rect(barX, barY, barW, 18), "");
         if (noise > 0.01f) GUI.Box(new Rect(barX, barY, barW * noise, 18), "");
         GUI.Label(new Rect(barX + barW + 8, barY, 80, 20), "NOISE");
-        GUI.color = Color.red;
-        GUI.Box(new Rect(barX + barW * Threshold - 2, barY - 4, 4, 26), "");
-        GUI.color = prev;
+        if (!Attending)
+        {
+            GUI.color = new Color(1f, 0.85f, 0f, 0.8f);
+            GUI.Box(new Rect(barX + barW * glanceNoise - 1, barY - 2, 2, 22), "");
+            GUI.Box(new Rect(barX + barW * inspectNoise - 1, barY - 2, 2, 22), "");
+            GUI.color = prev;
+        }
+        if (phase != Phase.Distracted)
+        {
+            GUI.color = Color.red;
+            GUI.Box(new Rect(barX + barW * Threshold - 2, barY - 4, 4, 26), "");
+            GUI.color = prev;
+        }
 
         string captor = phase switch
         {
             Phase.Distracted => "on his phone",
-            Phase.Turning => "LOOKING UP...",
-            Phase.Watching => "WATCHING",
+            Phase.Glance => "glances over",
+            Phase.Turning => inspecting ? "HEARD THAT — COMING OVER" : "LOOKING UP...",
+            Phase.Watching => inspecting ? "INSPECTING" : "WATCHING",
             _ => "looking away",
         };
-        if (phase == Phase.Watching || phase == Phase.Turning) GUI.color = Color.red;
+        if (Attending) GUI.color = Color.red;
+        else if (phase == Phase.Glance) GUI.color = Color.yellow;
         GUI.Label(new Rect(20, 232, 500, 22), $"CAPTOR  {captor}  (attention {attention:P0})");
         GUI.color = prev;
 
@@ -520,7 +678,7 @@ public class StruggleProto : MonoBehaviour
         GUI.Label(new Rect(20, 256, 600, 22), locked ? "...being re-tied" : lastResult);
         GUI.Label(new Rect(20, 280, 500, 22), $"catches {catches}/{maxCatches}");
 
-        if (over) GUI.Box(new Rect(20, 312, 560, 80), endText);
+        if (over) GUI.Box(new Rect(20, 312, 600, 130), endText);
 
         // catch feedback: strong flash during re-tie, faint tint + warning during glare
         if (!over && Time.time < glareUntil)
