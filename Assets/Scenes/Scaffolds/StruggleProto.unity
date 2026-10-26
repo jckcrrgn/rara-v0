@@ -430,20 +430,45 @@ MonoBehaviour:
   noisePerPull: 0.05
   noisePerMiss: 0.15
   noisePerSpam: 0.25
-  noiseDecay: 0.2
+  noiseDecay: 0.1
   noise: 0
   distractedThreshold: 0.85
   watchingThreshold: 0.045
-  distractedTime: {x: 4, y: 9}
-  turnTime: 1.2
+  distractedTime: {x: 3, y: 10}
+  spontaneousGlanceChance: 0.4
+  turnTime: 1.4
   watchTime: {x: 2, y: 4}
   turnAwayTime: 0.8
   attention: 0
+  glanceNoise: 0.3
+  glancePeak: 0.6
+  glanceUpTime: 0.35
+  glanceHoldTime: {x: 0.6, y: 1.2}
+  glanceDownTime: 0.4
+  inspectNoise: 0.6
+  inspectTurnTime: 0.8
+  inspectTime: {x: 4, y: 7}
+  knockNoise: 0.7
   retieTime: 1.5
   setback: 0.3
   tightenPerCatch: 0.3
   glareTime: 3
   maxCatches: 3
+  wristsIndex: 1
+  unreachableIndex: 0
+  freeHandsStruggleMult: 1.5
+  untieGain: 0.1
+  noisePerUntie: 0.01
+  noisePerFumble: 0.1
+  seenAttention: 0.75
+  handsBackTime: 0.4
+  freeHandsExtraTighten: 0.3
+  pullAxis: RightTrigger
+  triggerPress: 0.6
+  triggerRelease: 0.3
+  dpadXAxis: DPadX
+  dpadYAxis: DPadY
+  uiScale: 2
 --- !u!4 &1566265365
 Transform:
   m_ObjectHideFlags: 0

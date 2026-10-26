@@ -16,6 +16,9 @@
 //          Rule: randomise WHEN he looks, never HOW FAST he turns. The turn is the tell.
 //          PAD: RT struggles (A no longer does). D-pad unties. LB hides. Y test-knock. Start restart.
 // New question: does a captor who reacts to you feel like a person instead of a metronome?
+// Day 200: pre-playtest fixes. Noise that would catch her while he's turning away now
+//          catches her (it used to become a glance and LOWER his attention). Red line only
+//          drawn when it can actually catch. Log adds inspect-from-glance seen budget.
 //
 // Empty scene, no Cassie, no existing scripts touched. Drop on any GameObject, press Play.
 // Keyboard uses legacy Input: Project Settings > Player > Active Input Handling = Both.
@@ -81,7 +84,7 @@ public class StruggleProto : MonoBehaviour
     public Vector2 distractedTime = new Vector2(3f, 10f);   // random range
     [Tooltip("When a distracted spell ends on its own: chance it's a glance rather than a full look.")]
     [Range(0, 1)] public float spontaneousGlanceChance = 0.4f;
-    public float turnTime = 1.2f;                           // the tell: fixed on purpose
+    public float turnTime = 1.4f;                           // the tell: fixed on purpose
     public Vector2 watchTime = new Vector2(2f, 4f);         // random range
     public float turnAwayTime = 0.8f;
     [Range(0, 1)] public float attention;
@@ -206,7 +209,10 @@ public class StruggleProto : MonoBehaviour
         glancesHeard = glancesIdle = inspections = knocks = 0;
         startTime = Time.time;
         EnterPhase(Phase.Distracted);
-        Debug.Log($"StruggleProto: seen budget — idle look {Budget(turnTime):F2}s, inspect {Budget(inspectTurnTime):F2}s");
+        // Inspect almost always escalates from a glance, so it ramps from glancePeak, not 0.
+        float fromGlance = inspectTurnTime * (seenAttention - glancePeak) / (1f - glancePeak) - handsBackTime;
+        Debug.Log($"StruggleProto: seen budget — idle look {Budget(turnTime):F2}s, inspect {Budget(inspectTurnTime):F2}s, " +
+                  $"inspect from glance peak {fromGlance:F2}s (<= 0 = hands out during a glance that escalates is always seen)");
     }
 
     void Update()
@@ -414,6 +420,8 @@ public class StruggleProto : MonoBehaviour
     void ReactToNoise()
     {
         if (Attending) return;
+        // Still mostly facing her while turning away: loud enough to catch = caught, not a reaction.
+        if (phase == Phase.TurningAway && noise >= Threshold) return;
         if (noise >= inspectNoise || (phase == Phase.Glance && noise >= glanceNoise))
         {
             inspections++;
@@ -641,20 +649,22 @@ public class StruggleProto : MonoBehaviour
             GUI.Label(new Rect(20, 172, 500, 22), $"KNOT   {seq}");
         }
 
-        // noise bar. Yellow ticks: glance / inspect (only matter while he's not looking).
-        // Red line: catch threshold (only exists once he's looking).
+        // noise bar. Yellow ticks: glance / inspect (noise draws him in).
+        // Red line: catch threshold. Drawn only when it can catch — during a glance the yellow
+        // tick always fires first, so a red line there would be a lie.
         const float barX = 20f, barY = 202f, barW = 300f;
+        bool redLive = Attending || (phase == Phase.TurningAway && Threshold < glanceNoise);
         GUI.Box(new Rect(barX, barY, barW, 18), "");
         if (noise > 0.01f) GUI.Box(new Rect(barX, barY, barW * noise, 18), "");
         GUI.Label(new Rect(barX + barW + 8, barY, 80, 20), "NOISE");
-        if (!Attending)
+        if (!redLive)
         {
             GUI.color = new Color(1f, 0.85f, 0f, 0.8f);
             GUI.Box(new Rect(barX + barW * glanceNoise - 1, barY - 2, 2, 22), "");
             GUI.Box(new Rect(barX + barW * inspectNoise - 1, barY - 2, 2, 22), "");
             GUI.color = prev;
         }
-        if (phase != Phase.Distracted)
+        if (redLive)
         {
             GUI.color = Color.red;
             GUI.Box(new Rect(barX + barW * Threshold - 2, barY - 4, 4, 26), "");
