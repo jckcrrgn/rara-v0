@@ -19,6 +19,11 @@
 // Day 200: pre-playtest fixes. Noise that would catch her while he's turning away now
 //          catches her (it used to become a glance and LOWER his attention). Red line only
 //          drawn when it can actually catch. Log adds inspect-from-glance seen budget.
+// Day 201: cold-playtest build. coldPlaytest = on-screen controls card, test knock off.
+//          End screens append to struggle_runs.txt (persistentDataPath). Telemetry splits
+//          hides by glance / look / inspect, adds hands-out time + closest call (max
+//          attention while hands were out). Seen never fired in 8 runs — closest call
+//          says whether that's skill or the untie window just never overlapping a look.
 //
 // Empty scene, no Cassie, no existing scripts touched. Drop on any GameObject, press Play.
 // Keyboard uses legacy Input: Project Settings > Player > Active Input Handling = Both.
@@ -175,9 +180,19 @@ public class StruggleProto : MonoBehaviour
     int unties, fumbles, seenCatches;
     float accSum;
     int struggledUntieable;        // on-beat pulls on a bond she could have untied instead
-    int hides, turnHides;          // F presses; ones made while he was turning
-    float hideReactSum;            // sum of (F press - turn start), turn hides only
+    int hides, glanceHides;        // F presses; ones made during a glance
+    int lookHides, inspectHides;   // ones made while he was turning (idle look / inspect)
+    float lookReactSum, inspectReactSum;   // sum of (F press - turn start)
+    float handsOutTime;            // seconds with free hands out
+    float closestCall;             // max attention while hands were out
     int glancesHeard, glancesIdle, inspections, knocks;
+    int runIndex;                  // not reset on Restart: numbers runs in the log
+    string savedPath = "";
+
+    [Header("Playtest")]
+    [Tooltip("Cold playtest: controls card shown at start, test knock disabled.")]
+    public bool coldPlaytest = false;
+    bool showCard;
 
     float Threshold => Mathf.Lerp(distractedThreshold, watchingThreshold, attention);
     bool Attending => phase == Phase.Turning || phase == Phase.Watching;
@@ -205,8 +220,10 @@ public class StruggleProto : MonoBehaviour
         handsOut = false; hidingUntil = 0f; inspecting = false;
         lastResult = ""; endText = "";
         pulls = goodPulls = spams = unties = fumbles = seenCatches = 0; accSum = 0f;
-        struggledUntieable = hides = turnHides = 0; hideReactSum = 0f;
+        struggledUntieable = hides = glanceHides = lookHides = inspectHides = 0;
+        lookReactSum = inspectReactSum = handsOutTime = closestCall = 0f;
         glancesHeard = glancesIdle = inspections = knocks = 0;
+        if (runIndex == 0) showCard = coldPlaytest;   // first run only; Tab / Back toggles after
         startTime = Time.time;
         EnterPhase(Phase.Distracted);
         // Inspect almost always escalates from a glance, so it ramps from glancePeak, not 0.
@@ -219,6 +236,7 @@ public class StruggleProto : MonoBehaviour
     {
         // Pad read every frame, even locked/over, so edges stay correct (no instant re-catch on unlock).
         var pad = ReadPad();
+        if (Input.GetKeyDown(KeyCode.Tab) || pad.toggleCard) showCard = !showCard;
         if (Input.GetKeyDown(KeyCode.R) || pad.restart) { Restart(); return; }
         if (over) return;
 
@@ -226,6 +244,11 @@ public class StruggleProto : MonoBehaviour
         noise = Mathf.Max(0f, noise - noiseDecay * Time.deltaTime);
 
         if (hidingUntil > 0f && Time.time >= hidingUntil) { handsOut = false; hidingUntil = 0f; lastResult = "hands hidden"; }
+        if (HandsFree && handsOut)
+        {
+            handsOutTime += Time.deltaTime;
+            closestCall = Mathf.Max(closestCall, attention);
+        }
 
         if (Time.time < lockedUntil) return;   // being re-tied
 
@@ -260,11 +283,17 @@ public class StruggleProto : MonoBehaviour
             hidingUntil = Time.time + handsBackTime;
             lastResult = "hiding hands...";
             hides++;
-            if (phase == Phase.Turning) { turnHides++; hideReactSum += Time.time - phaseStart; }
+            if (phase == Phase.Glance) glanceHides++;
+            else if (phase == Phase.Turning)
+            {
+                float react = Time.time - phaseStart;
+                if (inspecting) { inspectHides++; inspectReactSum += react; }
+                else { lookHides++; lookReactSum += react; }
+            }
         }
 
-        // --- test knock ---
-        if (Input.GetKeyDown(KeyCode.N) || pad.knock)
+        // --- test knock --- (dev only)
+        if (!coldPlaytest && (Input.GetKeyDown(KeyCode.N) || pad.knock))
         {
             knocks++;
             noise = Mathf.Clamp01(noise + knockNoise);
@@ -281,7 +310,7 @@ public class StruggleProto : MonoBehaviour
 
     // ---------------- input ----------------
 
-    struct Pad { public bool pull, hide, knock, restart; public int dir; public Vector2 stick; }
+    struct Pad { public bool pull, hide, knock, restart, toggleCard; public int dir; public Vector2 stick; }
 
     Pad ReadPad()
     {
@@ -297,6 +326,7 @@ public class StruggleProto : MonoBehaviour
         p.hide = gp.leftShoulder.wasPressedThisFrame;
         p.knock = gp.buttonNorth.wasPressedThisFrame;
         p.restart = gp.startButton.wasPressedThisFrame;
+        p.toggleCard = gp.selectButton.wasPressedThisFrame;
         p.stick = gp.leftStick.ReadValue();
 #else
         p.pull = ReadTrigger();
@@ -304,6 +334,7 @@ public class StruggleProto : MonoBehaviour
         p.hide = Input.GetKeyDown(KeyCode.JoystickButton4);    // LB
         p.knock = Input.GetKeyDown(KeyCode.JoystickButton3);   // Y
         p.restart = Input.GetKeyDown(KeyCode.JoystickButton7); // Start
+        p.toggleCard = Input.GetKeyDown(KeyCode.JoystickButton6); // Back
         // left stick arrives through legacy Horizontal/Vertical
 #endif
         return p;
@@ -584,14 +615,27 @@ public class StruggleProto : MonoBehaviour
     void End(string text)
     {
         over = true;
+        runIndex++;
         int nonSpam = Mathf.Max(1, pulls);
-        endText = $"{text}\ncatches {catches} (seen {seenCatches})  pulls {pulls}  spam {spams}  " +
+        string Avg(float sum, int n) => n > 0 ? $"{sum / n:F2}s" : "—";
+        endText = $"{text}   (run {runIndex}, {Time.time - startTime:F1}s)\n" +
+                  $"catches {catches} (seen {seenCatches})  pulls {pulls}  spam {spams}  " +
                   $"on-beat {goodPulls * 100 / nonSpam}%  avg acc {(accSum / nonSpam):P0}\n" +
                   $"unties {unties}  fumbles {fumbles}  struggled-untieable {struggledUntieable}\n" +
                   $"glances heard {glancesHeard} / idle {glancesIdle}  inspections {inspections}  knocks {knocks}\n" +
-                  $"hides {hides} (on turn {turnHides}, avg react " +
-                  (turnHides > 0 ? $"{hideReactSum / turnHides:F2}s" : "—") +
-                  $" / budget {Budget(turnTime):F2}s)  time {Time.time - startTime:F1}s   R / Start to restart";
+                  $"hides {hides}: on glance {glanceHides}/{glancesHeard + glancesIdle}  " +
+                  $"on look {lookHides} (react {Avg(lookReactSum, lookHides)} / budget {Budget(turnTime):F2}s)  " +
+                  $"on inspect {inspectHides} (react {Avg(inspectReactSum, inspectHides)} / budget {Budget(inspectTurnTime):F2}s)\n" +
+                  $"hands out {handsOutTime:F1}s  closest call {closestCall:P0} (seen at {seenAttention:P0})";
+
+        Debug.Log($"StruggleProto run {runIndex}\n{endText}");
+        try
+        {
+            string path = System.IO.Path.Combine(Application.persistentDataPath, "struggle_runs.txt");
+            System.IO.File.AppendAllText(path, $"--- {System.DateTime.Now:yyyy-MM-dd HH:mm:ss}\n{endText}\n\n");
+            savedPath = path;
+        }
+        catch (System.Exception e) { Debug.LogWarning($"StruggleProto: couldn't save run log: {e.Message}"); savedPath = ""; }
     }
 
     // ---------------- greybox UI ----------------
@@ -688,7 +732,28 @@ public class StruggleProto : MonoBehaviour
         GUI.Label(new Rect(20, 256, 600, 22), locked ? "...being re-tied" : lastResult);
         GUI.Label(new Rect(20, 280, 500, 22), $"catches {catches}/{maxCatches}");
 
-        if (over) GUI.Box(new Rect(20, 312, 600, 130), endText);
+        if (over)
+        {
+            string footer = "\nR / Start to restart" + (savedPath.Length > 0 ? "   ·   saved to log" : "");
+            GUI.Box(new Rect(20, 312, 640, 170), endText + footer);
+        }
+
+        if (showCard)
+        {
+            const float cw = 300f, ch = 196f;
+            string card =
+                "Get every bond free. Don't get caught.\n\n" +
+                "Choose bond      WASD  /  left stick\n" +
+                "Struggle         Space  /  RT   (on the pulse)\n" +
+                "Untie            IJKL  /  D-pad   (follow the knot)\n" +
+                "                 once your hands are free\n" +
+                "Hide hands       F  /  LB\n" +
+                "Restart          R  /  Start\n\n" +
+                "Tab / Back: hide this card";
+            GUI.Box(new Rect(sw - cw - 20, 20, cw, ch), "");
+            var cs = new GUIStyle(GUI.skin.label) { wordWrap = false };
+            GUI.Label(new Rect(sw - cw - 10, 28, cw - 20, ch - 16), card, cs);
+        }
 
         // catch feedback: strong flash during re-tie, faint tint + warning during glare
         if (!over && Time.time < glareUntil)

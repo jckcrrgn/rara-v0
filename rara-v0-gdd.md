@@ -58,6 +58,12 @@ This is a deliberate design pattern: **restraints modulate verbs**. New restrain
 **Verb roles in the puzzle loop:** Pick Up is the *gating* verb — the player must acquire a tool before bonds can be broken. Struggle is the *closing* verb — once a tool is held, Struggle applies it. Move connects the two by getting the detective to where the tool is. Kick is a separate solve path used when no tool exists in scene (L4) or when something needs to be struck (Act 2+ Kickables).
 
 #### Struggle — Strain against your restraints
+
+> **Superseded for bound play (Rara Day 201).** Barehand Struggle now makes progress;
+> tools and keys are multipliers, and some bonds still need one. The rhythm Struggle
+> and the listening captor are written up in **Loop-Refine Pillars**, below. The
+> v0 bullets are kept as a record.
+
 - **Tool-gated:** Bare-handed Struggle produces no bond progress. The detective is bound by professionals — rope, zip ties, cuffs — not neighborhood kids. Effort SFX and animation still play (same "you tried" pattern as L4 prone-kick suppression), but bonds don't loosen without a tool.
 - Once a tool is held, Struggle applies it. Effectiveness scales with tool sharpness/force (nail = slow, scissors = fast).
 - Can knock over nearby objects.
@@ -113,6 +119,109 @@ The detective can voluntarily re-enter a "looks bound" state after freeing thems
 - **Duct tape / zip ties** — can be weakened by Struggle over time, unlike rope or cuffs.
 
 Each restraint type changes how the four verbs behave, giving levels distinct feel without adding new mechanics.
+
+---
+
+## Loop-Refine Pillars — Struggle vs. Captor (prototype, Rara Day 197–201)
+
+> **Status.** Governs bound-state Struggle and captor attention. Source of truth for
+> values: `StruggleProto.cs` (greybox scene, no Cassie, no existing scripts touched).
+> **Not yet prototyped:** the free walk-around state, patrol/chase, drag-back,
+> escalating restraint types, and the "taken" timer. The four pillars (stated Day 197):
+> captor AI, free state, Struggle rework, attention as activation energy.
+
+### Struggle while bound
+- **One bond at a time.** A direction selects the bond and a pull works it.
+  Progress = gain × accuracy ÷ tightness.
+- **Pull on the pulse** (`beatInterval` 0.7 s). Accuracy below `goodWindow` 0.6 is
+  off-beat: no progress, and it makes noise.
+- **Spam** (pulls < 0.25 s apart) makes loud noise and no progress.
+- **Even a clean pull makes some sound** (0.05). Steady on-beat pulling never
+  reaches the glance threshold, so it can't draw him by itself. Off-beat pulls and
+  spam are what draw him.
+
+### Free hands: untie, and the risk flips
+- Struggling the wrists free frees her hands. Bonds she can reach (not elbows) can
+  then be **untied**: follow a knot sequence of directions, ~10 correct inputs per
+  bond at tightness 1. Untying is quiet (0.01). A wrong direction is a fumble (0.1).
+- Struggling still works, ×1.5 with free hands.
+- **The risk flips from noise to being seen.** Untying puts her hands out, and he
+  must not see free hands. Hide (F / LB) takes 0.4 s. He sees free hands at
+  attention ≥ 0.75.
+- **Hands stay out until she hides them**, including while she struggles. Nothing
+  hides them automatically. Hiding is a conscious choice to feign (Day 201).
+- **Caught with free hands = escalation:** wrists back to zero, +0.3 extra tightness
+  on top of the normal catch.
+
+### The captor listens
+- **Attention as activation energy.** The noise that gets her caught slides from
+  0.85 (on his phone) down to 0.045 (watching). While he's watching, any pull gets
+  her caught. **While he's on his phone, noise never catches her. It draws him over.**
+- **Two tiers of reaction:**
+  - noise ≥ 0.3 → **glance**: a short partial look, peaking at 0.6. That's below
+    0.75, so a glance can't see free hands. More noise ≥ 0.3 during a glance → inspect.
+  - noise ≥ 0.6 → **inspect**: fast turn (0.8 s), long full look (4–7 s).
+- **Spent noise.** The sound that drew him is zeroed. What catches her is the
+  *next* sound. That's why an inspection works as a warning, not as a catch.
+- **Randomise when he looks, never how fast he turns.** Phone spells are random
+  (3–10 s), a spell ends in a glance 40% of the time, and look length is random.
+  Turn speed is fixed (look 1.4 s, inspect 0.8 s). The turn is the tell, and players
+  learn its speed.
+- **Caught:** input locked 1.5 s while he re-ties, −0.3 progress on every bond,
+  +0.3 tightness, new knots, then a 3 s stare. The third catch = taken (loss).
+
+### Hide budgets
+Time from the start of a turn to the last safe hide press.
+Budget = turn time × 0.75 − 0.4.
+
+| Turn | Budget |
+|---|---|
+| Look (1.4 s) | **0.65 s** |
+| Inspect (0.8 s) | **0.20 s** |
+| Inspect escalated from a glance (starts at 0.6) | **−0.10 s** — always seen |
+
+So if her hands are out during a glance that escalates, she's always seen, and a
+cold inspect leaves only 0.20 s. In practice, inspect punishes making noise with
+your hands out. Whether that's intended is listed under Open.
+
+### Locked values (Day 200)
+
+| Field | Value | Why |
+|---|---|---|
+| `glanceNoise` | 0.3 | Two quick off-beat pulls, or two spams |
+| `inspectNoise` | 0.6 | One loud event, or escalation from a glance |
+| `glancePeak` | 0.6 | Below `seenAttention`: a glance can't see hands |
+| `turnTime` | 1.4 | Look budget 0.65 s; measured hides 0.40–0.53 s fit inside |
+
+Current tuning, not locked: `noiseDecay` 0.1, `distractedTime` 3–10,
+`spontaneousGlanceChance` 0.4, `untieGain` 0.1, `handsBackTime` 0.4,
+`seenAttention` 0.75, `maxCatches` 3.
+
+### Playtest data (Day 200 — dev's own runs, 8)
+- **6 clean, 2 sloppy.** Clean: 35–51 s, 0 catches, 96–100% on-beat. Sloppy:
+  46 s / 0 catches / 71%, and 78 s / 1 catch / 60%.
+- **He reacts to how you play.** Glances he *heard* vs glances he took on his own
+  (idle): 1:7 in clean runs → 13:2 in sloppy ones.
+- **Inspections read as warnings:** 3 of 4 survived.
+- **Hide reaction on looks: 0.40–0.53 s**, against the 0.65 s budget.
+- **Seen with free hands: 0 times in 8 runs.**
+- **Caveat:** at least 5 of the 6 clean runs used stale scene values (`noiseDecay`
+  0.2, `turnTime` 1.2, `distractedTime` 4–9), set Day 200. Twice the noise decay
+  means fewer heard glances, so the clean-vs-sloppy split mixes skill with tuning.
+  Re-check it on the current values.
+
+### Open
+- [ ] **Seen never fired: skill, or the hands just weren't out?** About 20 untie
+      inputs fit inside one phone spell. The Day 201 telemetry (closest call,
+      hands-out time) settles it. Fallback: `untieGain` 0.07 (~14 inputs per bond).
+- [ ] **Inspect escalated from a glance is always seen.** Intended punishment, or
+      give a sliver of budget?
+- [x] ~~Should struggling put her hands back automatically?~~ **No (Day 201).**
+      Hands stay out after untying, including while she struggles, until the player
+      chooses to hide them. Hiding is a conscious choice to feign.
+- [ ] **Cold playtest** (Day 201 build): do testers get seen? Do they read a glance
+      as "hide"? Do they describe him as a person or a metronome?
+- [ ] Feel verdict: does he feel like a person or like RNG?
 
 ---
 
@@ -449,4 +558,4 @@ rara-v0/
 - Hands-behind as Pick Up range modifier — pickup cone limited to behind the player; combos with chair-tipping for emergent puzzle solutions.
 - Stealth-between-escapes — guard AI segments where capture transitions to a new escape state instead of game over. Probably v1.0 or sequel.
 - Double-cuffed escape — wrists AND elbows cuffed; freeing wrists from a pole still leaves elbows bound.
-- **Struggle as a real mechanical verb (v1).** v0's choice to make barehand Struggle do nothing is correct given the current Space-spam implementation — but it tacitly admits Struggle has no mechanical body to it. A previous prototype involved feeling around for "sweet spots" on dual thumbsticks and rubbing across both simultaneously to work bonds loose. A fleshed-out Struggle of that kind could re-justify universal barehand struggle as a meaningful verb in its own right — and would change the puzzle grammar significantly (bonds become a real time/effort cost rather than a tool-presence binary). Park for v1 / sequel.
+- **Struggle as a real mechanical verb (v1).** v0's choice to make barehand Struggle do nothing is correct given the current Space-spam implementation — but it tacitly admits Struggle has no mechanical body to it. A previous prototype involved feeling around for "sweet spots" on dual thumbsticks and rubbing across both simultaneously to work bonds loose. A fleshed-out Struggle of that kind could re-justify universal barehand struggle as a meaningful verb in its own right — and would change the puzzle grammar significantly (bonds become a real time/effort cost rather than a tool-presence binary). Park for v1 / sequel. **→ No longer parked: prototyped Day 197–201 as rhythm Struggle. See Loop-Refine Pillars.**

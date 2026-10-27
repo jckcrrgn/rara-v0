@@ -468,6 +468,7 @@ MonoBehaviour:
   triggerRelease: 0.3
   dpadXAxis: DPadX
   dpadYAxis: DPadY
+  coldPlaytest: 1
   uiScale: 2
 --- !u!4 &1566265365
 Transform:
