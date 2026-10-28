@@ -111,9 +111,14 @@ public class CassieStruggleDriver : CassieRigLayer
 	[Range(0f, 1f)]
 	[SerializeField] private float idleIntensity = 0.4f;
 
-	[Tooltip("Shapes the sway. 1 = pure sine. Lower = she dwells at the extreme on the " +
-		"beat and crosses quickly between — reads as strain-and-hold, a hit on the pulse.")]
-	[Range(0.3f, 1f)]
+	// Day 203: range widened to 3. Playtest: below 1 the fastest, most visible motion is the
+	// snap through neutral — which is the HALF-beat (accuracy 0), so a rhythmic player locks
+	// onto the wrong moment. Above 1 she lingers near neutral and snaps out to a short peak
+	// ON the beat. Try 2. Scene instances keep 0.6 until changed in the Inspector.
+	[Tooltip("Shapes the sway. 1 = pure sine. Below 1 = she dwells at the extreme and snaps " +
+		"through neutral on the HALF-beat (the snap reads as the hit — wrong moment). Above 1 = " +
+		"she lingers near neutral and snaps to a short peak ON the beat. Day 203 test: 2.")]
+	[Range(0.3f, 3f)]
 	[SerializeField] private float beatSharpness = 0.6f;
 
 	[Header("Debug")]

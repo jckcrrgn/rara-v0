@@ -133,6 +133,12 @@ public class BondStruggle : MonoBehaviour
 	[Header("Slipped out (Day 202 stub for the free state)")]
 	[TextArea(1, 3)] public string slippedOutLine = "Rookie knots.";
 
+	[Header("Debug — timing (Day 203)")]
+	[Tooltip("Log every pull's timing vs the beat to the Console: + = late, - = early, in ms, " +
+		"with a running mean. Misses clustered near ±half a beat (±350 ms at 0.7 s) = locking " +
+		"onto her half-beat snap, not the beat. A steady small offset = latency.")]
+	public bool logTiming = true;
+
 	// ---------------------------------------------------------------------------------
 
 	public System.Action<StruggleBond> OnBondFreed;
@@ -309,6 +315,7 @@ public class BondStruggle : MonoBehaviour
 
 		float beatPhase = (now % beatInterval) / beatInterval;
 		float accuracy = 1f - Mathf.Min(beatPhase, 1f - beatPhase) * 2f;
+		if (logTiming) LogTiming(beatPhase, accuracy);
 
 		if (accuracy < goodWindow)
 		{
@@ -334,6 +341,22 @@ public class BondStruggle : MonoBehaviour
 		LastResult = tool != null ? $"pull {accuracy:P0} · {LastBoost}" : $"pull {accuracy:P0}";
 		if (Selected == WristsIndex) player.NotifyStruggleProgress();
 		if (b.progress >= 1f) Freed(b);
+	}
+
+	// Day 203: signed timing telemetry. beatPhase < 0.5 = just after a beat (late),
+	// > 0.5 = just before the next one (early).
+	int timedPulls;
+	float signedMsSum, absMsSum;
+
+	void LogTiming(float beatPhase, float accuracy)
+	{
+		float ms = (beatPhase < 0.5f ? beatPhase : beatPhase - 1f) * beatInterval * 1000f;
+		timedPulls++;
+		signedMsSum += ms;
+		absMsSum += Mathf.Abs(ms);
+		Debug.Log($"[BondStruggle] pull {timedPulls}: {ms:+0;-0;0} ms {(ms >= 0f ? "late" : "early")}, " +
+			$"acc {accuracy:P0} {(accuracy >= goodWindow ? "HIT" : "miss")}   " +
+			$"| mean {signedMsSum / timedPulls:+0;-0;0} ms, mean |err| {absMsSum / timedPulls:0} ms");
 	}
 
 	// Barehand gain x best available tool. Env tools reach only envToolsReach bonds (wrists,
