@@ -156,8 +156,14 @@ public class BondStruggle : MonoBehaviour
 	public bool HandsOut => HandsFree && handsOut;
 	public bool IsHidingHands => hidingUntil > 0f;
 	public bool CanUntie(int i) => HandsFree && i >= 0 && i < bonds.Length && bonds[i].untieable && bonds[i].Bound;
-	/// <summary>0..1, 1 exactly on the beat. HUD pulse.</summary>
+	/// <summary>0..1, 1 exactly on the beat.</summary>
 	public float Pulse01 { get { float bp = (Time.time % beatInterval) / beatInterval; return 1f - Mathf.Min(bp, 1f - bp) * 2f; } }
+	/// <summary>Beats elapsed (Time.time / beatInterval). Integers are the beats. CassieStruggleDriver locks to this.</summary>
+	public float Beats => Time.time / Mathf.Max(0.01f, beatInterval);
+	/// <summary>Any bond still holding her. The beat-locked sway runs while true.</summary>
+	public bool AnyBound => NextBound(-1) >= 0;
+	/// <summary>Tool that boosted the last good pull ("TableEdge ×2.5"), or "" if none.</summary>
+	public string LastBoost { get; private set; } = "";
 
 	static readonly string[] Arrow = { "^", ">", "v", "<" };
 	public static string ArrowFor(int d) => d >= 0 && d < 4 ? Arrow[d] : "?";
@@ -312,7 +318,9 @@ public class BondStruggle : MonoBehaviour
 		}
 
 		var b = bonds[Selected];
-		float mult = (HandsFree ? freeHandsStruggleMult : 1f) * ToolMultFor(Selected, out string tool);
+		float toolMult = ToolMultFor(Selected, out string tool);
+		LastBoost = tool != null ? $"{tool} ×{toolMult:0.#}" : "";
+		float mult = (HandsFree ? freeHandsStruggleMult : 1f) * toolMult;
 		float gain = gainPerPull * mult * accuracy / b.tightness;
 		AddNoise(noisePerPull);
 
@@ -323,7 +331,7 @@ public class BondStruggle : MonoBehaviour
 		}
 
 		b.progress = Mathf.Clamp01(b.progress + gain);
-		LastResult = tool != null ? $"pull {accuracy:P0} · {tool}" : $"pull {accuracy:P0}";
+		LastResult = tool != null ? $"pull {accuracy:P0} · {LastBoost}" : $"pull {accuracy:P0}";
 		if (Selected == WristsIndex) player.NotifyStruggleProgress();
 		if (b.progress >= 1f) Freed(b);
 	}

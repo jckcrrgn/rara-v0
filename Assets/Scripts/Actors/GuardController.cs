@@ -342,15 +342,20 @@ public class GuardController : MonoBehaviour
 	// The StruggleProto captor, mapped onto the check-in loop. Ignored entirely when
 	// the player has no BondStruggle (legacy evidence-at-the-door inspection runs).
 	//
-	//   Offstage            "on his phone". Noise can't catch her. It draws him:
+	//   Day 202 rev: NOISE NEVER CATCHES HER. He doesn't punish sound — he likes
+	//   watching her struggle. What he's stopping is the ESCAPE: the only catch is
+	//   free hands out while he's looking (attention >= seenAttention). Noise only
+	//   decides how often he looks.
+	//
+	//   Offstage            "on his phone". Noise draws him:
 	//                         noise >= glanceNoise  -> he CALLS OUT (alert window)
 	//                         noise >= inspectNoise, or glanceNoise again while
 	//                         alerted               -> he comes NOW (hurried approach)
-	//                       The sound that drew him is spent. The NEXT one catches her.
+	//                       The sound that drew him is spent.
 	//   Approaching         footsteps = the telegraph. Attention 0 until the last
 	//                       turnTime seconds, then ramps to 1 (the turn is the tell).
-	//   AtDoor / LeanIn     watching, attention 1. Any pull or hop = caught.
-	//                       Free hands out at attention >= seenAttention = seen.
+	//   AtDoor / LeanIn     watching, attention 1. Struggle all she likes.
+	//                       Free hands out = caught.
 	//   Leaving             attention ramps 1 -> 0 over turnAwayTime, then he's
 	//                       listening again on his way out (and can turn back).
 	//   Rule carried from the proto: randomise WHEN he looks, never HOW FAST he turns.
@@ -359,10 +364,9 @@ public class GuardController : MonoBehaviour
 	[Tooltip("If y > 0, each offstage wait is random in [x, y] seconds and offstageDuration " +
 		"is ignored. Proto ran 3–10 s in-room; offstage plus a walk wants longer. Try 10–22.")]
 	[SerializeField] private Vector2 offstageRange = Vector2.zero;
-	[Tooltip("Noise that catches her the instant attention starts rising. Falls to watchingThreshold at full attention.")]
-	[SerializeField] private float distractedThreshold = 0.85f;
-	[Tooltip("Noise that catches her when fully watching. Below BondStruggle.noisePerPull = any pull while watched gets caught.")]
-	[SerializeField] private float watchingThreshold = 0.045f;
+	[Tooltip("Caught: put Cassie back exactly where she started the level (captured at " +
+		"Start), ignoring caughtRespawnPoint. On by default for BondStruggle levels.")]
+	[SerializeField] private bool respawnAtStartPosition = true;
 	[Tooltip("Noise that makes him call out while offstage.")]
 	[SerializeField] private float glanceNoise = 0.3f;
 	[Tooltip("Noise that brings him straight in. Also: glanceNoise again during the alert window.")]
@@ -441,10 +445,12 @@ public class GuardController : MonoBehaviour
 	private bool frozen;        // strike landed: StrikeableGuard owns the body now
 	private string listenStatus = "";
 
+	// Where Cassie sat at Start — the caught respawn on BondStruggle levels.
+	private Vector3 playerStartPos;
+	private Quaternion playerStartRot;
+
 	/// <summary>0 = not looking, 1 = watching her. HUD reads it.</summary>
 	public float Attention => attention;
-	/// <summary>Noise that catches her right now. Only live while Attention > 0.</summary>
-	public float Threshold => Mathf.Lerp(distractedThreshold, watchingThreshold, attention);
 	public float GlanceNoise => glanceNoise;
 	public float InspectNoise => inspectNoise;
 	public float SeenAttention => seenAttention;
@@ -503,7 +509,12 @@ public class GuardController : MonoBehaviour
 
 		SetLean(false);
 
-		if (player != null) struggle = player.Struggle;
+		if (player != null)
+		{
+			struggle = player.Struggle;
+			playerStartPos = player.transform.position;
+			playerStartRot = player.transform.rotation;
+		}
 		if (struggle != null) Log("BondStruggle found — listening captor ON, door evidence check OFF.");
 
 		StartCoroutine(OffstagePhase());
@@ -530,9 +541,8 @@ public class GuardController : MonoBehaviour
 
 		if (attention > 0f)
 		{
-			// Seen first: it's the worse catch.
+			// The only catch: he sees her getting free. Noise in front of him is fine.
 			if (struggle.HandsOut && attention >= seenAttention) TriggerCaught(true);
-			else if (struggle.Noise >= Threshold) TriggerCaught(false);
 			return;
 		}
 
@@ -597,7 +607,7 @@ public class GuardController : MonoBehaviour
 		pendingSeen = seen;
 		bool taken = struggle.Catches + 1 >= struggle.maxCatches;
 		listenStatus = seen ? "SAW YOUR HANDS" : "CAUGHT";
-		Log($"CAUGHT ({(seen ? "seen free hands" : $"noise {struggle.Noise:F2} >= {Threshold:F2}")}) " +
+		Log($"CAUGHT ({(seen ? "seen free hands" : "other")}) " +
 			$"at attention {attention:F2}, state {CurrentState}.{(taken ? " TAKEN." : "")}");
 
 		StopAllCoroutines();
@@ -1005,8 +1015,20 @@ public class GuardController : MonoBehaviour
 		// and it reads as his hubris: he keeps leaving it within her reach.
 		player.DisarmHeldItem();
 
-		// Position reset.
-		if (caughtRespawnPoint != null)
+		// Position reset. Day 202: BondStruggle levels go back to where she started.
+		if (struggle != null && respawnAtStartPosition)
+		{
+			player.transform.SetPositionAndRotation(playerStartPos, playerStartRot);
+			if (player.Rb != null)
+			{
+				player.Rb.position = playerStartPos;
+				player.Rb.rotation = playerStartRot;
+				player.Rb.linearVelocity = Vector3.zero;
+				player.Rb.angularVelocity = Vector3.zero;
+			}
+			Log($"Position reset to level start {playerStartPos}.");
+		}
+		else if (caughtRespawnPoint != null)
 		{
 			player.transform.position = caughtRespawnPoint.position;
 			player.transform.rotation = caughtRespawnPoint.rotation;

@@ -42,19 +42,18 @@ public class BondStruggleHUD : MonoBehaviour
 		float sw = Screen.width / uiScale;
 		var prev = GUI.color;
 
-		// --- pulse ---
-		GUI.Box(new Rect(20, 20, 60 + struggle.Pulse01 * 120, 24), "PULSE");
-
+		// Day 202 rev: no pulse bar. The beat lives in Cassie (CassieStruggleDriver
+		// sways on it) — read her, not the HUD.
 		string padStatus = RaraInput.Status();
 		if (padStatus.Length > 0)
 		{
 			GUI.color = Color.yellow;
-			GUI.Label(new Rect(220, 22, 420, 22), padStatus);
+			GUI.Label(new Rect(20, 22, 520, 22), padStatus);
 			GUI.color = prev;
 		}
 
 		// --- bonds ---
-		float y = 60;
+		float y = 50;
 		for (int i = 0; i < struggle.bonds.Length; i++)
 		{
 			var b = struggle.bonds[i];
@@ -87,8 +86,8 @@ public class BondStruggleHUD : MonoBehaviour
 			GUI.Label(new Rect(20, y + 28, 500, 22), $"KNOT   {seq}");
 		}
 
-		// --- noise bar --- yellow ticks: call-out / comes in (offstage). Red line: catch
-		// threshold, drawn only while he's actually looking.
+		// --- noise bar --- noise only calls him (never catches her). Yellow ticks:
+		// call-out / comes in.
 		float barX = 20f, barY = y + 58, barW = 300f;
 		float noise = struggle.Noise;
 		bool looking = guard != null && guard.Attention > 0f;
@@ -97,17 +96,9 @@ public class BondStruggleHUD : MonoBehaviour
 		GUI.Label(new Rect(barX + barW + 8, barY, 80, 20), "NOISE");
 		if (guard != null)
 		{
-			if (looking)
-			{
-				GUI.color = Color.red;
-				GUI.Box(new Rect(barX + barW * guard.Threshold - 2, barY - 4, 4, 26), "");
-			}
-			else
-			{
-				GUI.color = new Color(1f, 0.85f, 0f, 0.8f);
-				GUI.Box(new Rect(barX + barW * guard.GlanceNoise - 1, barY - 2, 2, 22), "");
-				GUI.Box(new Rect(barX + barW * guard.InspectNoise - 1, barY - 2, 2, 22), "");
-			}
+			GUI.color = new Color(1f, 0.85f, 0f, 0.8f);
+			GUI.Box(new Rect(barX + barW * guard.GlanceNoise - 1, barY - 2, 2, 22), "");
+			GUI.Box(new Rect(barX + barW * guard.InspectNoise - 1, barY - 2, 2, 22), "");
 			GUI.color = prev;
 		}
 
@@ -125,25 +116,32 @@ public class BondStruggleHUD : MonoBehaviour
 				GuardController.GuardState.Downed => "down",
 				_ => "",
 			};
-			if (looking) GUI.color = Color.red;
-			else if (guard.IsAlerted) GUI.color = Color.yellow;
+			if (looking && struggle.HandsOut) GUI.color = Color.red;   // the only danger
+			else if (looking || guard.IsAlerted) GUI.color = Color.yellow;
 			GUI.Label(new Rect(20, barY + 30, 600, 22),
 				$"CAPTOR  {captor}  (attention {guard.Attention:P0})   {guard.ListenStatus}");
 			GUI.color = prev;
 		}
 
 		GUI.Label(new Rect(20, barY + 54, 600, 22), struggle.LastResult);
+		if (struggle.LastBoost.Length > 0 && !struggle.HandsFree)
+		{
+			GUI.color = new Color(0.6f, 1f, 0.6f);
+			GUI.Label(new Rect(340, barY + 54, 300, 22), $"BOOST  {struggle.LastBoost}");
+			GUI.color = prev;
+		}
 		GUI.Label(new Rect(20, barY + 76, 500, 22), $"catches {struggle.Catches}/{struggle.maxCatches}");
 
 		// --- controls card ---
 		if (showControlsCard)
 		{
-			const float cw = 330f, ch = 230f;
+			const float cw = 340f, ch = 250f;
 			string card =
 				"Get every bond free — or get the bottle.\n" +
 				"Don't get caught.\n\n" +
 				"Choose bond      L-stick  /  WASD\n" +
-				"Struggle         RT  /  Space   (on the pulse)\n" +
+				"Struggle         RT  /  Space   (with her rhythm)\n" +
+				"Back up to the table edge: wrists go faster\n" +
 				"Untie            D-pad  /  IJKL   (hands free)\n" +
 				"Hide hands       LB  /  G\n" +
 				"Move chair       hold LT  /  Shift\n" +

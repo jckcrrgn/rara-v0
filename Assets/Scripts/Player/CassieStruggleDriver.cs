@@ -39,6 +39,14 @@ using UnityEngine;
 /// 2. Added a debug scrub, mirroring CassieStrikeDriver's. Unlike the strike this
 ///    layer has no timeline to scrub — the pose exists only while a press is decaying,
 ///    so there was no way to hold a frame, judge it, or shoot it.
+///
+/// DAY 202
+/// -------
+/// The beat lives in her body. With a BondStruggle on the player the
+/// oscillation is locked to its beat (an extreme exactly on every pulse, alternating
+/// sides) and an idle floor keeps her swaying while she's tied, so the player reads the
+/// rhythm off Cassie and pulls with her. The HUD pulse bar is gone. Legacy levels keep
+/// the free-running press envelope below, unchanged.
 /// </summary>
 public class CassieStruggleDriver : CassieRigLayer
 {
@@ -91,6 +99,23 @@ public class CassieStruggleDriver : CassieRigLayer
 		"amplitude for one side or flip the axis.")]
 	[SerializeField] private float wristTwistAmplitude = 20f;
 
+	[Header("Beat lock (Day 202 — BondStruggle levels)")]
+	[Tooltip("Auto-found on the player. When present, the oscillation is locked to " +
+		"BondStruggle's beat instead of free-running at cyclePeriod: she sways side to " +
+		"side and hits each extreme exactly ON the pulse. The beat lives in her body, " +
+		"not the HUD — the player reads her and pulls with her.")]
+	[SerializeField] private BondStruggle struggle;
+
+	[Tooltip("Sway she keeps up between pulls while anything is still tied, so the beat " +
+		"is always readable. A pull tops it up to 1. 0 = only moves when you pull (old feel).")]
+	[Range(0f, 1f)]
+	[SerializeField] private float idleIntensity = 0.4f;
+
+	[Tooltip("Shapes the sway. 1 = pure sine. Lower = she dwells at the extreme on the " +
+		"beat and crosses quickly between — reads as strain-and-hold, a hit on the pulse.")]
+	[Range(0.3f, 1f)]
+	[SerializeField] private float beatSharpness = 0.6f;
+
 	[Header("Debug")]
 	[Tooltip("Overrides the press envelope with the two sliders below so you can HOLD a " +
 		"struggle frame in Play Mode. Presses are ignored while this is on. Needed for " +
@@ -128,6 +153,7 @@ public class CassieStruggleDriver : CassieRigLayer
 		if (player == null)
 			Debug.LogWarning("[CassieStruggleDriver] No PlayerController — struggle beats " +
 				"won't fire.");
+		if (struggle == null && player != null) struggle = player.GetComponent<BondStruggle>();
 	}
 
 	protected override void OnEnable()
@@ -159,6 +185,27 @@ public class CassieStruggleDriver : CassieRigLayer
 			return;
 		}
 
+		// Day 202: BondStruggle levels — the sway is locked to the beat and never
+		// fully stops while she's tied. Pulls still top up the effort.
+		if (struggle != null)
+		{
+			_energy = Mathf.MoveTowards(_energy, 0f, dt / Mathf.Max(0.01f, sustain));
+			float floor = struggle.AnyBound ? idleIntensity : 0f;
+			_intensity = Mathf.MoveTowards(_intensity, Mathf.Max(_energy, floor),
+				dt / Mathf.Max(0.01f, attack));
+			if (_intensity <= 0.0001f) return;
+
+			// cos(pi * beats): +1 on even beats, -1 on odd — an extreme ON every beat,
+			// alternating sides, neutral crossing halfway between. Shaped so she dwells
+			// at the extreme (the strain) and crosses quickly.
+			float c = Mathf.Cos(Mathf.PI * struggle.Beats);
+			float w = Mathf.Sign(c) * Mathf.Pow(Mathf.Abs(c), beatSharpness);
+
+			// Free hands don't grind against rope — they're working knots or hidden.
+			ApplyPose(w, struggle.HandsFree ? 0f : 1f);
+			return;
+		}
+
 		// Effort decays toward zero; each press refunds it. Intensity chases through
 		// the attack ramp so it can never step.
 		_energy    = Mathf.MoveTowards(_energy, 0f, dt / Mathf.Max(0.01f, sustain));
@@ -181,7 +228,7 @@ public class CassieStruggleDriver : CassieRigLayer
 	/// and the live envelope drive exactly the same code — a scrub that poses her by a
 	/// second route is a scrub you can't trust what you saw in.
 	/// </summary>
-	private void ApplyPose(float w)
+	private void ApplyPose(float w, float wristScale = 1f)
 	{
 		// Torso: forward lean held for the duration of the effort (unipolar, with a
 		// small surge at each twist peak) plus a side-to-side search twist. Chest adds
@@ -197,7 +244,8 @@ public class CassieStruggleDriver : CassieRigLayer
 		// Wrists: roll about the forearm axis, counter-rotating — twisting against
 		// each other within the rope. Rotation only, so the hands stay together.
 		Vector3 axis = wristTwistAxis.sqrMagnitude > 0.0001f ? wristTwistAxis.normalized : Vector3.up;
-		float roll = wristTwistAmplitude * w * _intensity;
+		float roll = wristTwistAmplitude * w * _intensity * wristScale;
+		if (Mathf.Abs(roll) < 0.0001f) return;
 		AddOffset(HumanBodyBones.LeftLowerArm,  Quaternion.AngleAxis( roll, axis));
 		AddOffset(HumanBodyBones.RightLowerArm, Quaternion.AngleAxis(-roll, axis));
 	}

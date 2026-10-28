@@ -550,12 +550,29 @@ public class PlayerController : MonoBehaviour
 	/// <summary>
 	/// The nearest EnvironmentalTool she can work a bond against right now (the
 	/// TableEdge's back-facing gate included), or null.
+	///
+	/// Day 202 rev: searches environmental tools ONLY. Going through
+	/// FindNearestInteractable meant the bottle sitting on the same table could
+	/// be "nearest" and silently switch the edge off.
 	/// </summary>
 	public EnvironmentalTool FindUsableEnvTool()
 	{
-		InteractableBase nearby = FindNearestInteractable();
-		if (nearby is EnvironmentalTool env && env.CanStruggleAgainst(this)) return env;
-		return null;
+		Collider[] hits = Physics.OverlapSphere(transform.position, interactionCheckRadius, interactableLayer);
+		EnvironmentalTool best = null;
+		float bestDist = float.MaxValue;
+
+		foreach (Collider hit in hits)
+		{
+			EnvironmentalTool env = hit.GetComponent<EnvironmentalTool>();
+			if (env == null || !env.gameObject.activeInHierarchy) continue;
+			float dist = Vector3.Distance(transform.position, hit.transform.position);
+			if (dist > env.InteractionRange || dist >= bestDist) continue;
+			best = env;
+			bestDist = dist;
+		}
+
+		// Gate only the winner — SharpEdge logs on every check.
+		return best != null && best.CanStruggleAgainst(this) ? best : null;
 	}
 
 	// Cached reference to the scene's StrikeableGuard. The VS has exactly one
