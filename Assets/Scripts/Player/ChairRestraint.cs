@@ -287,6 +287,17 @@ public class ChairRestraint : RestraintBase
 	{
 		if (isBroken) return;
 
+		// Day 202: with BondStruggle, the stick / WASD select bonds. The chair only
+		// moves while the move layer is held (LT on pad, Shift on keyboard). Rocking
+		// is not on the layer — Shift is taken — so rockingEnabled levels (L6) stay on
+		// the legacy path until they opt in and rocking gets a new binding.
+		BondStruggle bs = player.Struggle;
+		if (bs != null)
+		{
+			HandleLayeredMovement(player, bs);
+			return;
+		}
+
 		bool shiftHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
 
 		// Rocking takes priority over turn-hop on Shift+A/D. Check it first so
@@ -338,6 +349,33 @@ public class ChairRestraint : RestraintBase
 		{
 			player.StartCoroutine(BackScootCycle(player));
 		}
+	}
+
+	/// <summary>
+	/// Day 202 move layer. Same verbs, same physics, different trigger: taps come
+	/// from BondStruggle (stick zone entered while LT / Shift held). Every hop is
+	/// noise — two quick hops draw a call-out, any hop while he's watching is a catch.
+	/// </summary>
+	private void HandleLayeredMovement(PlayerController player, BondStruggle bs)
+	{
+		if (!bs.MoveLayerHeld || !player.IsGrounded) return;
+
+		if (bs.MoveLeftTap) { ApplyTurnHop(player, -1f); bs.AddNoise(bs.noisePerHop); }
+		else if (bs.MoveRightTap) { ApplyTurnHop(player, +1f); bs.AddNoise(bs.noisePerHop); }
+
+		if (bs.MoveForwardTap) { ForwardHop(player); bs.AddNoise(bs.noisePerHop); }
+
+		if (bs.MoveBackHeld && !player.IsBusy)
+			player.StartCoroutine(BackScootCycle(player));
+	}
+
+	// Hold-to-repeat check for the back-scoot chain, on whichever input path is live.
+	private bool BackScootStillHeld(PlayerController player)
+	{
+		BondStruggle bs = player.Struggle;
+		if (bs != null) return bs.MoveLayerHeld && bs.MoveBackHeld;
+		bool shiftHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+		return !shiftHeld && Input.GetKey(KeyCode.S);
 	}
 
 	/// <summary>
@@ -639,6 +677,9 @@ public class ChairRestraint : RestraintBase
 			AudioManager.Instance.PlaySFX(backScootClip, 1f, Random.Range(0.95f, 1.05f));
 		}
 
+		// Day 202: each shimmy is a (quieter) noise event.
+		if (player.Struggle != null) player.Struggle.AddNoise(player.Struggle.noisePerScoot);
+
 		// Push phase: shimmy back along -transform.forward over lungeDuration.
 		float elapsed = 0f;
 		while (elapsed < backScootLungeDuration)
@@ -669,8 +710,7 @@ public class ChairRestraint : RestraintBase
 		// time). Grounded check too — a mid-air chair shouldn't keep scooting.
 		// Shift check matches the kickoff gate: shift-held means rocking input
 		// space, so the scoot chain breaks if the player engages shift mid-hold.
-		bool shiftHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-		if (!shiftHeld && Input.GetKey(KeyCode.S) && player.IsGrounded && !player.IsBusy)
+		if (BackScootStillHeld(player) && player.IsGrounded && !player.IsBusy)
 		{
 			player.StartCoroutine(BackScootCycle(player));
 		}
@@ -721,6 +761,21 @@ public class ChairRestraint : RestraintBase
 		// the player; mermaid-kick produces real force and shouldn't be
 		// marked disabled.
 		bool kickSuppressed = GetKickModifier() <= 0f;
+
+		// Day 202: BondStruggle bindings. Pad first — that's how it's played now.
+		if (GetComponent<BondStruggle>() != null)
+		{
+			return new List<ControlHint>
+			{
+				new ControlHint("Choose bond", "L-stick / WASD"),
+				new ControlHint("Struggle (on the pulse)", "RT / Space"),
+				new ControlHint("Untie (hands free)", "D-pad / IJKL"),
+				new ControlHint("Hide hands", "LB / G"),
+				new ControlHint("Move chair", "hold LT / Shift"),
+				new ControlHint("Pick Up", "A / E"),
+				new ControlHint("Strike", "X / H"),
+			};
+		}
 
 		List<ControlHint> hints = new List<ControlHint>
 	{

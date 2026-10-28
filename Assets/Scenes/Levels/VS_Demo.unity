@@ -1084,7 +1084,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &282955824
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2345,6 +2345,7 @@ GameObject:
   - component: {fileID: 677440321}
   - component: {fileID: 677440320}
   - component: {fileID: 677440322}
+  - component: {fileID: 677440323}
   m_Layer: 0
   m_Name: SliceCoordinator
   m_TagString: Untagged
@@ -2399,6 +2400,21 @@ MonoBehaviour:
   targets:
   - {fileID: 1385257078}
   - {fileID: 975361372}
+--- !u!114 &677440323
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 677440319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 144b12c9ae6c884478b9a9ce77d8df35, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  struggle: {fileID: 0}
+  uiScale: 2
+  showControlsCard: 1
 --- !u!1 &680010493
 GameObject:
   m_ObjectHideFlags: 0
@@ -5065,7 +5081,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4118337886289226959, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
   m_PrefabInstance: {fileID: 8205259987904620297}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 1652804365}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ba99bb08098b0464d93403e3a1dac8fa, type: 3}
@@ -5081,7 +5097,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6255347650362523610, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
   m_PrefabInstance: {fileID: 8205259987904620297}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 1652804365}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2f9faedb81873fe41b905f8954ce1d82, type: 3}
@@ -5155,6 +5171,26 @@ MonoBehaviour:
   onLeanInEntered:
     m_PersistentCalls:
       m_Calls: []
+  offstageRange: {x: 8, y: 16}
+  distractedThreshold: 0.85
+  watchingThreshold: 0.045
+  glanceNoise: 0.3
+  inspectNoise: 0.6
+  alertWindow: 1.6
+  turnTime: 1.4
+  heardApproachDuration: 2.5
+  heardTurnTime: 0.8
+  turnAwayTime: 0.8
+  seenAttention: 0.75
+  calloutClip: {fileID: 0}
+  calloutLines:
+  - Hm?
+  - You say something?
+  - Quiet in there.
+  caughtSeenGuardLine: Busy hands. Let's fix that.
+  escalationCassieReaction: My ELBOWS? Really?
+  takenGuardLine: Enough. You're coming with me.
+  takenHoldTime: 1.5
   verboseLogging: 1
 --- !u!4 &1343825749
 Transform:
@@ -6576,6 +6612,79 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1651504950}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1652804365 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2795448765098500059, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+  m_PrefabInstance: {fileID: 8205259987904620297}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1652804368
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1652804365}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18fe9ba13b9522f4cb83ec1a18e86ec5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bonds:
+  - name: Elbows
+    dir: {x: 0, y: 1}
+    limb: 2
+    startsBound: 0
+    addedOnCatch: 1
+    untieable: 0
+    envToolsReach: 0
+    barehandGain: 1
+  - name: Wrists
+    dir: {x: 0, y: -1}
+    limb: 1
+    startsBound: 1
+    addedOnCatch: 0
+    untieable: 0
+    envToolsReach: 1
+    barehandGain: 1
+  - name: L Ankle
+    dir: {x: -1, y: 0}
+    limb: 4
+    startsBound: 1
+    addedOnCatch: 0
+    untieable: 1
+    envToolsReach: 0
+    barehandGain: 1
+  - name: R Ankle
+    dir: {x: 1, y: 0}
+    limb: 4
+    startsBound: 1
+    addedOnCatch: 0
+    untieable: 1
+    envToolsReach: 0
+    barehandGain: 1
+  beatInterval: 0.7
+  goodWindow: 0.6
+  gainPerPull: 0.08
+  spamGap: 0.25
+  noisePerPull: 0.05
+  noisePerMiss: 0.15
+  noisePerSpam: 0.25
+  noiseDecay: 0.1
+  noisePerHop: 0.12
+  noisePerScoot: 0.06
+  freeHandsStruggleMult: 1.5
+  untieGain: 0.1
+  noisePerUntie: 0.01
+  noisePerFumble: 0.1
+  handsBackTime: 0.4
+  bladeMult: 2.5
+  pointMult: 1.6
+  keyMult: 4
+  setback: 0.3
+  tightenPerCatch: 0.3
+  freeHandsExtraTighten: 0.3
+  maxCatches: 3
+  slippedOutLine: Rookie knots.
 --- !u!1 &1674656236
 GameObject:
   m_ObjectHideFlags: 0
@@ -8516,7 +8625,10 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4709457099200860874, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       insertIndex: -1
       addedObject: {fileID: 979654069}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2795448765098500059, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1652804368}
   m_SourcePrefab: {fileID: 100100000, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
 --- !u!4 &8205259987904620298 stripped
 Transform:

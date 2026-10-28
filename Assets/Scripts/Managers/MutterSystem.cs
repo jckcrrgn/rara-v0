@@ -422,14 +422,15 @@ public class MutterSystem : MonoBehaviour
 		// sequence. Cleared the first frame we see the key isn't held.
 		if (requireDismissKeyRelease)
 		{
-			if (!Input.GetKey(dismissKey))
+			// Day 202: pad A dismisses too (RaraInput).
+			if (!Input.GetKey(dismissKey) && !RaraInput.Read().interactHeld)
 			{
 				requireDismissKeyRelease = false;
 			}
 			return;
 		}
 
-		if (!Input.GetKeyDown(dismissKey)) return;
+		if (!Input.GetKeyDown(dismissKey) && !RaraInput.Read().interact) return;
 
 		// Skip-to-end: pressed during reveal. The reveal coroutine sees the flag
 		// and short-circuits, populating the rest of the text instantly and

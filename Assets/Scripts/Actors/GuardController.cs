@@ -337,6 +337,66 @@ public class GuardController : MonoBehaviour
 	[SerializeField] private UnityEngine.Events.UnityEvent onLeanInEntered;
 
 	// -------------------------------------------------------------------------
+	// Inspector — Listening (Day 202, BondStruggle levels only)
+	// -------------------------------------------------------------------------
+	// The StruggleProto captor, mapped onto the check-in loop. Ignored entirely when
+	// the player has no BondStruggle (legacy evidence-at-the-door inspection runs).
+	//
+	//   Offstage            "on his phone". Noise can't catch her. It draws him:
+	//                         noise >= glanceNoise  -> he CALLS OUT (alert window)
+	//                         noise >= inspectNoise, or glanceNoise again while
+	//                         alerted               -> he comes NOW (hurried approach)
+	//                       The sound that drew him is spent. The NEXT one catches her.
+	//   Approaching         footsteps = the telegraph. Attention 0 until the last
+	//                       turnTime seconds, then ramps to 1 (the turn is the tell).
+	//   AtDoor / LeanIn     watching, attention 1. Any pull or hop = caught.
+	//                       Free hands out at attention >= seenAttention = seen.
+	//   Leaving             attention ramps 1 -> 0 over turnAwayTime, then he's
+	//                       listening again on his way out (and can turn back).
+	//   Rule carried from the proto: randomise WHEN he looks, never HOW FAST he turns.
+
+	[Header("Listening — BondStruggle (Day 202)")]
+	[Tooltip("If y > 0, each offstage wait is random in [x, y] seconds and offstageDuration " +
+		"is ignored. Proto ran 3–10 s in-room; offstage plus a walk wants longer. Try 10–22.")]
+	[SerializeField] private Vector2 offstageRange = Vector2.zero;
+	[Tooltip("Noise that catches her the instant attention starts rising. Falls to watchingThreshold at full attention.")]
+	[SerializeField] private float distractedThreshold = 0.85f;
+	[Tooltip("Noise that catches her when fully watching. Below BondStruggle.noisePerPull = any pull while watched gets caught.")]
+	[SerializeField] private float watchingThreshold = 0.045f;
+	[Tooltip("Noise that makes him call out while offstage.")]
+	[SerializeField] private float glanceNoise = 0.3f;
+	[Tooltip("Noise that brings him straight in. Also: glanceNoise again during the alert window.")]
+	[SerializeField] private float inspectNoise = 0.6f;
+	[Tooltip("How long a call-out leaves him listening hard. More glance-level noise in this window brings him in.")]
+	[SerializeField] private float alertWindow = 1.6f;
+	[Tooltip("Attention ramp at the end of a normal approach — the turn. Fixed on purpose.")]
+	[SerializeField] private float turnTime = 1.4f;
+	[Tooltip("Approach length when he heard something. Shorter than approachDuration: noise costs you warning time.")]
+	[SerializeField] private float heardApproachDuration = 2.5f;
+	[Tooltip("Attention ramp at the end of a hurried approach. Faster — he's reacting, not idly checking.")]
+	[SerializeField] private float heardTurnTime = 0.8f;
+	[Tooltip("Attention ramp down when he starts leaving.")]
+	[SerializeField] private float turnAwayTime = 0.8f;
+	[Tooltip("Attention at which he sees free hands that are out (or a bottle she hasn't hidden).")]
+	[Range(0f, 1f)]
+	[SerializeField] private float seenAttention = 0.75f;
+	[Tooltip("Optional SFX for a call-out. The line below plays as a background (non-blocking) mutter.")]
+	[SerializeField] private AudioClip calloutClip;
+	[SerializeField] private string[] calloutLines = { "Hm?", "You say something?", "Quiet in there." };
+
+	[Header("Listening — Caught lines (Day 202)")]
+	[TextArea(2, 4)]
+	[SerializeField] private string caughtSeenGuardLine = "Busy hands. Let's fix that.";
+	[Tooltip("Cassie's reaction when the catch tied on a NEW bond (elbows on the first catch). " +
+		"Falls back to caughtCassieReaction when empty or nothing was added.")]
+	[TextArea(2, 4)]
+	[SerializeField] private string escalationCassieReaction = "My ELBOWS? Really?";
+	[Tooltip("The last catch. Plays over black, then the scene reloads.")]
+	[TextArea(2, 4)]
+	[SerializeField] private string takenGuardLine = "Enough. You're coming with me.";
+	[SerializeField] private float takenHoldTime = 1.5f;
+
+	// -------------------------------------------------------------------------
 	// Inspector — Debug
 	// -------------------------------------------------------------------------
 
@@ -368,6 +428,29 @@ public class GuardController : MonoBehaviour
 	// The guard's authored world Y, captured at Start before anything moves him.
 	// With lockBodyHeight on, every move/snap target is flattened to this height.
 	private float bodyY;
+
+	// Day 202 — listening state. Null struggle = legacy level, none of this runs.
+	private BondStruggle struggle;
+	private float attention;
+	private float alertUntil;
+	private float approachStart, approachLen, approachTurn;
+	private float leaveStart;
+	private bool pendingSeen;
+	private BondStruggle.CatchResult lastCatch;
+	private bool stoodDown;     // slipped-out stub: cycle stopped for good
+	private bool frozen;        // strike landed: StrikeableGuard owns the body now
+	private string listenStatus = "";
+
+	/// <summary>0 = not looking, 1 = watching her. HUD reads it.</summary>
+	public float Attention => attention;
+	/// <summary>Noise that catches her right now. Only live while Attention > 0.</summary>
+	public float Threshold => Mathf.Lerp(distractedThreshold, watchingThreshold, attention);
+	public float GlanceNoise => glanceNoise;
+	public float InspectNoise => inspectNoise;
+	public float SeenAttention => seenAttention;
+	public bool IsAlerted => Time.time < alertUntil;
+	/// <summary>Last thing he did in response to noise. HUD reads it.</summary>
+	public string ListenStatus => listenStatus;
 
 	// -------------------------------------------------------------------------
 	// Unity Lifecycle
@@ -420,7 +503,148 @@ public class GuardController : MonoBehaviour
 
 		SetLean(false);
 
+		if (player != null) struggle = player.Struggle;
+		if (struggle != null) Log("BondStruggle found — listening captor ON, door evidence check OFF.");
+
 		StartCoroutine(OffstagePhase());
+	}
+
+	// -------------------------------------------------------------------------
+	// Day 202 — Listening captor
+	// -------------------------------------------------------------------------
+
+	void Update()
+	{
+		if (struggle == null || stoodDown || frozen) return;
+
+		if (caughtSequenceRunning || CurrentState == GuardState.Caught || CurrentState == GuardState.Downed)
+		{
+			attention = 0f;
+			return;
+		}
+
+		attention = ComputeAttention();
+
+		// Mid-swing, her hands are out by definition. The strike resolves the beat.
+		if (player != null && player.IsStriking) return;
+
+		if (attention > 0f)
+		{
+			// Seen first: it's the worse catch.
+			if (struggle.HandsOut && attention >= seenAttention) TriggerCaught(true);
+			else if (struggle.Noise >= Threshold) TriggerCaught(false);
+			return;
+		}
+
+		Listen();
+	}
+
+	private float ComputeAttention()
+	{
+		switch (CurrentState)
+		{
+			case GuardState.Approaching:
+				float el = Time.time - approachStart;
+				float rampStart = approachLen - approachTurn;
+				if (el <= rampStart) return 0f;
+				return Mathf.Clamp01((el - rampStart) / Mathf.Max(0.01f, approachTurn));
+			case GuardState.AtDoor:
+			case GuardState.LeanIn:
+				return 1f;
+			case GuardState.Leaving:
+				return Mathf.Clamp01(1f - (Time.time - leaveStart) / Mathf.Max(0.01f, turnAwayTime));
+			default:
+				return 0f;
+		}
+	}
+
+	// Noise while he's NOT looking draws him in. Noise while he IS looking is judged
+	// against Threshold in Update.
+	private void Listen()
+	{
+		if (CurrentState != GuardState.Offstage && CurrentState != GuardState.Leaving) return;
+
+		float n = struggle.Noise;
+		bool alerted = IsAlerted;
+
+		if (n >= inspectNoise || (alerted && n >= glanceNoise))
+		{
+			struggle.SpendNoise();
+			alertUntil = 0f;
+			listenStatus = "HE HEARD THAT — coming";
+			Log($"Heard noise {n:F2} — hurried approach.");
+			StopAllCoroutines();
+			SetLean(false);
+			StartCoroutine(ApproachPhase(true));
+		}
+		else if (!alerted && n >= glanceNoise)
+		{
+			struggle.SpendNoise();
+			alertUntil = Time.time + alertWindow;
+			listenStatus = "he calls out";
+			Log($"Heard noise {n:F2} — calls out. Alert {alertWindow}s.");
+			if (AudioManager.Instance != null && calloutClip != null)
+				AudioManager.Instance.PlaySFX(calloutClip, footstepsVolume, 1f);
+			if (MutterSystem.Instance != null && calloutLines != null && calloutLines.Length > 0)
+				MutterSystem.Instance.PlayAsGuardBackground(calloutLines[Random.Range(0, calloutLines.Length)]);
+		}
+	}
+
+	private void TriggerCaught(bool seen)
+	{
+		if (caughtSequenceRunning) return;
+
+		pendingSeen = seen;
+		bool taken = struggle.Catches + 1 >= struggle.maxCatches;
+		listenStatus = seen ? "SAW YOUR HANDS" : "CAUGHT";
+		Log($"CAUGHT ({(seen ? "seen free hands" : $"noise {struggle.Noise:F2} >= {Threshold:F2}")}) " +
+			$"at attention {attention:F2}, state {CurrentState}.{(taken ? " TAKEN." : "")}");
+
+		StopAllCoroutines();
+		SetLean(false);
+		StartCoroutine(taken ? TakenPhase() : CaughtPhase());
+	}
+
+	/// <summary>
+	/// Day 202 slipped-out stub: every bond is free and she's leaving. Stop the cycle for
+	/// good and put him out of sight. Not Downed — that's the strike's ending, and
+	/// SliceCoordinator would play the strike's victory line.
+	/// </summary>
+	public void StandDown()
+	{
+		stoodDown = true;
+		attention = 0f;
+		StopAllCoroutines();
+		SetLean(false);
+		if (guardBody != null && offstageAnchor != null)
+			guardBody.position = OnFloor(offstageAnchor.position);
+		Log("Stood down — she slipped out.");
+	}
+
+	private IEnumerator TakenPhase()
+	{
+		caughtSequenceRunning = true;
+		SetState(GuardState.Caught);
+		Log("=== TAKEN — last catch ===");
+
+		if (player != null) player.enabled = false;
+		yield return FadeOverlay(0f, 1f, caughtFadeDuration);
+		yield return PlayCaughtSfxSequence();
+
+		if (struggle != null) lastCatch = struggle.RegisterCatch(pendingSeen);
+
+		if (MutterSystem.Instance != null && !string.IsNullOrEmpty(takenGuardLine))
+		{
+			MutterSystem.Instance.Play(takenGuardLine, MutterSystem.Speaker.Guard);
+			yield return null;
+			yield return new WaitWhile(() => MutterSystem.Instance != null && MutterSystem.Instance.IsActive);
+		}
+
+		yield return new WaitForSeconds(takenHoldTime);
+
+		// Loss. Somewhere worse is a later build; for now, from the top.
+		var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+		UnityEngine.SceneManagement.SceneManager.LoadScene(scene.name);
 	}
 
 	// -------------------------------------------------------------------------
@@ -449,6 +673,7 @@ public class GuardController : MonoBehaviour
 	/// </summary>
 	public void FreezeMovement()
 	{
+		frozen = true;
 		StopAllCoroutines();
 		Log("Guard movement frozen (strike landed).");
 	}
@@ -460,7 +685,12 @@ public class GuardController : MonoBehaviour
 	private IEnumerator OffstagePhase()
 	{
 		SetState(GuardState.Offstage);
-		Log($"Offstage phase — waiting {offstageDuration}s.");
+
+		// Day 202: randomise WHEN he comes back, never how fast he turns.
+		float wait = (struggle != null && offstageRange.y > 0f)
+			? Random.Range(offstageRange.x, offstageRange.y)
+			: offstageDuration;
+		Log($"Offstage phase — waiting {wait:F1}s.");
 
 		// Snap the body to its offstage anchor — he's out of sight between
 		// check-ins. No-op if no body/anchor wired.
@@ -475,25 +705,35 @@ public class GuardController : MonoBehaviour
 		// Auto-release feign at the start of the offstage window. The guard
 		// has left; there's no reason to hold the pose. Covers the case where
 		// the player forgets to toggle off manually.
-		if (player != null && player.IsFeigning)
+		// Day 202: not on BondStruggle levels — hidden hands are her choice, and
+		// cancelling the feign there would put them OUT (CancelFeign routes to
+		// BondStruggle.BringHandsOut).
+		if (struggle == null && player != null && player.IsFeigning)
 			player.CancelFeign();
 
-		yield return new WaitForSeconds(offstageDuration);
+		yield return new WaitForSeconds(wait);
 		StartCoroutine(ApproachPhase());
 	}
 
-	private IEnumerator ApproachPhase()
+	/// <param name="heard">Day 202: he heard something. Shorter approach, faster turn.</param>
+	private IEnumerator ApproachPhase(bool heard = false)
 	{
+		float duration = heard ? heardApproachDuration : approachDuration;
+		approachStart = Time.time;
+		approachLen = duration;
+		approachTurn = Mathf.Min(heard ? heardTurnTime : turnTime, duration);
+
 		SetState(GuardState.Approaching);
-		Log("Guard approaching — feign window OPEN.");
+		Log(heard ? "Guard HEARD something — hurried approach." : "Guard approaching — feign window OPEN.");
+		if (!heard) listenStatus = "footsteps";
 
 		if (AudioManager.Instance != null && approachFootstepsClip != null)
-			AudioManager.Instance.PlaySFX(approachFootstepsClip, footstepsVolume, 1f);
+			AudioManager.Instance.PlaySFX(approachFootstepsClip, footstepsVolume, heard ? 1.25f : 1f);
 
 		// Walk to the door over the approach window — this IS the telegraph the
 		// player reacts to. Move duration == approachDuration, so the feign
 		// window timing is unchanged from the audio-only version.
-		yield return MoveBody(doorAnchor, approachDuration);
+		yield return MoveBody(doorAnchor, duration);
 		StartCoroutine(AtDoorPhase());
 	}
 
@@ -510,6 +750,16 @@ public class GuardController : MonoBehaviour
 		float remaining = inspectionHoldDuration - (Time.time - holdStart);
 		if (remaining > 0f)
 			yield return new WaitForSeconds(remaining);
+
+		// Day 202: on BondStruggle levels the inspection is continuous — Update has
+		// been judging noise and hands since his attention started rising. Getting
+		// here means she held still. He walks in.
+		if (struggle != null)
+		{
+			Log("Inspection (listening): she held still. Walking in.");
+			StartCoroutine(LeanInPhase());
+			yield break;
+		}
 
 		// Inspection outcome. Feign is only load-bearing once Cassie has visible
 		// escape evidence to hide. No evidence + not feigning = a bound prisoner
@@ -606,6 +856,7 @@ public class GuardController : MonoBehaviour
 
 	private IEnumerator LeavingPhase()
 	{
+		leaveStart = Time.time;
 		SetState(GuardState.Leaving);
 		Log("Guard leaving — receding to offstage.");
 
@@ -678,12 +929,23 @@ public class GuardController : MonoBehaviour
 		MutateCaughtState();
 
 		// Step 5: Guard caught line (over black).
+		// Day 202: seen-free-hands and escalation catches get their own lines.
+		string guardLine = caughtGuardLine;
+		string cassieLine = caughtCassieReaction;
+		if (struggle != null)
+		{
+			if (lastCatch.seen && !string.IsNullOrEmpty(caughtSeenGuardLine))
+				guardLine = caughtSeenGuardLine;
+			if (lastCatch.addedBond != null && !string.IsNullOrEmpty(escalationCassieReaction))
+				cassieLine = escalationCassieReaction;
+		}
+
 		if (MutterSystem.Instance != null)
 		{
-			if (!string.IsNullOrEmpty(caughtGuardLine))
-				MutterSystem.Instance.Play(caughtGuardLine, MutterSystem.Speaker.Guard);
-			if (!string.IsNullOrEmpty(caughtCassieReaction))
-				MutterSystem.Instance.Play(caughtCassieReaction, MutterSystem.Speaker.Cassie);
+			if (!string.IsNullOrEmpty(guardLine))
+				MutterSystem.Instance.Play(guardLine, MutterSystem.Speaker.Guard);
+			if (!string.IsNullOrEmpty(cassieLine))
+				MutterSystem.Instance.Play(cassieLine, MutterSystem.Speaker.Cassie);
 		}
 
 		// Step 6: Wait for guard line dismiss, then fade in.
@@ -711,18 +973,31 @@ public class GuardController : MonoBehaviour
 	{
 		if (player == null) return;
 
-		// Bond escalation — add the configured bond (if any).
-		if (caughtBondToAdd != 0 && player.CurrentRestraint != null)
+		if (struggle != null)
 		{
-			player.CurrentRestraint.AddBondState(caughtBondToAdd);
-			Log($"Caught bond escalation: added {caughtBondToAdd}. " +
-				$"New BoundLimbs = {player.CurrentRestraint.BoundLimbs}");
+			// Day 202: proto catch rules, applied under the fade. Setback + tighten on
+			// every bond, wrists from scratch if he saw her hands, reserve bonds tied
+			// on (elbows, first catch). BondStruggle re-syncs BoundLimbs + WristsFree.
+			lastCatch = struggle.RegisterCatch(pendingSeen);
+			Log($"Caught {lastCatch.catches}/{struggle.maxCatches}" +
+				$"{(lastCatch.seen ? " (seen free hands)" : "")}" +
+				$"{(lastCatch.addedBond != null ? $", tied on {lastCatch.addedBond}" : "")}.");
 		}
+		else
+		{
+			// Bond escalation — add the configured bond (if any).
+			if (caughtBondToAdd != 0 && player.CurrentRestraint != null)
+			{
+				player.CurrentRestraint.AddBondState(caughtBondToAdd);
+				Log($"Caught bond escalation: added {caughtBondToAdd}. " +
+					$"New BoundLimbs = {player.CurrentRestraint.BoundLimbs}");
+			}
 
-		// Reset bond cut progress — the guard re-ties her. ResetBondProgress
-		// also clears PlayerController.wristsFree so phase 1 restarts correctly
-		// if she was caught after having freed her wrists.
-		player.ResetBondProgress();
+			// Reset bond cut progress — the guard re-ties her. ResetBondProgress
+			// also clears PlayerController.wristsFree so phase 1 restarts correctly
+			// if she was caught after having freed her wrists.
+			player.ResetBondProgress();
+		}
 
 		// Disarm on re-bind: the guard takes what's in her hands. Whether it comes
 		// back is the item's policy (Pickupable.returnedOnDisarm) — the bottle is

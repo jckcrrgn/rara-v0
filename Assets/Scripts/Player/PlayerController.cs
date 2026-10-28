@@ -134,6 +134,9 @@ public class PlayerController : MonoBehaviour
 	/// </summary>
 	public bool IsBusy => isKicking || isStriking || (currentRestraint != null && currentRestraint.IsBusy);
 
+	/// <summary>Mid-strike (Day 202): the listening guard doesn't judge her hands mid-swing.</summary>
+	public bool IsStriking => isStriking;
+
 	// -------------------------------------------------------------------------
 	// Feign state
 	// -------------------------------------------------------------------------
@@ -221,8 +224,29 @@ public class PlayerController : MonoBehaviour
 	// query restraint state without owning a reference.
 	public RestraintBase CurrentRestraint => currentRestraint;
 
-	public int StruggleProgress => bond != null ? bond.StruggleProgress : 0;
-	public int BondStrength => bond != null ? bond.BondStrength : 1;
+	// Day 202: with BondStruggle present these report the WRISTS bond on a 0..100 scale,
+	// so BondMeterUI, HideWhenBondBroken and the legacy guard evidence check keep reading
+	// the thing they always meant — "are her hands still tied."
+	public int StruggleProgress => struggle != null
+		? (struggle.HandsFree ? 100 : Mathf.FloorToInt(WristProgress01() * 100f))
+		: (bond != null ? bond.StruggleProgress : 0);
+	public int BondStrength => struggle != null ? 100 : (bond != null ? bond.BondStrength : 1);
+
+	private float WristProgress01()
+	{
+		int w = struggle.WristsIndex;
+		return w >= 0 ? struggle.bonds[w].progress : 0f;
+	}
+
+	// -------------------------------------------------------------------------
+	// Day 202 — BondStruggle (rhythm, per-bond). Opt-in: present = new path,
+	// absent = the legacy single-Bond path below, untouched.
+	// -------------------------------------------------------------------------
+
+	private BondStruggle struggle;
+
+	/// <summary>The per-bond rhythm struggle, or null on legacy levels.</summary>
+	public BondStruggle Struggle => struggle;
 	public System.Action OnStruggleProgressChanged;
 	public System.Action OnPlayerFreed;
 
@@ -264,11 +288,21 @@ public class PlayerController : MonoBehaviour
 	/// </summary>
 	public System.Action OnRestraintChanged;
 
+	void Awake()
+	{
+		// Resolved in Awake so UI that reads StruggleProgress in its own Start sees it.
+		struggle = GetComponent<BondStruggle>();
+	}
+
 	void Start()
 	{
 		Rb = GetComponent<Rigidbody>();
 
-		if (bond != null)
+		if (bond != null && struggle != null)
+		{
+			Debug.Log("[PlayerController] BondStruggle present — legacy Bond ignored.");
+		}
+		else if (bond != null)
 		{
 			bond.OnProgressChanged += () => OnStruggleProgressChanged?.Invoke();
 			bond.OnBroken += EscapeBonds;
@@ -299,7 +333,7 @@ public class PlayerController : MonoBehaviour
 		// held + guard in LeanIn), pressing H dismisses the mutter and lands
 		// the strike in one press. If the strike isn't valid, fall through to
 		// the normal gate so H does nothing special during non-strike mutters.
-		if (Input.GetKeyDown(KeyCode.H) && CanStrikeNow())
+		if ((Input.GetKeyDown(KeyCode.H) || RaraInput.Read().strike) && CanStrikeNow())
 		{
 			if (MutterSystem.Instance != null && MutterSystem.Instance.IsActive)
 			{
@@ -324,6 +358,26 @@ public class PlayerController : MonoBehaviour
 		// false in the same frame. WasJustDismissed catches this.
 		bool justDismissed = MutterSystem.Instance != null
 			&& MutterSystem.Instance.WasJustDismissed;
+
+		// Day 202 — BondStruggle path. Feign here is "hands hidden" and does NOT
+		// suppress struggling (proto rule: pulling with hidden hands is fine, untie
+		// and pick-up bring them out). Movement goes through the restraint, which
+		// reads the LT / Shift move layer from BondStruggle.
+		if (struggle != null)
+		{
+			struggle.Tick(justDismissed);
+
+			if (currentRestraint != null)
+				currentRestraint.HandleMovementInput(this);
+
+			if (!justDismissed && (Input.GetKeyDown(KeyCode.E) || RaraInput.Read().interact))
+				TryPickUp();
+
+			if (Input.GetKeyDown(KeyCode.F))
+				TryKick();
+
+			return;
+		}
 
 		// Feign toggle: G key. Available whenever the active restraint supports
 		// it (ChairRestraint returns true; others return false by default).
@@ -441,9 +495,67 @@ public class PlayerController : MonoBehaviour
 	{
 		if (!isFeigning) return;
 
+		// BondStruggle owns hands state: ending the feign means her hands come out.
+		if (struggle != null)
+		{
+			struggle.BringHandsOut();   // calls SetFeignState(false)
+			return;
+		}
+
 		isFeigning = false;
 		OnFeignChanged?.Invoke(false);
 		Debug.Log("[PlayerController] Feign EXIT.");
+	}
+
+	// -------------------------------------------------------------------------
+	// Day 202 — BondStruggle hooks. Called only by BondStruggle.
+	// -------------------------------------------------------------------------
+
+	/// <summary>
+	/// Raw feign flag set. BondStruggle calls this when her hands finish hiding (true)
+	/// or come out / she's re-tied (false). No routing back into BondStruggle, so no loop.
+	/// </summary>
+	public void SetFeignState(bool feigning)
+	{
+		if (isFeigning == feigning) return;
+		isFeigning = feigning;
+		OnFeignChanged?.Invoke(feigning);
+		Debug.Log($"[PlayerController] Feign {(feigning ? "ENTER (hands hidden)" : "EXIT")}.");
+	}
+
+	/// <summary>Presentation beat for a pull, pass or fail (CassieStruggleDriver listens).</summary>
+	public void NotifyStruggleAttempt() => OnStruggleAttempt?.Invoke();
+
+	/// <summary>Wrists progress changed (BondMeterUI listens).</summary>
+	public void NotifyStruggleProgress() => OnStruggleProgressChanged?.Invoke();
+
+	/// <summary>
+	/// BondStruggle's wrists bond is the source of truth for WristsFree. Going free fires
+	/// OnWristsFreed + the bond-break SFX, same as EscapeBonds in VS mode. It never ends
+	/// the level on its own — every bond free does (BondStruggle's slipped-out stub).
+	/// Going bound again (caught with free hands) just clears the flag.
+	/// </summary>
+	public void SetWristsFreeFromStruggle(bool free)
+	{
+		if (free == wristsFree) return;
+		wristsFree = free;
+		if (!free) return;
+
+		if (AudioManager.Instance != null && bondBreakClip != null)
+			AudioManager.Instance.PlaySFX(bondBreakClip, 1f, 1f);
+		OnWristsFreed?.Invoke();
+		Debug.Log("[PlayerController] Wrists free (BondStruggle). Level continues.");
+	}
+
+	/// <summary>
+	/// The nearest EnvironmentalTool she can work a bond against right now (the
+	/// TableEdge's back-facing gate included), or null.
+	/// </summary>
+	public EnvironmentalTool FindUsableEnvTool()
+	{
+		InteractableBase nearby = FindNearestInteractable();
+		if (nearby is EnvironmentalTool env && env.CanStruggleAgainst(this)) return env;
+		return null;
 	}
 
 	// Cached reference to the scene's StrikeableGuard. The VS has exactly one
@@ -880,6 +992,7 @@ public class PlayerController : MonoBehaviour
 	{
 		heldItem = item;
 		Debug.Log($"Picked up {item.ItemName}.");
+		if (struggle != null) struggle.OnItemTaken();   // free hands grabbing = hands out
 	}
 
 	public Pickupable GetHeldItem()
