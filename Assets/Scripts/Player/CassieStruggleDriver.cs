@@ -47,6 +47,14 @@ using UnityEngine;
 /// sides) and an idle floor keeps her swaying while she's tied, so the player reads the
 /// rhythm off Cassie and pulls with her. The HUD pulse bar is gone. Legacy levels keep
 /// the free-running press envelope below, unchanged.
+///
+/// DAY 203
+/// -------
+/// Playtest: pulled "with her" and was consistently off. Same clock, no drift — the
+/// Day 202 shape put the beat on her SLOWEST point (the extreme, held by beatSharpness
+/// 0.6) and her fastest motion, the snap through neutral, on the half-beat. Players
+/// lock onto the motion event, not the pose. Added SwayShape.YankOnBeat: still at
+/// neutral, sharp peak on the beat. CosineHold kept for the before/after timing runs.
 /// </summary>
 public class CassieStruggleDriver : CassieRigLayer
 {
@@ -111,10 +119,25 @@ public class CassieStruggleDriver : CassieRigLayer
 	[Range(0f, 1f)]
 	[SerializeField] private float idleIntensity = 0.4f;
 
-	[Tooltip("Shapes the sway. 1 = pure sine. Lower = she dwells at the extreme on the " +
-		"beat and crosses quickly between — reads as strain-and-hold, a hit on the pulse.")]
+	public enum SwayShape { CosineHold, YankOnBeat }
+
+	[Tooltip("CosineHold = the Day 202 sway: extreme on the beat, but it ARRIVES there at " +
+		"zero speed and the fastest motion is the snap through neutral on the half-beat — " +
+		"the eye locks onto the snap (Day 203 playtest). YankOnBeat = lingers at neutral, " +
+		"accelerates into a sharp peak exactly on the beat and recoils. The reversal is the " +
+		"event, and it's on the pulse.")]
+	[SerializeField] private SwayShape swayShape = SwayShape.CosineHold;
+
+	[Tooltip("CosineHold only. 1 = pure sine. Lower = dwells at the extreme, crosses fast.")]
 	[Range(0.3f, 1f)]
 	[SerializeField] private float beatSharpness = 0.6f;
+
+	[Tooltip("YankOnBeat only. Magnitude = (1 − 2d)^beatShape, d = distance to the nearest " +
+		"beat in beats. 1 = triangle (constant speed, cusp at the peak). 2 = still at " +
+		"neutral, fastest at the peak. Higher = shorter, sharper yank. The peak is a cusp " +
+		"at every value.")]
+	[Range(1f, 3f)]
+	[SerializeField] private float beatShape = 2f;
 
 	[Header("Debug")]
 	[Tooltip("Overrides the press envelope with the two sliders below so you can HOLD a " +
@@ -195,11 +218,26 @@ public class CassieStruggleDriver : CassieRigLayer
 				dt / Mathf.Max(0.01f, attack));
 			if (_intensity <= 0.0001f) return;
 
-			// cos(pi * beats): +1 on even beats, -1 on odd — an extreme ON every beat,
-			// alternating sides, neutral crossing halfway between. Shaped so she dwells
-			// at the extreme (the strain) and crosses quickly.
-			float c = Mathf.Cos(Mathf.PI * struggle.Beats);
-			float w = Mathf.Sign(c) * Mathf.Pow(Mathf.Abs(c), beatSharpness);
+			float w;
+			if (swayShape == SwayShape.YankOnBeat)
+			{
+				// Day 203: the fast part has to BE the beat. Nearest beat n sets the side
+				// (even +, odd −); d is how far from it, 0..0.5. (1 − 2d)^k is 1 on the
+				// beat with a cusp — she hits the peak at speed and reverses — and 0 at
+				// the half-beat, where both sides meet so the side flip is continuous.
+				float beats = struggle.Beats;
+				int n = Mathf.RoundToInt(beats);
+				float d = Mathf.Abs(beats - n);
+				float side = (n & 1) == 0 ? 1f : -1f;
+				w = side * Mathf.Pow(1f - 2f * d, beatShape);
+			}
+			else
+			{
+				// Day 202: cos(pi * beats), extreme ON every beat, alternating sides.
+				// Dwells at the extreme, crosses neutral fast — on the half-beat.
+				float c = Mathf.Cos(Mathf.PI * struggle.Beats);
+				w = Mathf.Sign(c) * Mathf.Pow(Mathf.Abs(c), beatSharpness);
+			}
 
 			// Free hands don't grind against rope — they're working knots or hidden.
 			ApplyPose(w, struggle.HandsFree ? 0f : 1f);

@@ -133,6 +133,12 @@ public class BondStruggle : MonoBehaviour
 	[Header("Slipped out (Day 202 stub for the free state)")]
 	[TextArea(1, 3)] public string slippedOutLine = "Rookie knots.";
 
+	[Header("Telemetry (Day 203)")]
+	[Tooltip("Logs signed error to the nearest beat on every pull (+ = late) and a summary " +
+		"when the scene unloads or play stops. Right-click the component > Dump timing for " +
+		"a mid-run summary.")]
+	public bool logTiming = true;
+
 	// ---------------------------------------------------------------------------------
 
 	public System.Action<StruggleBond> OnBondFreed;
@@ -305,10 +311,11 @@ public class BondStruggle : MonoBehaviour
 		// Presentation: she commits to a struggle, pass or fail.
 		player.NotifyStruggleAttempt();
 
-		if (spam) { AddNoise(noisePerSpam); LastResult = "SPAM"; return; }
-
 		float beatPhase = (now % beatInterval) / beatInterval;
 		float accuracy = 1f - Mathf.Min(beatPhase, 1f - beatPhase) * 2f;
+		LogTiming(beatPhase, accuracy, spam);
+
+		if (spam) { AddNoise(noisePerSpam); LastResult = "SPAM"; return; }
 
 		if (accuracy < goodWindow)
 		{
@@ -366,6 +373,56 @@ public class BondStruggle : MonoBehaviour
 
 		if (best > 0f) return Mathf.Max(best, b.barehandGain);
 		return b.barehandGain;
+	}
+
+	// ---------------------------------------------------------------------------------
+	// Telemetry (Day 203)
+	// ---------------------------------------------------------------------------------
+	// Signed error = distance to the nearest beat, + = late. Max |error| is half a beat
+	// (0.35 s at 0.7). Locked onto the half-beat snap shows as errors piling up near
+	// ±0.35, which a plain mean hides (+0.33 and −0.33 average to 0 but are the SAME
+	// point on the circle). So the summary uses circular stats on the phase:
+	//   offset = circular mean, the true average error, signed
+	//   R      = 0..1, how consistent. High R + offset near ±half-beat = locked wrong.
+
+	readonly List<float> timingPhases = new List<float>();
+
+	void LogTiming(float beatPhase, float accuracy, bool spam)
+	{
+		if (!logTiming) return;
+		float err = (beatPhase < 0.5f ? beatPhase : beatPhase - 1f) * beatInterval;
+		if (!spam) timingPhases.Add(beatPhase);   // spam is mashing, not an attempt at the beat
+		string tag = spam ? "  SPAM" : accuracy < goodWindow ? "  MISS" : "";
+		Debug.Log($"[BondStruggle] pull {err * 1000f:+0;-0;0} ms  acc {accuracy:P0}{tag}");
+	}
+
+	void OnDestroy() => DumpTiming();
+
+	[ContextMenu("Dump timing")]
+	void DumpTiming()
+	{
+		int n = timingPhases.Count;
+		if (!logTiming || n == 0) return;
+
+		float half = beatInterval * 0.5f;
+		float window = (1f - goodWindow) * 0.5f * beatInterval;   // ±0.14 s at 0.7 / 0.6
+		float nearHalfLine = half - 0.1f;                         // ≥ 0.25 s off
+		float sx = 0f, sy = 0f;
+		int inWindow = 0, nearHalf = 0;
+		foreach (float p in timingPhases)
+		{
+			float a = p * Mathf.PI * 2f;
+			sx += Mathf.Cos(a); sy += Mathf.Sin(a);
+			float e = Mathf.Abs((p < 0.5f ? p : p - 1f) * beatInterval);
+			if (e <= window) inWindow++;
+			if (e >= nearHalfLine) nearHalf++;
+		}
+		float offset = Mathf.Atan2(sy, sx) / (Mathf.PI * 2f) * beatInterval;   // −half..+half
+		float r = Mathf.Sqrt(sx * sx + sy * sy) / n;
+
+		Debug.Log($"[BondStruggle] TIMING n={n}  offset {offset * 1000f:+0;-0;0} ms  R {r:0.00}  " +
+			$"in window (±{window * 1000f:0} ms) {inWindow / (float)n:P0}  " +
+			$"near half-beat (≥{nearHalfLine * 1000f:0} ms) {nearHalf / (float)n:P0}");
 	}
 
 	float MultFor(ToolType t) => t switch
