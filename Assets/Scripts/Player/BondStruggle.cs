@@ -139,6 +139,19 @@ public class BondStruggle : MonoBehaviour
 		"a mid-run summary.")]
 	public bool logTiming = true;
 
+	[Header("Pull SFX (Day 204) — audio = hit confirm")]
+	[Tooltip("Plays on a good pull. Confirms the hit after the press; never cues the beat. " +
+		"Leave empty for timing runs that need no audio feedback.")]
+	public AudioClip hitClip;
+	[Tooltip("Plays on an off-beat pull. Must read as different from hitClip at a glance.")]
+	public AudioClip missClip;
+	[Tooltip("Plays on a spam pull. Empty = uses missClip.")]
+	public AudioClip spamClip;
+	[Range(0, 1)] public float hitVolume = 0.8f;
+	[Range(0, 1)] public float missVolume = 0.7f;
+	[Tooltip("± random pitch, so repeated pulls don't machine-gun.")]
+	[Range(0, 0.2f)] public float pitchJitter = 0.05f;
+
 	// ---------------------------------------------------------------------------------
 
 	public System.Action<StruggleBond> OnBondFreed;
@@ -315,11 +328,18 @@ public class BondStruggle : MonoBehaviour
 		float accuracy = 1f - Mathf.Min(beatPhase, 1f - beatPhase) * 2f;
 		LogTiming(beatPhase, accuracy, spam);
 
-		if (spam) { AddNoise(noisePerSpam); LastResult = "SPAM"; return; }
+		if (spam)
+		{
+			AddNoise(noisePerSpam);
+			PlaySfx(spamClip != null ? spamClip : missClip, missVolume);
+			LastResult = "SPAM";
+			return;
+		}
 
 		if (accuracy < goodWindow)
 		{
 			AddNoise(noisePerMiss);
+			PlaySfx(missClip, missVolume);
 			LastResult = $"off-beat {accuracy:P0}";
 			return;
 		}
@@ -330,6 +350,9 @@ public class BondStruggle : MonoBehaviour
 		float mult = (HandsFree ? freeHandsStruggleMult : 1f) * toolMult;
 		float gain = gainPerPull * mult * accuracy / b.tightness;
 		AddNoise(noisePerPull);
+		// On the beat = hit, even when the bond won't give (cuffs). The sound grades the
+		// timing; "needs a tool" is the mutter's job.
+		PlaySfx(hitClip, hitVolume);
 
 		if (gain <= 0f)
 		{
@@ -423,6 +446,12 @@ public class BondStruggle : MonoBehaviour
 		Debug.Log($"[BondStruggle] TIMING n={n}  offset {offset * 1000f:+0;-0;0} ms  R {r:0.00}  " +
 			$"in window (±{window * 1000f:0} ms) {inWindow / (float)n:P0}  " +
 			$"near half-beat (≥{nearHalfLine * 1000f:0} ms) {nearHalf / (float)n:P0}");
+	}
+
+	void PlaySfx(AudioClip clip, float volume)
+	{
+		if (clip == null || AudioManager.Instance == null) return;
+		AudioManager.Instance.PlaySFX(clip, volume, 1f + Random.Range(-pitchJitter, pitchJitter));
 	}
 
 	float MultFor(ToolType t) => t switch
