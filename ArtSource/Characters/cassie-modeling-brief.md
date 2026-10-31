@@ -4,17 +4,17 @@
 *Amended Rara Day 153 / 2026-09-08 — rope section added, finger-notch deferral reopened.
 No new file read; the Day 126 state snapshot is still historical and the vert cap is 248.*
 
-**Status: REFINE PASS.** The blockout is closed (see appendix). This document now
-governs turning the existing blockout mesh into the shippable Slice 1 character.
+**Status (Rara Day 205): SHIPPED for the Sep 19 launch. Maintenance only — not critical
+path.** The refine pass below is the record of how she was built, and its invariants
+still bind every future edit. Open items are fix-when-touched, not scheduled work.
 
 **Path locked (Rara Day 116):** refine the blockout mesh **in place**. Do not
 rebuild, do not retopo from a sculpt, do not start a new file. In-place refine is
 what preserves the skeleton, the bone rolls, and all six authored strike Eulers.
 Every one of those is load-bearing and none of them survive a rebuild.
 
-**Critical path.** This is the long pole to the Slice 1 date (late Sept – mid Oct).
-Room dressing, SFX, and mechanics smoothing are all shorter and none of them gate
-the others the way this does. When in doubt about what to work on, it is this.
+~~**Critical path.**~~ *Was the long pole to the Sep 19 launch; no longer. The active
+milestone is the Nov 21 demo — see `game-dev-plan.md`.*
 
 ---
 
@@ -549,7 +549,7 @@ rope looks more competent than she does, the shot has failed.
 `Rope` off and `Bottle_Held` on are **the same off-camera beat**, between Peek
 and Gloat. This is why her hands are out of frame in Gloat. Disabling the rope at
 the Strike is one shot too late. Full staging notes live in
-`cassie-hook-clip.md`.
+`cassie-hook-clip.md` (repo root).
 
 ---
 
