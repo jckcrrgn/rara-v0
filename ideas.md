@@ -261,6 +261,18 @@ Next steps for mutter:
   registering → escalating SFX scales with progress → puzzle clears
   diegetically. Reusable across any "build up effort against a
   threshold" interaction.
+- Players lock onto the motion event, not the pose (Day 203): the
+  Day 202 sway held Cassie at the extremes on the beat, and players
+  pulled on the snap through neutral, the half-beat. Put the fastest
+  motion where you want the input. Generalizes to any rhythm cue
+  carried by animation: telegraphs, QTE windups, guard turns.
+- One channel per job (Day 205): body = the beat (when), audio = hit
+  confirm (did it land, always after the press), HUD = debug. Two
+  sources for the same question means the player picks one and the
+  other becomes decoration. Before adding a cue, name the single
+  question it answers. If another channel already answers it, don't
+  add the cue. Watch for music: a pulsing track is a beat cue. Full
+  write-up in the GDD, Loop-Refine > Feedback channels.
 
 ## Bugs-That-Are-Features
 - Chair tipping felt great (Day 2): When the cube fell over during early testing, hopping stopped working and it genuinely felt like a tied-up detective whose chair had tipped. Accidental but authentic. Could be a real mechanic — maybe struggling increases tip risk, or certain collisions tip you. Would transition player to floor restraint. Revisit when floor movement is built.

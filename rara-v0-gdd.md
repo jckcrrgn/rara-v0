@@ -223,6 +223,154 @@ Current tuning, not locked: `noiseDecay` 0.1, `distractedTime` 3–10,
       as "hide"? Do they describe him as a person or a metronome?
 - [ ] Feel verdict: does he feel like a person or like RNG?
 
+### Merge into VS_Demo (Rara Day 202)
+
+> **Status.** Code written (`BondStruggle`, `BondStruggleHUD`, `RaraInput`, plus patches
+> to PlayerController, ChairRestraint, GuardController and MutterSystem). Not yet
+> played in VS_Demo. `StruggleProto` stays as the greybox reference.
+
+**Opt-in, per level.** `BondStruggle` on the player means the new path runs. Without it,
+the legacy single-`Bond` path runs (tool-gated, barehand = 0). L1–L6 are untouched.
+Barehand progress makes their nail, cutter and scissors optional, so bringing them over
+is a design pass, not a drop-in. That's tied to the Oct 2 "knit the scenes into one
+level" pivot, and stays parked for the weekly review.
+
+**Decisions (Day 202):**
+1. **Captor = offstage, noise calls him.** The check-in loop stays. Offstage he's "on his
+   phone": noise can't catch her. Glance-level noise → he calls out (background mutter,
+   1.6 s alert window). Inspect-level noise, or glance-level again while he's alerted →
+   hurried approach (2.5 s, 0.8 s turn). Approaching: attention 0 until the last
+   `turnTime` (1.4 s), then it ramps. Door + lean-in = watching. Leaving ramps down
+   over 0.8 s, then he's listening again and can turn back. The door evidence check is
+   off on these levels. Inspection is continuous.
+   **Revised Day 202 after first play: noise never catches her.** He doesn't punish
+   sound. He likes watching her struggle. What he's stopping is the escape, so the
+   only catch is free hands out at attention ≥ 0.75. Noise only decides how often he
+   looks, and therefore how much untie time she gets. Every catch is a seen catch:
+   wrists from scratch, extra tight. A catch returns her to her start position.
+2. **LT held = move layer.** Left stick moves the chair only while LT (keyboard: Shift)
+   is held. Otherwise it picks bonds. Every hop is noise (0.12; back-scoot 0.06).
+3. **Bonds: wrists + L/R ankle at start. Elbows tied on at the first catch** (struggle-
+   only, can't untie). Later catches only tighten. Escalation line: "My ELBOWS? Really?"
+4. **Every bond free = slipped out.** A stub second win alongside the bottle strike.
+   The guard stands down, Cassie says "Rookie knots.", and `OnPlayerFreed` fires. The
+   real free state (pillar 2) replaces this.
+
+**Hands = feign.** Hidden hands *are* `IsFeigning`, so CassieSitDriver's feign pose
+follows. Feign no longer locks struggling. Untie, pick-up with free hands, and strike
+bring the hands out. A bottle in free hands counts as hands out.
+
+**Tools are multipliers:** blade ×2.5, point ×1.6, key ×4. The TableEdge reaches the
+wrists only. A held tool works the wrists while she's bound, then the untieable bonds
+once her hands are free. A bond with `barehandGain` 0 (cuffs) needs one.
+
+**Catches:** the proto rules, applied under the fade. Respawn, disarm and the caught
+lines are the VS ones. A seen catch has its own guard line. The 3rd catch = taken:
+guard line over black, then the scene reloads.
+
+**Pad map:** left stick bond · RT pull · D-pad untie · LB hide · LT move · A pick
+up / dismiss mutter · X strike. Keyboard: WASD · Space · IJKL · G · Shift · E · H.
+
+**Open (Day 202):**
+- [ ] First play in VS_Demo. Start `offstageRange` at 8–16 s. With 10–22 s, a clean
+      player can slip out before the first check-in (wrists ~11 s barehand, ~4–5 s on
+      the TableEdge, ankles ~5 s to untie).
+- [x] ~~The approach footsteps are a free-noise window.~~ Moot: noise no longer catches.
+- [ ] "He likes it": should struggling in front of him keep him watching longer? That
+      would make noise cost untie time while he's in the room as well.
+- [ ] The beat now lives in Cassie (CassieStruggleDriver sways on the pulse, idle 0.4).
+      The HUD pulse bar is gone. Next: bias the sway toward the selected bond.
+- [ ] TableEdge ×2.5 on the wrists. It used to be silently blocked when the bottle was
+      the nearest interactable. Fixed: environmental tools are now searched directly.
+- [ ] L6 rocking has no binding on the move layer (Shift is taken). Rebind before L6
+      opts in.
+- [ ] Kick has no pad binding (suppressed in the chair anyway).
+- [ ] The HUD is OnGUI greybox. The bonds need to show the rhythm on the model.
+
+### Beat timing — body cue (Rara Day 203–204)
+
+**Diagnosis (Day 203).** Pulling "with her" was consistently off, on the same clock,
+with no drift. The Day 202 sway (`CosineHold`) held her at the extremes on the beat and
+put her *fastest* motion, the snap through neutral, on the half-beat. **Players lock
+onto the motion event, not the pose.** `YankOnBeat` fixes the shape: still at neutral,
+a sharp peak on the beat, magnitude (1 − 2d)^`beatShape`, where d is the distance to the
+nearest beat. Fastest motion, simulated: CosineHold −350 ms (the half-beat), YankOnBeat
+k=2 at 0 ms.
+
+**Telemetry.** `BondStruggle.Pull` logs each pull's signed error to the nearest beat
+(+ = late). A TIMING summary prints on unload, on play stop, and from the ContextMenu
+"Dump timing". Uses circular stats, because −340 and +340 ms are the same miss and a
+plain mean cancels them.
+- **offset:** circular mean error.
+- **R:** consistency, 0–1.
+- **In window:** share within ±140 ms (`goodWindow` 0.6 at `beatInterval` 0.7).
+- **Near half-beat:** share 250 ms or more off.
+- Spam is logged but left out of the summary. **The dump is cumulative since scene
+  load**, so a mid-run dump includes everything before it.
+
+**Runs (dev's own, HUD off).** Day 204 lines are labelled by sample size. Their
+mapping to shapes was inferred from the numbers.
+
+| Day | Line | Shape | In window | R | Offset |
+|---|---|---|---|---|---|
+| 203 | Run 1 | Cosine | 19% | — | **+325 ms** |
+| 203 | Run 2 | Yank | 54% | 0.61 | −123 ms |
+| 204 | n=50 (mid-run dump) | Yank | 76% | 0.87 | −93 ms |
+| 204 | n=130 (same run, end) | Yank | 71% | 0.80 | −102 ms |
+| 204 | n=76 | Cosine | 25% | 0.52 | **−252 ms** |
+| 204 | ~~n=215~~ | mixed? | 43% | 0.08 | −105 ms |
+
+n=215 is **discarded**. R 0.08 means no lock at all, and with 27% near the half-beat
+it looks like both shapes were played in one run.
+
+**Result.** Cosine locks near the half-beat twice (+325, −252). Yank hits the window
+about 3× as often, with high R. **`YankOnBeat` is the code default (Day 204).**
+
+**The steady early offset (~−100 ms) is perceptual, not lag.** Input lag pushes
+offsets *late*, so it can't explain an early one. Held steady at high R across every
+Yank line, it's where players hear the beat in her motion: the rise into the peak,
+not the peak itself.
+
+**Open:**
+- [ ] `beatShape` 3 + `idleIntensity` 0.7, 3 Yank runs. A sharper yank should pull the
+      perceived event later. This fixes the cue itself.
+- [ ] If the offset is still ~−100 after that, add a judge offset (centre the window
+      ~100 ms early). That's standard rhythm-game calibration, but it hides a cue
+      problem, so it's the second resort.
+- [ ] `noisePerMiss` 0.15 → 0.08. Re-derive the `glanceNoise` 0.3 reasoning ("two
+      quick off-beat pulls") when it lands.
+
+### Feedback channels (Rara Day 205)
+
+**One channel per job.** Each cue answers exactly one question, so the player never has
+two clocks to choose between.
+
+| Channel | Job | Rule |
+|---|---|---|
+| **Body** (Cassie's sway) | **The beat.** When to pull. | The only beat cue in a player build. The motion event sits on the beat (see above). |
+| **Audio** (hit / miss / spam) | **Hit confirm.** Did that pull land? | Plays *after* the press, never ahead of it. Never a beat cue. Miss must read as different from hit at a glance. |
+| **HUD** (bond bars, timing text) | **Debug.** | Off in player builds and for timing runs. |
+
+**Why.** Day 203 showed players lock onto one motion event and ignore the rest. A
+second beat source, such as a tick or a pulse bar, either agrees exactly with her body
+and adds nothing, or disagrees and becomes the metronome. Then Cassie is decoration
+again. Audio confirm after the press can't compete, because it answers a different
+question. Keeping the beat in her body is also *capable, not helpless*: the rhythm is
+hers, not the UI's.
+
+Already true in code: the HUD pulse bar is gone (Day 202), and the SFX hooks fire
+after `Pull` resolves (Day 204: `hitClip`, `missClip`, `spamClip`; unassigned =
+silent).
+
+**Open:**
+- [ ] **Music vs. the beat.** Act 2 music is specced "pulsing, heartbeat-like". A pulse
+      under a bound struggle is a second beat channel. Either the music drops its pulse
+      while she's bound, or it locks to `beatInterval` and the body's ~−100 ms perceptual
+      offset has to be settled first, or the two cues will disagree by 100 ms.
+- [ ] Bias the sway toward the selected bond (carried from Day 202). The body is now
+      the beat *and* the bond selector. Check that the second job doesn't blur the
+      first.
+
 ---
 
 ## Character
