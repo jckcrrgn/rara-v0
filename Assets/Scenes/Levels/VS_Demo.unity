@@ -2407,7 +2407,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 677440319}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 144b12c9ae6c884478b9a9ce77d8df35, type: 3}
   m_Name: 
@@ -3447,6 +3447,11 @@ MonoBehaviour:
   headTwist: 5
   wristTwistAxis: {x: 0, y: 1, z: 0}
   wristTwistAmplitude: 15
+  struggle: {fileID: 0}
+  idleIntensity: 0.4
+  swayShape: 1
+  beatSharpness: 0.6
+  beatShape: 2
   debugScrubEnabled: 0
   debugIntensity: 1
   debugPhase01: 0.25
@@ -4309,6 +4314,11 @@ MonoBehaviour:
   headTwist: 10
   wristTwistAxis: {x: 0, y: 0, z: 1}
   wristTwistAmplitude: 20
+  struggle: {fileID: 0}
+  idleIntensity: 0.4
+  swayShape: 0
+  beatSharpness: 0.6
+  beatShape: 2
   debugScrubEnabled: 0
   debugIntensity: 1
   debugPhase01: 0.25
@@ -5172,8 +5182,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   offstageRange: {x: 8, y: 16}
-  distractedThreshold: 0.85
-  watchingThreshold: 0.045
+  respawnAtStartPosition: 1
   glanceNoise: 0.3
   inspectNoise: 0.6
   alertWindow: 1.6
@@ -6685,6 +6694,13 @@ MonoBehaviour:
   freeHandsExtraTighten: 0.3
   maxCatches: 3
   slippedOutLine: Rookie knots.
+  logTiming: 1
+  hitClip: {fileID: 0}
+  missClip: {fileID: 0}
+  spamClip: {fileID: 0}
+  hitVolume: 0.8
+  missVolume: 0.7
+  pitchJitter: 0.05
 --- !u!1 &1674656236
 GameObject:
   m_ObjectHideFlags: 0
