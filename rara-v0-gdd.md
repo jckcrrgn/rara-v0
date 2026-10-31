@@ -15,21 +15,12 @@ A low-poly noir escape game where a captured detective uses Struggle, Move, Pick
 |---|---|
 | **Engine** | Unity (latest LTS, URP) |
 | **Platform** | PC (itch.io release) |
-| **Perspective** | Third-person, fixed or semi-fixed camera per room — **⚠ UNRESOLVED, see below** |
+| **Perspective** | Third-person, fixed or semi-fixed camera per room |
 | **Art Style** | Low-poly 3D, cel-shaded with bold outlines; noir lighting — hard directional light, crushed shadows, cool/warm color split |
 | **Tone** | Dry humor, noir-to-thriller escalation |
 | **Target Playtime** | 30–60 minutes *(v0 figure; 12 levels is not a 30-minute game)* |
 | **Dev Timeline** | ~~60 days at 1 hr/day~~ → see `game-dev-plan.md` |
-| **Target Release** | ~~itch.io, free or PWYW~~ → Patreon launch Sep 19 2026; itch.io is the permanent neutral address. See `game-dev-plan.md` |
-
-> **⚠ Perspective conflict — needs a call, not a silent edit.** This document says
-> third-person throughout. Recent project notes describe Rara as first-person. These
-> cannot both be true, and the answer changes what the character model is for: a
-> first-person game does not need a refined Cassie at all, and the six-shot hook
-> clip is six shots *of her*. Left as written until decided. If it resolves to
-> third-person, delete this box. If it resolves to first-person, the hook clip is a
-> cinematic showcase rather than gameplay footage, and that needs saying out loud on
-> the Patreon page.
+| **Target Release** | itch page (donations) live since Sep 19 2026. Free demo on itch **Sat Nov 21 2026**. Patreon deferred. See `game-dev-plan.md` |
 
 ---
 
@@ -48,12 +39,17 @@ Every puzzle is solved using four actions in creative combinations. Each verb ha
 
 | Verb | Strength axis | Source |
 |------|---------------|--------|
-| **Struggle** | Tool held | Pickupable items (BoxCutter, Nails…) and environmental tools. Barehanded Struggle produces no progress in v0. |
+| **Struggle** | Tool held | Pickupable items (BoxCutter, Nails…) and environmental tools. ~~Barehanded Struggle produces no progress in v0.~~ Barehand progresses since Day 201; tools are multipliers. |
 | **Move** | Movement mode | Restraint type (chair=hop, floor=inch/roll, hanging=swing) |
 | **Pick Up** | Reach / range | Restraint type (hands-front=in front of you, hands-behind=behind you, future variants) |
 | **Kick** | Leg state | Restraint type (free=full force, floor-bound=reduced, hogtied=disabled) |
 
 This is a deliberate design pattern: **restraints modulate verbs**. New restraint types are interesting because each one changes how the four verbs behave. No new verbs needed for new puzzle situations — just new restraint configurations.
+
+> **Superseded for bound play (Rara Day 201–202).** Barehand Struggle progresses, so Pick
+> Up no longer gates escape. Tools multiply (blade ×2.5, point ×1.6, key ×4); only bonds
+> with `barehandGain` 0 (cuffs) still need one. The paragraph below and the Pick Up
+> bullets are the v0 legacy path (no `BondStruggle` on the player), kept as a record.
 
 **Verb roles in the puzzle loop:** Pick Up is the *gating* verb — the player must acquire a tool before bonds can be broken. Struggle is the *closing* verb — once a tool is held, Struggle applies it. Move connects the two by getting the detective to where the tool is. Kick is a separate solve path used when no tool exists in scene (L4) or when something needs to be struck (Act 2+ Kickables).
 
@@ -93,6 +89,11 @@ This is a deliberate design pattern: **restraints modulate verbs**. New restrain
 - Kicking anything that isn't a Kickable just thuds. The detective can kick the wall of a van out of frustration. It does nothing useful. It feels right.
 
 ### Feign (State, not a Verb)
+
+> **Updated Rara Day 202 (VS_Demo).** Hidden hands *are* feign (`IsFeigning`), toggled by
+> Hide (LB / G). Feign no longer locks struggling. Untie, pick-up with free hands and the
+> strike bring the hands out. The bullets below are the v0 design, kept as a record.
+
 The detective can voluntarily re-enter a "looks bound" state after freeing themselves. This is not a fifth verb — it's a *state* the player toggles, modifying how the existing verbs behave.
 
 - **Toggle**: F (or context prompt when a guard is approaching). Note: F is also Kick when not feigning. Context-sensitive — feign is only available post-escape, kick is the verb otherwise.
@@ -101,6 +102,10 @@ The detective can voluntarily re-enter a "looks bound" state after freeing thems
 - **Purpose**: Lets the player weaponize stillness. Plants the seed in Act 2 (avoid detection by feigning), pays off in the finale (turn the tables on the gloating guard with a single decisive kick).
 
 ### Controls
+
+> **v0 keyboard map, legacy path.** The BondStruggle path uses the Day 202 pad map — see
+> **Merge into VS_Demo**, below.
+
 - **WASD / Left Stick** — Move (contextual: hop, scoot, inch, swing based on restraint type)
 - **Shift+A / Shift+D** — Roll left / right (floor restraint only; lateral-only, fast, noisy)
 - **Space** — Struggle
@@ -153,7 +158,12 @@ Each restraint type changes how the four verbs behave, giving levels distinct fe
 - **Caught with free hands = escalation:** wrists back to zero, +0.3 extra tightness
   on top of the normal catch.
 
-### The captor listens
+### The captor listens — greybox proto rules (`StruggleProto` only)
+
+> **Does not govern VS_Demo.** The Day 202 revision does: noise never catches her, it
+> only decides how often he looks. Seen free hands is the only catch, and a catch
+> resets her to start. See **Merge into VS_Demo**, below.
+
 - **Attention as activation energy.** The noise that gets her caught slides from
   0.85 (on his phone) down to 0.045 (watching). While he's watching, any pull gets
   her caught. **While he's on his phone, noise never catches her. It draws him over.**
@@ -226,8 +236,9 @@ Current tuning, not locked: `noiseDecay` 0.1, `distractedTime` 3–10,
 ### Merge into VS_Demo (Rara Day 202)
 
 > **Status.** Code written (`BondStruggle`, `BondStruggleHUD`, `RaraInput`, plus patches
-> to PlayerController, ChairRestraint, GuardController and MutterSystem). Not yet
-> played in VS_Demo. `StruggleProto` stays as the greybox reference.
+> to PlayerController, ChairRestraint, GuardController and MutterSystem). Played in
+> VS_Demo Day 202; decision 1 revised after first play. `StruggleProto` stays as the
+> greybox reference.
 
 **Opt-in, per level.** `BondStruggle` on the player means the new path runs. Without it,
 the legacy single-`Bond` path runs (tool-gated, barehand = 0). L1–L6 are untouched.
@@ -478,6 +489,14 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
      clip, but it spends the unseen-guard pacing beat and pulls Feign's setup
      forward, which weakens the L12 payoff the whole three-act structure is aimed at.
 
+  **⚠ It drifted (recorded Rara Day 205).** VS_Demo now has a visible guard, a bottle
+  strike and the BondStruggle loop, and it ships as the free demo on Nov 21. That is
+  option 3 in practice for the demo. The L6 *level* spec above (unseen guard,
+  tool-gated, soft timer) is not retired yet. The real call is tied to the Oct 2
+  "knit the bound scenes into one level" pivot and the escalation ladder in
+  `ideas.md`. **Decide after the Nov 21 demo, not before.** Until then the demo
+  is labelled a slice, not "Level 6".
+
   **Do not resolve this by drifting.** Pick one and write it down here. This does
   not block Cassie, the September 1 gate, or anything on the critical path — it
   blocks page copy in week 7, which is exactly the kind of thing that becomes
@@ -702,8 +721,8 @@ rara-v0/
 - Overarching story connecting all rooms (who keeps capturing this detective?)
 - Co-op mode (two detectives in connected rooms, must communicate)
 - Chair tipping as a restraint state transition — struggling too hard or physics collisions tip the chair, moving player from "chair" to "floor" restraint mid-level
-- Body-Part Bonds — bonds scoped per limb (wrists, ankles, elbows) instead of package-deal restraints. Would let "legs free" emerge naturally from bond state instead of being a per-restraint configuration.
+- Body-Part Bonds — bonds scoped per limb (wrists, ankles, elbows) instead of package-deal restraints. Would let "legs free" emerge naturally from bond state instead of being a per-restraint configuration. **→ Promoted Day 202: `BondStruggle` bonds are wrists, L/R ankle, elbows.**
 - Hands-behind as Pick Up range modifier — pickup cone limited to behind the player; combos with chair-tipping for emergent puzzle solutions.
-- Stealth-between-escapes — guard AI segments where capture transitions to a new escape state instead of game over. Probably v1.0 or sequel.
+- Stealth-between-escapes — guard AI segments where capture transitions to a new escape state instead of game over. Probably v1.0 or sequel. **→ Promoted: Loop-Refine pillars 1–2 (captor AI, free state). In progress; post-demo.**
 - Double-cuffed escape — wrists AND elbows cuffed; freeing wrists from a pole still leaves elbows bound.
 - **Struggle as a real mechanical verb (v1).** v0's choice to make barehand Struggle do nothing is correct given the current Space-spam implementation — but it tacitly admits Struggle has no mechanical body to it. A previous prototype involved feeling around for "sweet spots" on dual thumbsticks and rubbing across both simultaneously to work bonds loose. A fleshed-out Struggle of that kind could re-justify universal barehand struggle as a meaningful verb in its own right — and would change the puzzle grammar significantly (bonds become a real time/effort cost rather than a tool-presence binary). Park for v1 / sequel. **→ No longer parked: prototyped Day 197–201 as rhythm Struggle. See Loop-Refine Pillars.**

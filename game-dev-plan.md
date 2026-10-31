@@ -1,31 +1,8 @@
-# Rara — Slice 1 Launch Plan
-**Status Day 166:** Launched Sep 19 as an itch page with donations; no Patreon. Active milestone: Demo, Oct 17.
-*Written Rara Day 117 / 2026-08-03. Replaces the original game-dev-plan.md.*
-
-**Launch date: Saturday, September 19, 2026.**
-
----
-
-## Why the old plan died
-
-The original plan scoped a small complete game shipped to itch.io in 13 weeks,
-with Patreon as an afterthought. Rara is not that. It's a 12-level, three-act
-third-person noir puzzle-escape game, and it will take years, not weeks. Every
-milestone in the old document was measuring the wrong thing.
-
-What replaced it: **ship a vertical slice, launch on the strength of it, fund the
-rest.** The slice is *The Turnaround*. The launch asset is a 48-second clip.
-
----
-
-## What this is called
-
-**Launch.** Not "monetization."
-
-What changes on September 19 is that Rara stops being private and acquires an
-audience with expectations. Revenue is a lagging indicator of that and not the
-thing to optimize. If the page goes up and thirty people follow and nobody pays,
-that is a successful launch.
+# Rara — Plan
+**Status Rara Day 205 / 2026-10-31:** itch page live since Sep 19 (donations, no Patreon).
+**Active milestone: free playable demo on itch, Sat Nov 21, 2026 — bound loop only.**
+*Rewritten Day 205 weekly review. Replaces the Day 117 Slice 1 Launch Plan; the launch
+record is collapsed below.*
 
 ---
 
@@ -39,9 +16,6 @@ Twelve levels, three acts:
 | Act 2 | L6–10  | Thriller |
 | Act 3 | L11–12 | Showpiece + Finale |
 
-L6 is the threshold into Act 2 and is the Slice 1 level. GDD §2 reconciliation is
-complete — this is settled, stop reopening it.
-
 **Cassie:** auburn-red hair in a high ponytail, slightly loose and tousled, with
 face-framing strands and a small gold hair tie. Cream/ivory ribbed cropped
 long-sleeve with a high mock/funnel neck. Ultra high-waisted brown/camel pleated
@@ -52,200 +26,112 @@ Sardonic detective. Escapes on her own competence, every time, with no rescuer.
 promise; competence is the payoff. Both, simultaneously, never one at the expense
 of the other.
 
----
-
-## Scope decision: launch on the clip, not a demo
-
-**A playable build is NOT in the September scope.**
-
-A Patreon page needs a pitch, not a download. Day-one backers are backing a person
-and a promise. The hook clip is the promise.
-
-This removes from the September list: mechanics smoothing, failure-loop polish,
-win-condition UI, menus, build packaging, playtest rounds. What stays is only what
-the camera sees.
-
-The playable demo becomes the **first post-launch milestone, mid-October** — which
-was the honest Slice 1 date all along. Day-one backers get something imminent to
-wait for rather than arriving after the interesting part.
-
-### The seven shots (locked Day 143)
-
-| # | Shot | Function |
-|---|------|----------|
-| 1 | **Knot** | Establish. Bound wrists, close. The cover promise. |
-| 2 | **Poster** | The hero frame. Page banner comes from here. |
-| 3 | **Stills** | The room. Noir texture, slat light, atmosphere. |
-| 4 | **Check** | She clocks the moment. Setup for the strike. |
-| 5 | **Strike** | Dramatic peak, mid-clip. Bottle, contact, shards. |
-| 6 | **Back On It** | Back to the bond. Competence, not victory lap. |
-| 7 | **Free** | Hands free. The clip ends here, always. |
-
-The peak sits at 5 and the clip still ends on escape. That ordering is the
-genre read: puzzle-escape, not action. A clip that ends on the strike is a
-different game than the one being built.
-
-Two dressing zones cover all seven: the **chair corner** (1, 2, 3, 6, 7) and
-the **contact zone** (4, 5).
-
-### In scope for September 19
-
-- L6 dressed and lit, camera-side only
-- Cassie refined — one character model, shippable
-- The seven-shot hook clip, ~48 seconds, cut
-- Bottle smash + SFX pass
-- Cel shader validated on the real character
-- Patreon page live
-
-### Explicitly out of scope
-
-- Playable build of any kind
-- Any level other than L6
-- Guard model refinement (blockout is fine at this distance)
-- Anything behind the camera in L6
-- Menus, UI polish, settings, save systems
+**What it takes:** years, not weeks. Ship slices, build an audience on each, fund the
+rest. Revenue is a lagging indicator; an audience with expectations is the thing.
 
 ---
 
-## Budget (revised Day 150)
+## Demo — bound loop (Nov 21)
 
-Structure changed Day 149. The exterior scene, the rope prop, and
-recorded VO are all new; audio stopped being cuttable when it became
-the spine of the story.
+**Date: Sat Nov 21, 2026.** Public, free, on itch. The demo is the discovery asset.
 
-~11 sessions remain against 12–17 of work. **The plan is over budget
-at best case.** Cut #1 below is taken now, not held in reserve.
+The itch page promised a mid-October demo. The Oct 17 date moved to Oct 24, and on
+Oct 20 it was pulled ("not fun" — the old TableEdge → bottle loop). The rhythm struggle
+loop that replaced it tested fun (Oct 21) and is merged in VS_Demo (Day 202).
+
+### Scope
+
+**In:** the Day 202 BondStruggle loop in `VS_Demo.unity`. Struggle on the beat (body
+cue = Cassie's YankOnBeat sway) → free the wrists → untie with hands hidden from him →
+slip out, *or* take the bottle and strike. Caught with free hands → reset to start,
+elbows tied on, tighter. Third catch = taken.
+
+**Out (post-demo):** free walk-around state, patrol, chase, drag-back, the escalation
+ladder, L1–L5 design pass, L7+, menus beyond an end card.
+
+### Dates
+
+| Date | Gate |
+|---|---|
+| This week | itch devlog posting the new date. itch tax interview done. |
+| **Fri Nov 13** | **Feature freeze.** Nothing new after this; only fixes. |
+| **Sat Nov 14** | **Cold playtest** — someone who has never seen it. |
+| **Sat Nov 21** | **Ship on itch.** |
+
+### Budget (~10–13 sessions, Nov 1–20 holds ~20)
 
 | Work | Sessions |
 |---|---|
-| `VS_Exterior` build + dress + light | 2–3 |
-| Rope prop — bound state, absent at strike | 1–2 |
-| Guard LeanIn static pose | 1 |
-| VO — script, record, edit | 2–3 |
-| Shoot seven + cut | 4–5 |
-| Page build + copy | 2–3 |
-| **Total** | **12–17** |
+| Tune the revised rules (`offstageRange`, catch/reset feel) | 2–3 |
+| Beat cue: `beatShape` 3 runs, judge offset only if still ~−100 ms; sway bias toward selected bond | 2 |
+| Fix list below | 3–4 |
+| Cold-test fixes | 2–3 |
+| Build + page update | 1 |
 
----
+### Fix list (re-triaged Day 205)
+- [ ] Hit / miss SFX clips assigned (`chairCreak1` = hit); `noisePerMiss` 0.15 → 0.08.
+- [ ] HUD off in the player build (debug channel only — see GDD Feedback channels).
+- [ ] Guard facing — GuardController moves him, never turns him. Fixed 15° yaw from
+      Guard_Pivot for the whole route.
+- [ ] Guard lean — walks in and stays upright. Swap to Guard_D133_Lean on LeanIn,
+      back on Leaving.
+- [ ] Camera framing under the shoot lighting — judge from the Game view.
+- [ ] End card — itch link + owned channel.
+- [ ] Owned channel (Discord / email) — the end card needs it.
+- [ ] Web vs Windows — WebGL cel-shader test if Web.
+- [ ] Cold playtest (Nov 14).
 
-## Schedule
+**Scene:** `VS_Demo.unity`. **Build profile:** `Demo – Windows`, scene list = VS_Demo only.
 
-| Week | Dates | Work |
-|------|-------|------|
-| 1 | Aug 3–9 | Resolve forearm number. Begin Cassie refine: body, hands, clothing masses. |
-| 2 | Aug 10–16 | ~~Cassie: face and hair.~~ **Done Day 125** — hair arc and face *geometry*. Face texture moves to week 3. |
-| 3 | Aug 17–23 | Cassie: **head unwrap (seams, unwrap, layout) → face texture authoring.** Cel shader validation. Strike + struggle re-verify. **Test export early in the week, not at the gate.** |
-| 4 | Aug 24–30 | L6 dressing. Set pieces, props, the bar. |
-| 5 | Aug 31–Sep 6 | L6 lighting. Slat shadow, key/rim, poster frame composition. |
-| 6 | Sep 7–13 | Shoot the seven shots. Cut to ~48s. Bottle SFX (one session). |
-| 7 | Sep 14–19 | Page build, copy, hero image. **Launch Sat Sep 19.** |
+### Kill rule
+If the Nov 14 cold test says "not fun", fix the loop. **Do not add pillars.** Free
+state, patrol and chase are each multi-week; a demo that waits on them has no date.
 
-### The one gate
-
-**September 1: Cassie must be done and exported.** If she isn't, the launch date
-moves. Everything downstream is photography, and there is nothing to photograph
-without her. Do not push into week 4 hoping to catch up — you won't, and you'll
-discover it on September 14 instead of September 1 when it's still cheap.
-
----
-
-## Pre-committed cuts (re-derived Day 150)
-
-The Day 117 order is dead. #1 was Bottle SFX — audio is load-bearing
-now. #2 was Stills and Back On It — those shots no longer exist.
-
-Cuts have expiry dates. A cut is only cheap before the session that
-builds the thing.
-
-1. **EXT warehouse.** ~2–3 sessions for one establishing shot in a
-   scene that exists nowhere yet. Knot establishes instead — it always
-   did. **Cut by: before `VS_Exterior` is opened.**
-2. **Rope, cheap version.** Untextured cylinders at the wrists, no
-   swap — frame the strike off the hands instead of hiding a prop.
-   Recovers ~1. **Cut by: rope session start.**
-3. **VO down to noir title cards.** Recovers 1–2. Stops being
-   available the day recording happens. **Cut by: record day.**
-4. **Tiers down to two.** $3 and $8.
-5. **Dressing reduced to chair corner and contact zone.**
-
-**Never cut:** Cassie. Poster (the page hero comes from it). Strike
-(the peak). Knot (the only thing that establishes bound). Page build
-— no page, no launch.
+### Lesson (Day 166)
+Shoot scenes switch off gameplay to get clean frames. VS_ShaderCheck had
+GuardController, Bottle, TableEdge, Canvas, and the guard's pivot all inactive.
+**Diff active states against the last playable scene before building from a shoot scene.**
 
 ---
 
 ## Platform
 
-**Patreon primary.** Best discovery, and Rara is noir peril rather than adult
-content — restraint as genre iconography, competence as the payoff.
+**itch is the address.** `jckcrrgn.itch.io/cassie-conroy`. Donations only.
 
-The real risk is not a ban. It's quiet invisibility: adult-adjacent content gets
-restricted in search and recommendations, nothing visibly breaks, and you simply
-never get found. Plan against that, not against a dramatic takedown.
+> **Superseded Day 205: Patreon primary, the tiers, "Patreon page live", "read
+> Patreon's guidelines."** Patreon is deferred, not dead. If it comes back, the
+> Day 117 reasoning (quiet invisibility, not a ban, is the risk; lead the page hero
+> with competence, not peril) still holds — see git history for the full text.
 
-### Set up on day one, not after a problem
-
-- [x] ~~**Claim the SubscribeStar name now.**~~ **Done — handle claimed.** Free, five minutes, no obligation.
-      A backup created after a suspension is not a backup — you lose the ability
-      to tell anyone where you went.
-- [ ] **Owned channel: Discord and/or email list.** The actual insurance. The
-      audience relationship must live somewhere no platform can revoke. Every post
-      points to it.
-- [x] ~~**itch.io page as the permanent address.**~~ **Done Day 125 — `jckcrrgn.itch.io/cassie-conroy`.** Neutral, free, links out to
-      whichever platform is current. This goes in every bio and every devlog so
-      the links survive a move.
-- [ ] **Export the member list monthly** while the account is in good standing.
-      The difference between migrating an audience and starting over.
-
-### Before building the page
-
-- [ ] Read Patreon's community guidelines directly.
-- [ ] Find 3–4 noir/thriller/peril games with comparable imagery and check where
-      they actually live and whether they're visible in search. Twenty minutes,
-      and worth more than any amount of guideline interpretation.
-
-### Page hero
-
-**Lead with competence, not peril.** The strike, the aftermath, Cassie upright with
-the bottle. Shot 2 is a poster frame *inside a 48-second clip that ends on hands
-free* — as a context-free static banner seen by a classifier or a moderator, it
-reads as something else entirely.
-
-This is not caving to a content policy. It is *capable, not helpless* applied to
-the shop window.
-
-### Tiers (draft)
-
-- **$3** — Devlogs, work-in-progress stills, the backlog.
-- **$8** — Early builds as they exist, plus vote on non-critical-path calls.
-- **$15** — Name in credits.
-
-Keep rewards deliverable by one person with one hour a day. Nothing physical.
+- [x] SubscribeStar handle claimed.
+- [x] itch page live (Day 125 / Sep 19).
+- [ ] **itch tax interview** — blocks payouts. Donations can't reach you until it's done.
+- [ ] **Owned channel: Discord and/or email list.** The real insurance. The audience
+      relationship lives somewhere no platform can revoke. Every post points to it.
+- [ ] Export the follower/member list monthly once one exists.
 
 ---
 
-## Audience (starts this week, not September)
+## Audience
 
-**The single largest risk in this plan is launching to an empty room.** Forty days
-of build with zero days of audience work produces a perfect clip that nobody sees.
+**The single largest risk is launching to an empty room.**
 
-The material already exists: ~100 sessions of devlog, a locked character design, a
-poster frame, and a good story — solo dev, one hour a day, noir escape game, built
-in public. Nothing new needs writing. It needs repackaging.
+**Rule:** two posts a week, ~15 minutes each, outside the dev hour. If it eats dev
+time, it's being done wrong.
 
-**Two posts a week, ~15 minutes each, outside the dev hour.** This is not a second
-project and it does not touch the protected hour. If it starts eating dev time,
-it's being done wrong.
+**Status Day 205:** lapsed after ~2 Reddit posts. **Restart:** the new-date devlog this
+week is post #1. Backlog to post from without writing fresh material: the wrist-drift
+story, the bone-roll invariant, blockout → refine, cel shader tests, the act structure,
+why she never gets rescued, and now — the half-beat lock (players pull on her fastest
+motion, not her pose).
 
-Backlog is deep enough to post through launch without ever writing fresh material:
-the wrist-drift debugging story, the bone-roll invariant, the blockout-to-refine
-transition, cel shader tests, the act structure, why she never gets rescued.
+Public copy never says "one hour a day."
 
 ---
 
 ## Habit rules (carried forward — these worked)
 
-- Same hour daily, 1:30 PM. Close everything else.
+- Same hour daily, 1:30 PM. Close everything else. One focused hour is the target.
 - **Minimum viable session = 20 minutes.** Rough day, do 20 and stop. Don't skip.
 - No coding energy → do design work. The habit is showing up.
 - End every session with the devlog row. 30 seconds now saves 10 minutes tomorrow.
@@ -257,12 +143,10 @@ transition, cel shader tests, the act structure, why she never gets rescued.
 
 ## Invariants — do not violate under deadline pressure
 
-Deadline pressure is exactly when these get broken.
-
 - **Bone rolls are a hard project invariant.** Changing one silently invalidates
   every authored strike Euler.
-- **The six authored strike Eulers live in the scene, not the script.** Never
-  press Revert All. Never `git checkout` the scene to "clean up."
+- **The six authored strike Eulers + `contactAt` live in the scene, not the script.**
+  Never press Revert All. Never `git checkout` the scene to "clean up."
 - **Refine the blockout mesh in place.** No rebuild, no retopo, no new file.
 - Full values and reasoning: `cassie-modeling-brief.md` and the dated comment
   block in `CassieStrikeDriver.cs`.
@@ -271,72 +155,27 @@ Deadline pressure is exactly when these get broken.
 
 ## Known risks
 
-**Cassie overruns.** Most likely failure. Mitigation is the stop conditions in the
-modeling brief and the September 1 gate. The prior Cassie stall was perfectionism
-at exactly this stage.
+**The demo waits on pillars.** Most likely failure now. The kill rule and the Nov 13
+freeze are the mitigation.
 
-**Right wrist / forearm strain.** Fifteen-plus consecutive Blender sessions on an
-active strain is a genuine schedule risk, not just a health one — a flare costs
-more sessions than pacing does. Typed field values over gizmo drags, left-hand
+**Silence reads as abandoned.** The page promised October. The new-date devlog fixes it;
+skipping it makes the Nov 21 ship land on nobody.
+
+**Right wrist / forearm strain.** Typed field values over gizmo drags, left-hand
 mouse, hotkeys, 30-minute movement breaks. Red flags (numbness, tingling, weakness,
-grip failing) mean stop and get it looked at, not push to the gate.
+grip failing) mean stop and get it looked at.
 
-**Empty room at launch.** Addressed by starting audience work in week 1. The cost
-of starting late is unrecoverable — there's no way to build a following in the
-final week.
-
-**A bad week.** The plan has no slack, so assume one happens. That's what the
-pre-committed cut order is for. Take the cuts in order; don't renegotiate scope
-under pressure.
+**A bad week.** Assume one. The budget has ~7 sessions of slack; spend it on the cold
+test, not on scope.
 
 ---
 
-## After launch
+## Record — Slice 1 launch (Day 117 → Sep 19)
 
-- **Oct 17:** public playable demo on itch — see *Demo* below.
-- Weekly devlog cadence continues.
-- Next scope decision — L7, or polish L6 further — is deferred until after launch.
-  Don't plan it now.
-
----
-
-## Demo — Slice 1 playable (added Day 166)
-
-**Date: Sat Oct 17, 2026.** Public, free, on itch. No Patreon, no tiers.
-The demo is the discovery asset now, not a backer reward.
-
-**Scene:** `VS_Demo.unity` — built from `VS_ShaderCheck` (real Cassie,
-Day 156 wrist axis, authored strike values), shoot rigging switched off.
-**Build profile:** `Demo – Windows`, scene list = VS_Demo only.
-
-**Verified Day 166:** full loop wins in VS_Demo — struggle on TableEdge →
-wrists free → bottle → feign → LeanIn → strike → victory line →
-LEVEL COMPLETE holds.
-
-### Fix list
-- [x] ~~Guard facing~~ **Done Day 167.** Turns along route, faces Cassie at door.
-- [x] ~~Guard lean~~ **Done Day 167.** Swap on LeanIn/Leaving, feet matched.
-- [ ] Guard hit reaction — StrikeableGuard logs "stagger" but nothing moves.
-      Guard is one unrigged mesh (FBX checked Day 168), so no ragdoll.
-      Procedural crumple: sink + squash, then topple away from Cassie.
-- [ ] HUD — "Holding: Bottle" persists after the smash. Clear on contact.
-- [ ] Camera framing under the shoot lighting — judge from the Game view.
-      **Promoted Day 168:** scene fills ~5% of frame; strike and shards
-      unreadable. Shard-vs-head check (swingTarget sits on Guard, not the
-      lean model) is settled here, not before.
-- [ ] End card — WinText → itch link + owned channel.
-- [ ] Owned channel (Discord / email) — the end card needs it.
-- [ ] Web vs Windows — WebGL cel-shader test this week if Web.
-- [ ] Cold playtest by someone who has never seen it.
-- [ ] - [x] ~~HUD — "Holding: Bottle" persists after the smash.~~ **Done Day 169.** Clears on contact.
-- [x] ~~Web vs Windows~~ **Web, Day 170 (provisional).** Slat shadows + outlines survive WebGL. Face banding rechecked on the first post-framing web build.
-- [x] Guard reads very dark in the web build — compare to editor Game view. Closed Day 173: shader design, reads fine in editor at LeanIn.
-- [ ] Top HUD / controls panel clipped in web build — recheck after framing.
-
-Build note: Code Optimization = Shorter Build Time for tests, Runtime Speed for the Oct 17 upload. Builds live outside Assets/ and never go in git.
-
-### Lesson
-Shoot scenes switch off gameplay to get clean frames. VS_ShaderCheck had
-GuardController, Bottle, TableEdge, Canvas, and the guard's pivot all
-inactive. **Diff active states against the last playable scene before
-building from a shoot scene.**
+The original plan scoped a small complete game shipped to itch in 13 weeks; it died
+when Rara turned out to be a 12-level, multi-year project. The Day 117 plan replaced
+it: refine Cassie in place (Sep 1 gate met — exported Day 138), dress and light L6,
+shoot a seven-shot hook clip, launch Sep 19 on Patreon. Budget ran over; pre-committed
+cuts were taken in order. **Launched Sep 19 as an itch page with donations; Patreon was
+not opened.** Full schedule, budget, cut order and shot list are in git history
+(this file before Day 205) and `cassie-hook-clip.md`.
