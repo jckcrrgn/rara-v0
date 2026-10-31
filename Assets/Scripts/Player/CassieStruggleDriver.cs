@@ -55,6 +55,12 @@ using UnityEngine;
 /// 0.6) and her fastest motion, the snap through neutral, on the half-beat. Players
 /// lock onto the motion event, not the pose. Added SwayShape.YankOnBeat: still at
 /// neutral, sharp peak on the beat. CosineHold kept for the before/after timing runs.
+///
+/// DAY 204
+/// -------
+/// Runs 1–5. Yank: 54 / 71–76% in window, R 0.61–0.87, offset −93 to −123 ms. Cosine:
+/// 19–25%, locked near the half-beat (+325, −252 ms). Yank is the default. The early
+/// offset is steady at high R, so it's where players hear the beat, not noise.
 /// </summary>
 public class CassieStruggleDriver : CassieRigLayer
 {
@@ -126,7 +132,7 @@ public class CassieStruggleDriver : CassieRigLayer
 		"the eye locks onto the snap (Day 203 playtest). YankOnBeat = lingers at neutral, " +
 		"accelerates into a sharp peak exactly on the beat and recoils. The reversal is the " +
 		"event, and it's on the pulse.")]
-	[SerializeField] private SwayShape swayShape = SwayShape.CosineHold;
+	[SerializeField] private SwayShape swayShape = SwayShape.YankOnBeat;   // Day 204: won the runs
 
 	[Tooltip("CosineHold only. 1 = pure sine. Lower = dwells at the extreme, crosses fast.")]
 	[Range(0.3f, 1f)]
