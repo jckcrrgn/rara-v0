@@ -4,7 +4,8 @@
 // Day 201 note: "connect the rhythm to a visual presentation of the bonds."
 //
 // Drop on any always-active scene object. Finds Cassie's BondStruggle and the guard.
-// Tab / pad Back toggles the controls card.
+// Tab / pad Back toggles the controls card. F1 toggles the debug readout (editor and
+// Development builds only; release builds never show it).
 
 using UnityEngine;
 
@@ -14,11 +15,18 @@ public class BondStruggleHUD : MonoBehaviour
 	[Range(1, 4)] [SerializeField] private float uiScale = 2f;
 	[Tooltip("Show the controls card on start (cold playtest).")]
 	[SerializeField] private bool showControlsCard = true;
+	[Tooltip("Debug readout: bonds, hands, knot, noise, captor, last result. Day 206: HUD is " +
+		"the debug channel only (GDD Feedback channels). Forced off in release player builds. " +
+		"F1 toggles it in the editor and in Development builds; turn it off for timing runs.")]
+	[SerializeField] private bool showDebug = true;
+
+	static bool DebugAllowed => Application.isEditor || Debug.isDebugBuild;
 
 	void Start()
 	{
 		if (struggle == null) struggle = FindFirstObjectByType<BondStruggle>();
 		if (struggle == null) Debug.LogWarning("[BondStruggleHUD] No BondStruggle in scene.");
+		if (!DebugAllowed) showDebug = false;
 	}
 
 	void Update()
@@ -31,15 +39,23 @@ public class BondStruggleHUD : MonoBehaviour
 		back = Input.GetKeyDown(KeyCode.JoystickButton6);
 #endif
 		if (Input.GetKeyDown(KeyCode.Tab) || back) showControlsCard = !showControlsCard;
+		if (DebugAllowed && Input.GetKeyDown(KeyCode.F1)) showDebug = !showDebug;
 	}
 
 	void OnGUI()
 	{
 		if (struggle == null) return;
-		GuardController guard = GuardController.Instance;
 
 		GUI.matrix = Matrix4x4.Scale(new Vector3(uiScale, uiScale, 1f));
 		float sw = Screen.width / uiScale;
+
+		if (showDebug) DrawDebug();
+		if (showControlsCard) DrawControlsCard(sw);
+	}
+
+	void DrawDebug()
+	{
+		GuardController guard = GuardController.Instance;
 		var prev = GUI.color;
 
 		// Day 202 rev: no pulse bar. The beat lives in Cassie (CassieStruggleDriver
@@ -131,26 +147,26 @@ public class BondStruggleHUD : MonoBehaviour
 			GUI.color = prev;
 		}
 		GUI.Label(new Rect(20, barY + 76, 500, 22), $"catches {struggle.Catches}/{struggle.maxCatches}");
+	}
 
-		// --- controls card ---
-		if (showControlsCard)
-		{
-			const float cw = 340f, ch = 250f;
-			string card =
-				"Get every bond free — or get the bottle.\n" +
-				"Don't get caught.\n\n" +
-				"Choose bond      L-stick  /  WASD\n" +
-				"Struggle         RT  /  Space   (with her rhythm)\n" +
-				"Back up to the table edge: wrists go faster\n" +
-				"Untie            D-pad  /  IJKL   (hands free)\n" +
-				"Hide hands       LB  /  G\n" +
-				"Move chair       hold LT  /  Shift\n" +
-				"Pick up          A  /  E\n" +
-				"Strike           X  /  H\n\n" +
-				"Back / Tab: hide this card";
-			GUI.Box(new Rect(sw - cw - 20, 20, cw, ch), "");
-			var cs = new GUIStyle(GUI.skin.label) { wordWrap = false };
-			GUI.Label(new Rect(sw - cw - 10, 28, cw - 20, ch - 16), card, cs);
-		}
+	// Player-facing, not debug: stays in every build.
+	void DrawControlsCard(float sw)
+	{
+		const float cw = 340f, ch = 250f;
+		string card =
+			"Get every bond free — or get the bottle.\n" +
+			"Don't get caught.\n\n" +
+			"Choose bond      L-stick  /  WASD\n" +
+			"Struggle         RT  /  Space   (with her rhythm)\n" +
+			"Back up to the table edge: wrists go faster\n" +
+			"Untie            D-pad  /  IJKL   (hands free)\n" +
+			"Hide hands       LB  /  G\n" +
+			"Move chair       hold LT  /  Shift\n" +
+			"Pick up          A  /  E\n" +
+			"Strike           X  /  H\n\n" +
+			"Back / Tab: hide this card";
+		GUI.Box(new Rect(sw - cw - 20, 20, cw, ch), "");
+		var cs = new GUIStyle(GUI.skin.label) { wordWrap = false };
+		GUI.Label(new Rect(sw - cw - 10, 28, cw - 20, ch - 16), card, cs);
 	}
 }

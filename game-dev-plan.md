@@ -69,8 +69,10 @@ ladder, L1–L5 design pass, L7+, menus beyond an end card.
 | Build + page update | 1 |
 
 ### Fix list (re-triaged Day 205)
-- [ ] Hit / miss SFX clips assigned (`chairCreak1` = hit); `noisePerMiss` 0.15 → 0.08.
-- [ ] HUD off in the player build (debug channel only — see GDD Feedback channels).
+- [x] Hit / miss SFX clips assigned (`chairCreak1` = hit, `slide-thump` = miss); `noisePerMiss`
+      0.15 → 0.08. **Day 206.** Feel check pending a clean day — GDD *Noise thresholds*.
+- [x] HUD off in the player build (debug channel only — see GDD Feedback channels). **Day 206.**
+      Release builds never show it; F1 toggles it in editor / Development. Controls card stays.
 - [ ] Guard facing — GuardController moves him, never turns him. Fixed 15° yaw from
       Guard_Pivot for the whole route.
 - [ ] Guard lean — walks in and stays upright. Swap to Guard_D133_Lean on LeanIn,

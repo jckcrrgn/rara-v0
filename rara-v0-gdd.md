@@ -198,7 +198,7 @@ your hands out. Whether that's intended is listed under Open.
 
 | Field | Value | Why |
 |---|---|---|
-| `glanceNoise` | 0.3 | Two quick off-beat pulls, or two spams |
+| `glanceNoise` | 0.3 | ~~Two quick off-beat pulls, or two spams~~ → re-derived Day 206: rushing or mashing, not honest misses. See **Noise thresholds** below |
 | `inspectNoise` | 0.6 | One loud event, or escalation from a glance |
 | `glancePeak` | 0.6 | Below `seenAttention`: a glance can't see hands |
 | `turnTime` | 1.4 | Look budget 0.65 s; measured hides 0.40–0.53 s fit inside |
@@ -348,8 +348,8 @@ not the peak itself.
 - [ ] If the offset is still ~−100 after that, add a judge offset (centre the window
       ~100 ms early). That's standard rhythm-game calibration, but it hides a cue
       problem, so it's the second resort.
-- [ ] `noisePerMiss` 0.15 → 0.08. Re-derive the `glanceNoise` 0.3 reasoning ("two
-      quick off-beat pulls") when it lands.
+- [x] ~~`noisePerMiss` 0.15 → 0.08.~~ **Day 206.** Reasoning re-derived in **Noise
+      thresholds**, below. Feel check pending a clean day.
 
 ### Feedback channels (Rara Day 205)
 
@@ -381,6 +381,40 @@ silent).
 - [ ] Bias the sway toward the selected bond (carried from Day 202). The body is now
       the beat *and* the bond selector. Check that the second job doesn't blur the
       first.
+
+### Noise thresholds (Rara Day 206)
+
+**`noisePerMiss` 0.15 → 0.08.** Under the Day 202 revision noise never catches her, it
+only decides how often he looks. So the question is *which play earns a look.*
+
+**The rule this sets: honest misses are quiet; rushing and mashing call him.** Decay is
+0.1/s, which is 0.07 per 0.7 s beat. A 0.08 miss at tempo nearly decays out before the
+next pull. Pulling faster than the beat, or mashing, outruns the decay.
+
+Simulated (no spend, first crossing; `noisePerPull` 0.05, spam 0.25, decay 0.1):
+
+| Play | 0.15 (old) | **0.08 (new)** |
+|---|---|---|
+| 2 off-beat pulls, 0.26 s apart | peak 0.27, no glance | peak 0.13, no glance |
+| All misses, at tempo (1 / beat) | glance 1.4 s, inspect 4.2 s | **glance 16 s, never inspect** |
+| Half misses, at tempo | glance 4.9 s | **never** |
+| Rushing, 2 pulls / beat, all miss | glance 0.7 s | glance 1.8 s (~6 pulls), inspect 4.2 s |
+| Mash (miss + spams, 0.15 s) | glance 2nd press | glance 2nd press, inspect 3rd–4th |
+| Clean pulls at tempo | never | never |
+
+**The old "two quick off-beat pulls" was already wrong.** It peaks at 0.27 under decay
+0.1 (it took three). It was probably calibrated on an earlier decay.
+
+**What it costs.** Day 200's best signal was "he reacts to how you play": heard vs
+idle glances 1:7 clean, 13:2 sloppy. At 0.08 a sloppy player *at tempo* no longer
+draws him. Only rushing and mashing do. If the cold test reads him as random again,
+this is the first knob. The middle is 0.10–0.12.
+
+**Open:**
+- [ ] Feel check at 0.08 on a clean day: does a sloppy run still feel watched?
+- [ ] Hops. `noisePerHop` 0.12: two quick hops peak at 0.21, three at ~0.30, right
+      on the line. The old tooltip said two hops = call-out. Decide: 0.15 (two hops
+      call him) or leave it (moving the chair is cheap).
 
 ---
 

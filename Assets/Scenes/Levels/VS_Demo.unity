@@ -2415,6 +2415,7 @@ MonoBehaviour:
   struggle: {fileID: 0}
   uiScale: 2
   showControlsCard: 1
+  showDebug: 1
 --- !u!1 &680010493
 GameObject:
   m_ObjectHideFlags: 0
@@ -6676,7 +6677,7 @@ MonoBehaviour:
   gainPerPull: 0.08
   spamGap: 0.25
   noisePerPull: 0.05
-  noisePerMiss: 0.15
+  noisePerMiss: 0.08
   noisePerSpam: 0.25
   noiseDecay: 0.1
   noisePerHop: 0.12
@@ -6695,8 +6696,8 @@ MonoBehaviour:
   maxCatches: 3
   slippedOutLine: Rookie knots.
   logTiming: 1
-  hitClip: {fileID: 0}
-  missClip: {fileID: 0}
+  hitClip: {fileID: 8300000, guid: d7e95b08ddc82b8469204d874282cce1, type: 3}
+  missClip: {fileID: 8300000, guid: c64dd3cab3e434a4ab777e0a44e25435, type: 3}
   spamClip: {fileID: 0}
   hitVolume: 0.8
   missVolume: 0.7

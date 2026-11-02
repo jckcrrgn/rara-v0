@@ -100,10 +100,14 @@ public class BondStruggle : MonoBehaviour
 	[Header("Noise")]
 	[Tooltip("Even a clean pull makes some sound. Steady on-beat pulling never reaches the glance line.")]
 	public float noisePerPull = 0.05f;
-	public float noisePerMiss = 0.15f;
+	[Tooltip("Day 206: 0.15 -> 0.08. A miss at tempo nearly decays out before the next beat " +
+		"(0.1/s x 0.7 s = 0.07), so honest misses don't call him. Rushing and mashing do. " +
+		"See GDD Loop-Refine, noise thresholds.")]
+	public float noisePerMiss = 0.08f;
 	public float noisePerSpam = 0.25f;
 	public float noiseDecay = 0.1f;
-	[Tooltip("Chair hop / turn-hop. Two quick hops = a call-out; any hop while he's watching = caught.")]
+	[Tooltip("Chair hop / turn-hop. Noise only calls him (Day 202 rev). Two quick hops peak ~0.21, " +
+		"three ~0.30 — right on the glance line. Not retuned Day 206; see GDD Open.")]
 	public float noisePerHop = 0.12f;
 	[Tooltip("One back-scoot shimmy.")]
 	public float noisePerScoot = 0.06f;
