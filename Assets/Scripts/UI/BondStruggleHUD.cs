@@ -6,6 +6,15 @@
 // Drop on any always-active scene object. Finds Cassie's BondStruggle and the guard.
 // Tab / pad Back toggles the controls card. F1 toggles the debug readout (editor and
 // Development builds only; release builds never show it).
+//
+// Day 207 split. Two readouts:
+//   PLAYER (every build)  bonds + selected marker + progress, HANDS out/hidden, KNOT,
+//                         catches. What the player needs to act. Interim until bond
+//                         choice and knot move onto Cassie's body (post-demo).
+//   DEBUG (F1, dev only)  pad status, noise bar, captor state + attention, last result,
+//                         boost. Never in a release build: noise and attention are what
+//                         the player is meant to read from HIM, not from a bar.
+// Neither readout carries the beat (GDD Feedback channels: the beat lives in her body).
 
 using UnityEngine;
 
@@ -15,9 +24,12 @@ public class BondStruggleHUD : MonoBehaviour
 	[Range(1, 4)] [SerializeField] private float uiScale = 2f;
 	[Tooltip("Show the controls card on start (cold playtest).")]
 	[SerializeField] private bool showControlsCard = true;
-	[Tooltip("Debug readout: bonds, hands, knot, noise, captor, last result. Day 206: HUD is " +
-		"the debug channel only (GDD Feedback channels). Forced off in release player builds. " +
-		"F1 toggles it in the editor and in Development builds; turn it off for timing runs.")]
+	[Tooltip("Player readout: bonds, selected bond, hands, knot, catches. Shown in every build. " +
+		"Day 207: interim until bond choice and the knot are on Cassie's body.")]
+	[SerializeField] private bool showPlayerReadout = true;
+	[Tooltip("Debug readout: pad status, noise, captor, last result, boost. Forced off in " +
+		"release player builds. F1 toggles it in the editor and in Development builds; turn it " +
+		"off for timing runs.")]
 	[SerializeField] private bool showDebug = true;
 
 	static bool DebugAllowed => Application.isEditor || Debug.isDebugBuild;
@@ -49,27 +61,18 @@ public class BondStruggleHUD : MonoBehaviour
 		GUI.matrix = Matrix4x4.Scale(new Vector3(uiScale, uiScale, 1f));
 		float sw = Screen.width / uiScale;
 
-		if (showDebug) DrawDebug();
+		float y = 50f;
+		if (showPlayerReadout) y = DrawPlayer(y);
+		if (showDebug) DrawDebug(y);
 		if (showControlsCard) DrawControlsCard(sw);
 	}
 
-	void DrawDebug()
+	// Player-facing: stays in every build. Returns the y below the last line.
+	float DrawPlayer(float y)
 	{
-		GuardController guard = GuardController.Instance;
 		var prev = GUI.color;
 
-		// Day 202 rev: no pulse bar. The beat lives in Cassie (CassieStruggleDriver
-		// sways on it) — read her, not the HUD.
-		string padStatus = RaraInput.Status();
-		if (padStatus.Length > 0)
-		{
-			GUI.color = Color.yellow;
-			GUI.Label(new Rect(20, 22, 520, 22), padStatus);
-			GUI.color = prev;
-		}
-
 		// --- bonds ---
-		float y = 50;
 		for (int i = 0; i < struggle.bonds.Length; i++)
 		{
 			var b = struggle.bonds[i];
@@ -102,9 +105,30 @@ public class BondStruggleHUD : MonoBehaviour
 			GUI.Label(new Rect(20, y + 28, 500, 22), $"KNOT   {seq}");
 		}
 
+		// The third catch is a loss — the player gets to see it coming.
+		GUI.Label(new Rect(20, y + 50, 500, 22), $"caught {struggle.Catches} of {struggle.maxCatches}");
+		return y + 74f;
+	}
+
+	// Debug only (F1, editor / Development builds). Draws below the player readout.
+	void DrawDebug(float y)
+	{
+		GuardController guard = GuardController.Instance;
+		var prev = GUI.color;
+
+		// Day 202 rev: no pulse bar. The beat lives in Cassie (CassieStruggleDriver
+		// sways on it) — read her, not the HUD.
+		string padStatus = RaraInput.Status();
+		if (padStatus.Length > 0)
+		{
+			GUI.color = Color.yellow;
+			GUI.Label(new Rect(20, 22, 520, 22), padStatus);
+			GUI.color = prev;
+		}
+
 		// --- noise bar --- noise only calls him (never catches her). Yellow ticks:
 		// call-out / comes in.
-		float barX = 20f, barY = y + 58, barW = 300f;
+		float barX = 20f, barY = y + 8, barW = 300f;
 		float noise = struggle.Noise;
 		bool looking = guard != null && guard.Attention > 0f;
 		GUI.Box(new Rect(barX, barY, barW, 18), "");
@@ -146,7 +170,6 @@ public class BondStruggleHUD : MonoBehaviour
 			GUI.Label(new Rect(340, barY + 54, 300, 22), $"BOOST  {struggle.LastBoost}");
 			GUI.color = prev;
 		}
-		GUI.Label(new Rect(20, barY + 76, 500, 22), $"catches {struggle.Catches}/{struggle.maxCatches}");
 	}
 
 	// Player-facing, not debug: stays in every build.

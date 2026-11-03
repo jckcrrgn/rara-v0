@@ -360,7 +360,8 @@ two clocks to choose between.
 |---|---|---|
 | **Body** (Cassie's sway) | **The beat.** When to pull. | The only beat cue in a player build. The motion event sits on the beat (see above). |
 | **Audio** (hit / miss / spam) | **Hit confirm.** Did that pull land? | Plays *after* the press, never ahead of it. Never a beat cue. Miss must read as different from hit at a glance. |
-| **HUD** (bond bars, timing text) | **Debug.** | Off in player builds and for timing runs. |
+| **Player readout** (bonds + selected, hands, knot, catches) | **State.** What can I act on? | Every build. Never the beat. Interim (Day 207): bond choice and knot move onto her body post-demo. |
+| **Debug HUD** (noise, captor, attention, last result) | **Debug.** | F1, editor / Development only. Off for timing runs. Noise and attention are read from *him*, never a bar. |
 
 **Why.** Day 203 showed players lock onto one motion event and ignore the rest. A
 second beat source, such as a tick or a pulse bar, either agrees exactly with her body
@@ -381,6 +382,31 @@ silent).
 - [ ] Bias the sway toward the selected bond (carried from Day 202). The body is now
       the beat *and* the bond selector. Check that the second job doesn't blur the
       first.
+
+### Diegetic feedback (Rara Day 207)
+
+**Rule. While she struggles, the eyes stay on her.** The room is read for tools and
+openings. The bonds are read off her body. The player readout (Day 207) is interim and
+dies when this lands. **In the demo** (decided Day 207).
+
+| Job | Channel | Status |
+|---|---|---|
+| Beat | Her sway (YankOnBeat) | Done |
+| Hit / miss | Audio after the press | Done |
+| **Which bond** | Head and eyes go to it (wrists, an ankle, over the shoulder for elbows). Sway biased toward that limb | Next |
+| **Progress** | The rope gives: slack and slide with progress, snap on free. Strain on that limb grows | Next |
+| Hands out / hidden | Feign pose (`IsFeigning`) | Done |
+| Catches | Elbows tied on, ropes tighter, his line | Done |
+| **Knot** | **Open** | — |
+
+**The knot — open.** Its job is a **speed tier**: struggle (slow, hands can stay hidden)
+→ untie (faster, hands out) → cut (future: fastest, needs a blade, hands out). Each step
+up is faster and more exposed. The knot is the linchpin of a bond.
+
+**Keep the sequence.** Following it reads as really untying a knot. The open question
+is how the rope itself shows the next direction, with nothing on screen.
+Considered, not chosen: she leads with a hand tug and you follow (A); drop the sequence
+and untie on the beat (B); hold to untie; fingers at double time.
 
 ### Noise thresholds (Rara Day 206)
 

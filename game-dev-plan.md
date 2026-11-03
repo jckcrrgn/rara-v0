@@ -71,12 +71,15 @@ ladder, L1–L5 design pass, L7+, menus beyond an end card.
 ### Fix list (re-triaged Day 205)
 - [x] Hit / miss SFX clips assigned (`chairCreak1` = hit, `slide-thump` = miss); `noisePerMiss`
       0.15 → 0.08. **Day 206.** Feel check pending a clean day — GDD *Noise thresholds*.
-- [x] HUD off in the player build (debug channel only — see GDD Feedback channels). **Day 206.**
-      Release builds never show it; F1 toggles it in editor / Development. Controls card stays.
-- [ ] Guard facing — GuardController moves him, never turns him. Fixed 15° yaw from
-      Guard_Pivot for the whole route.
-- [ ] Guard lean — walks in and stays upright. Swap to Guard_D133_Lean on LeanIn,
-      back on Leaving.
+- [x] HUD split. **Day 206–207.** Debug readout (noise, captor, last result) is F1,
+      editor / Development only. **Player readout** (bonds + selected, hands, knot, catches)
+      shows in every build — interim until bond choice + knot live on her body. Controls
+      card stays. ⚠ The HUD *component* was disabled in VS_Demo since Day 204 (timing-run
+      setup) — re-enabled Day 207. Hide for timing runs with F1, never the checkbox.
+- [x] Guard facing + lean — done **Day 167** (`ad6863b`); verified wired in VS_Demo Day 207.
+      Items were stale carry-overs.
+- [ ] **Diegetic feedback** (GDD, Day 207). Head-look + sway bias (which bond), rope
+      gives (progress). Knot cue open. Then kill the player readout.
 - [ ] Camera framing under the shoot lighting — judge from the Game view.
 - [ ] End card — itch link + owned channel.
 - [ ] Owned channel (Discord / email) — the end card needs it.
