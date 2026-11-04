@@ -274,6 +274,9 @@ public class CassieStrikeDriver : CassieRigLayer
 
 	/// <summary>True while the swing is running. PlayerController folds this into IsBusy.</summary>
 	public bool IsPlaying => _playing;
+	/// <summary>Day 208: the strike is driving the arms (swing, post-strike hold, or debug
+	/// scrub). CassieHandsDriver yields to it. Read-only; no authored value is touched.</summary>
+	public bool OwnsArms => _playing || _holdingArms || debugScrubEnabled;
 
 	private float TotalDuration =>
 		Mathf.Max(0.01f, windupDuration) +

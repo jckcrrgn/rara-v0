@@ -26,7 +26,7 @@
 // tool. A bond with barehandGain 0 (cuffs) needs one.
 //
 // Controls                keyboard          pad
-//   select bond           WASD              left stick
+//   select bond           WASD (flick)      left stick (flick) — Day 208: relative, screen space
 //   struggle (on pulse)   Space             RT
 //   untie (follow knot)   IJKL              D-pad     (hands free only; not elbows)
 //   hide hands / feign    G                 LB
@@ -46,8 +46,14 @@ public class BondStruggle : MonoBehaviour
 	public class StruggleBond
 	{
 		public string name;
-		[Tooltip("Stick / WASD direction that selects this bond.")]
+		[Tooltip("Day 208: FALLBACK only. Selection is relative, in screen space, from the anchors " +
+			"below. This is used as a stand-in screen position when there's no camera or rig.")]
 		public Vector2 dir;
+		[Tooltip("Day 208: bones whose midpoint is where this bond sits on her body, for relative " +
+			"selection. Empty = derived from limb (Elbows: forearms, Wrists: hands, Ankles: feet, " +
+			"Knees: shins). Set it for a one-sided bond, e.g. LeftFoot for an ankle tied to its own " +
+			"chair leg.")]
+		public HumanBodyBones[] anchors;
 		[Tooltip("BoundLimbs flag this bond holds on the restraint. Both ankle bonds map to " +
 			"Ankles; Ankles + AnkledToChair clear only when both are free.")]
 		public BoundLimbs limb;
@@ -87,8 +93,9 @@ public class BondStruggle : MonoBehaviour
 			startsBound = false, addedOnCatch = 1, untieable = false },
 		new StruggleBond { name = "Wrists",  dir = Vector2.down,  limb = BoundLimbs.Wrists,
 			untieable = false, envToolsReach = true },
-		new StruggleBond { name = "L Ankle", dir = Vector2.left,  limb = BoundLimbs.Ankles },
-		new StruggleBond { name = "R Ankle", dir = Vector2.right, limb = BoundLimbs.Ankles },
+		// Day 208: her ankles are tied TOGETHER — one rope, one bond. Separate L/R ankle bonds
+		// come back when a level ties each ankle to its own chair leg (set their anchors).
+		new StruggleBond { name = "Ankles",  dir = new Vector2(0f, -2f), limb = BoundLimbs.Ankles },
 	};
 
 	[Header("Rhythm")]
@@ -159,6 +166,9 @@ public class BondStruggle : MonoBehaviour
 	// ---------------------------------------------------------------------------------
 
 	public System.Action<StruggleBond> OnBondFreed;
+	/// <summary>Day 208: every untie input on a reachable knot. (direction 0 up / 1 right /
+	/// 2 down / 3 left in screen space, correct). CassieHandsDriver works the knot on it.</summary>
+	public System.Action<int, bool> OnUntieInput;
 	public System.Action OnAllFree;
 
 	public float Noise { get; private set; }
@@ -178,7 +188,12 @@ public class BondStruggle : MonoBehaviour
 	/// <summary>Free hands visibly out — what the guard can see. True while still hiding.</summary>
 	public bool HandsOut => HandsFree && handsOut;
 	public bool IsHidingHands => hidingUntil > 0f;
-	public bool CanUntie(int i) => HandsFree && i >= 0 && i < bonds.Length && bonds[i].untieable && bonds[i].Bound;
+	/// <summary>Day 208: elbows tied behind her = her hands can't reach the knots in front.</summary>
+	public bool ElbowsBound
+	{
+		get { foreach (var b in bonds) if ((b.limb & BoundLimbs.Elbows) != 0 && b.Bound) return true; return false; }
+	}
+	public bool CanUntie(int i) => HandsFree && !ElbowsBound && i >= 0 && i < bonds.Length && bonds[i].untieable && bonds[i].Bound;
 	/// <summary>0..1, 1 exactly on the beat.</summary>
 	public float Pulse01 { get { float bp = (Time.time % beatInterval) / beatInterval; return 1f - Mathf.Min(bp, 1f - bp) * 2f; } }
 	/// <summary>Beats elapsed (Time.time / beatInterval). Integers are the beats. CassieStruggleDriver locks to this.</summary>
@@ -197,6 +212,15 @@ public class BondStruggle : MonoBehaviour
 	float hidingUntil;
 	float lastPull = -99f;
 	int prevStickZone = -1;   // -1 neutral, 0 up, 1 right, 2 down, 3 left
+
+	[Header("Bond selection (Day 208)")]
+	[Tooltip("Cassie's Humanoid Animator, for bond anchors. Empty = found under the player, " +
+		"then via CassieRig.")]
+	[SerializeField] Animator anchorRig;
+	[Tooltip("Half-angle of the flick cone, degrees. A bond counts as 'that way' if its " +
+		"direction from the selected bond is within this of the flick.")]
+	[Range(10f, 89f)] [SerializeField] float selectCone = 45f;
+	bool selectHeld;   // stick has been flicked and not yet returned to neutral
 
 	// ---------------------------------------------------------------------------------
 
@@ -265,18 +289,18 @@ public class BondStruggle : MonoBehaviour
 		SampleMoveTaps(dirInput, shift);
 		if (SlippedOut) return;
 
-		// --- select ---
-		if (!MoveLayerHeld && dirInput.sqrMagnitude > 0.25f)
+		// --- select (Day 208: relative, screen space) ---
+		// A flick moves the selection from the current bond to the nearest bound bond that
+		// way on screen: down from wrists is ankles, up is elbows. One flick, one step —
+		// holding doesn't repeat. Hysteresis: fires past 0.5, re-arms below 0.3. Flicks made
+		// while the move layer is held don't select, and still have to return to neutral.
+		float mag2 = dirInput.sqrMagnitude;
+		if (!selectHeld && mag2 > 0.25f)
 		{
-			float best = 0.5f;
-			Vector2 n = dirInput.normalized;
-			for (int i = 0; i < bonds.Length; i++)
-			{
-				if (!bonds[i].Bound) continue;   // can't select a free or reserve bond
-				float d = Vector2.Dot(n, bonds[i].dir);
-				if (d > best) { best = d; Selected = i; }
-			}
+			selectHeld = true;
+			if (!MoveLayerHeld) SelectToward(dirInput.normalized);
 		}
+		else if (selectHeld && mag2 < 0.09f) selectHeld = false;
 
 		// --- struggle ---
 		if ((Input.GetKeyDown(KeyCode.Space) && !justDismissed) || pad.pull) Pull();
@@ -469,6 +493,7 @@ public class BondStruggle : MonoBehaviour
 	void Untie(int dir)
 	{
 		if (!HandsFree) { LastResult = "hands are bound — struggle"; return; }
+		if (ElbowsBound) { LastResult = "elbows tied — can't reach. Struggle them free"; return; }
 		if (!CanUntie(Selected)) { LastResult = "can't reach that one — struggle"; return; }
 		if (hidingUntil > 0f) return;   // busy hiding
 
@@ -482,12 +507,14 @@ public class BondStruggle : MonoBehaviour
 			b.progress = Mathf.Clamp01(b.progress + untieGain / b.tightness);
 			AddNoise(noisePerUntie);
 			LastResult = "untying";
+			OnUntieInput?.Invoke(dir, true);
 			if (b.progress >= 1f) Freed(b);
 		}
 		else
 		{
 			AddNoise(noisePerFumble);
 			LastResult = "fumble";
+			OnUntieInput?.Invoke(dir, false);
 		}
 	}
 
@@ -521,7 +548,7 @@ public class BondStruggle : MonoBehaviour
 	void Freed(StruggleBond b)
 	{
 		LastResult = b == bonds[WristsIndex] ? "WRISTS FREE — untie the rest, keep them hidden" : $"{b.name} FREE";
-		Selected = NextBound(Selected);
+		Selected = NearestBound(Selected);   // Day 208: nearest on screen, not next in list
 		SyncLimbs();
 		OnBondFreed?.Invoke(b);
 
@@ -627,6 +654,110 @@ public class BondStruggle : MonoBehaviour
 			do d = Random.Range(0, 4); while (d == prev);   // no repeats: reads as a path
 			b.knot.Add(d);
 		}
+	}
+
+	// ---- Day 208: relative bond selection, screen space ------------------------------
+
+	void SelectToward(Vector2 flick)
+	{
+		if (Selected < 0 || !bonds[Selected].Bound) { Selected = NextBound(-1); return; }
+		Vector2 from = ScreenPos(Selected);
+		float cosCone = Mathf.Cos(selectCone * Mathf.Deg2Rad);
+		int best = -1;
+		float bestScore = float.MaxValue;
+		for (int i = 0; i < bonds.Length; i++)
+		{
+			if (i == Selected || !bonds[i].Bound) continue;
+			Vector2 d = ScreenPos(i) - from;
+			float len = d.magnitude;
+			if (len < 0.001f) continue;
+			float cos = Vector2.Dot(d / len, flick);
+			if (cos < cosCone) continue;
+			float score = len * (2f - cos);   // closer wins; better aligned breaks near-ties
+			if (score < bestScore) { bestScore = score; best = i; }
+		}
+		if (best >= 0) Selected = best;   // nothing that way: stay put
+	}
+
+	/// <summary>Nearest still-bound bond to bond `from` on screen. Falls back to list order.</summary>
+	int NearestBound(int from)
+	{
+		if (from < 0) return NextBound(-1);
+		Vector2 p = ScreenPos(from);
+		int best = -1;
+		float bestD = float.MaxValue;
+		for (int i = 0; i < bonds.Length; i++)
+		{
+			if (i == from || !bonds[i].Bound) continue;
+			float d = (ScreenPos(i) - p).sqrMagnitude;
+			if (d < bestD) { bestD = d; best = i; }
+		}
+		return best >= 0 ? best : NextBound(from);
+	}
+
+	/// <summary>
+	/// Where a bond sits on screen: the midpoint of its anchor bones through the main camera.
+	/// Screen y is up, same as the stick. No camera or no rig → the bond's `dir` as a stand-in.
+	/// </summary>
+	Vector2 ScreenPos(int i)
+	{
+		Camera cam = Camera.main;
+		if (cam == null || !TryAnchorWorld(i, out Vector3 w)) return bonds[i].dir;
+		Vector3 sp = cam.WorldToScreenPoint(w);
+		return new Vector2(sp.x, sp.y);
+	}
+
+	/// <summary>World position of bond i on her body: the midpoint of its anchor bones.
+	/// Day 208: also where CassieHandsDriver puts the knot.</summary>
+	public bool TryAnchorWorld(int i, out Vector3 world)
+	{
+		world = Vector3.zero;
+		if (i < 0 || i >= bonds.Length) return false;
+		Animator a = ResolveAnchorRig();
+		if (a == null) return false;
+		var b = bonds[i];
+		HumanBodyBones[] bones = b.anchors != null && b.anchors.Length > 0 ? b.anchors : DefaultAnchors(b.limb);
+		int n = 0;
+		foreach (var hb in bones)
+		{
+			Transform t = a.GetBoneTransform(hb);
+			if (t != null) { world += t.position; n++; }
+		}
+		if (n == 0) return false;
+		world /= n;
+		return true;
+	}
+
+	static readonly HumanBodyBones[] ElbowAnchors = { HumanBodyBones.LeftLowerArm, HumanBodyBones.RightLowerArm };
+	static readonly HumanBodyBones[] WristAnchors = { HumanBodyBones.LeftHand, HumanBodyBones.RightHand };
+	static readonly HumanBodyBones[] AnkleAnchors = { HumanBodyBones.LeftFoot, HumanBodyBones.RightFoot };
+	static readonly HumanBodyBones[] KneeAnchors  = { HumanBodyBones.LeftLowerLeg, HumanBodyBones.RightLowerLeg };
+	static readonly HumanBodyBones[] NoAnchors    = { };
+
+	static HumanBodyBones[] DefaultAnchors(BoundLimbs limb)
+	{
+		if ((limb & BoundLimbs.Elbows) != 0) return ElbowAnchors;
+		if ((limb & BoundLimbs.Wrists) != 0) return WristAnchors;
+		if ((limb & BoundLimbs.Knees) != 0)  return KneeAnchors;
+		if ((limb & BoundLimbs.Ankles) != 0) return AnkleAnchors;
+		return NoAnchors;
+	}
+
+	Animator ResolveAnchorRig()
+	{
+		if (anchorRig != null && anchorRig.isHuman) return anchorRig;
+		anchorRig = GetComponentInChildren<Animator>();
+		if (anchorRig == null || !anchorRig.isHuman)
+		{
+			var rig = FindFirstObjectByType<CassieRig>();
+			if (rig != null)
+			{
+				anchorRig = rig.GetComponent<Animator>();
+				if (anchorRig == null) anchorRig = rig.GetComponentInParent<Animator>();
+				if (anchorRig == null) anchorRig = rig.GetComponentInChildren<Animator>();
+			}
+		}
+		return anchorRig != null && anchorRig.isHuman ? anchorRig : null;
 	}
 
 	int NextBound(int from)

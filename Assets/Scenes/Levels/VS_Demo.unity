@@ -2415,6 +2415,7 @@ MonoBehaviour:
   struggle: {fileID: 0}
   uiScale: 2
   showControlsCard: 1
+  showPlayerReadout: 1
   showDebug: 1
 --- !u!1 &680010493
 GameObject:
@@ -3409,6 +3410,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 22d31df2335b87a43ab5befae53c9344, type: 3}
       insertIndex: -1
       addedObject: {fileID: 979654076}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 22d31df2335b87a43ab5befae53c9344, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 979654077}
   m_SourcePrefab: {fileID: 100100000, guid: 22d31df2335b87a43ab5befae53c9344, type: 3}
 --- !u!4 &979654069 stripped
 Transform:
@@ -3453,6 +3457,19 @@ MonoBehaviour:
   swayShape: 1
   beatSharpness: 0.6
   beatShape: 2
+  bondLook: 1
+  lookWrists:
+    head: {x: 15, y: 35, z: 0}
+    spine: {x: -3, y: 6, z: 0}
+  lookElbows:
+    head: {x: -5, y: 45, z: 0}
+    spine: {x: -5, y: 8, z: 0}
+  lookAnkles:
+    head: {x: 30, y: 0, z: 0}
+    spine: {x: 6, y: 0, z: 0}
+  untieExtraPitch: {x: 15, y: 12}
+  lookTau: 0.08
+  headBeatWhileLooking: 0.3
   debugScrubEnabled: 0
   debugIntensity: 1
   debugPhase01: 0.25
@@ -3557,6 +3574,38 @@ MonoBehaviour:
   lookDuration: 0.8
   playOnStart: 1
   playNow: 0
+--- !u!114 &979654077
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 979654070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ffc9b268af874b4ba2e5b5f16d03c0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rig: {fileID: 0}
+  order: 2
+  player: {fileID: 0}
+  struggle: {fileID: 0}
+  strike: {fileID: 0}
+  animator: {fileID: 0}
+  reachTime: 0.25
+  reachSpinePitch: 25
+  reachChestPitch: 12
+  lapLeanShare: 0.25
+  knotOffset: {x: 0, y: 0.06, z: 0.05}
+  lapAlongThigh: 0.55
+  lapLift: 0.06
+  handSpread: 0.08
+  wristBack: 0.07
+  elbowPole: {x: 0.35, y: -0.1, z: -0.1}
+  workAmplitude: 0.035
+  workTime: 0.16
+  fumbleShare: 0.4
+  debugForceReach: 0
 --- !u!1 &1007953695
 GameObject:
   m_ObjectHideFlags: 0
@@ -4320,6 +4369,19 @@ MonoBehaviour:
   swayShape: 0
   beatSharpness: 0.6
   beatShape: 2
+  bondLook: 1
+  lookWrists:
+    head: {x: 15, y: 35, z: 0}
+    spine: {x: -3, y: 6, z: 0}
+  lookElbows:
+    head: {x: -5, y: 45, z: 0}
+    spine: {x: -5, y: 8, z: 0}
+  lookAnkles:
+    head: {x: 30, y: 0, z: 0}
+    spine: {x: 6, y: 0, z: 0}
+  untieExtraPitch: {x: 15, y: 12}
+  lookTau: 0.08
+  headBeatWhileLooking: 0.3
   debugScrubEnabled: 0
   debugIntensity: 1
   debugPhase01: 0.25
@@ -6642,6 +6704,7 @@ MonoBehaviour:
   bonds:
   - name: Elbows
     dir: {x: 0, y: 1}
+    anchors: 
     limb: 2
     startsBound: 0
     addedOnCatch: 1
@@ -6650,22 +6713,16 @@ MonoBehaviour:
     barehandGain: 1
   - name: Wrists
     dir: {x: 0, y: -1}
+    anchors: 
     limb: 1
     startsBound: 1
     addedOnCatch: 0
     untieable: 0
     envToolsReach: 1
     barehandGain: 1
-  - name: L Ankle
+  - name: Ankles
     dir: {x: -1, y: 0}
-    limb: 4
-    startsBound: 1
-    addedOnCatch: 0
-    untieable: 1
-    envToolsReach: 0
-    barehandGain: 1
-  - name: R Ankle
-    dir: {x: 1, y: 0}
+    anchors: 
     limb: 4
     startsBound: 1
     addedOnCatch: 0
@@ -6702,6 +6759,8 @@ MonoBehaviour:
   hitVolume: 0.8
   missVolume: 0.7
   pitchJitter: 0.05
+  anchorRig: {fileID: 0}
+  selectCone: 45
 --- !u!1 &1674656236
 GameObject:
   m_ObjectHideFlags: 0
@@ -7738,7 +7797,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8442522623181946415, guid: f297c5e83e308824f84fb5ef1031e185, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

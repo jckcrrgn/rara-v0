@@ -61,6 +61,17 @@ using UnityEngine;
 /// Runs 1–5. Yank: 54 / 71–76% in window, R 0.61–0.87, offset −93 to −123 ms. Cosine:
 /// 19–25%, locked near the half-beat (+325, −252 ms). Yank is the default. The early
 /// offset is steady at high R, so it's where players hear the beat, not noise.
+///
+/// DAY 208
+/// -------
+/// Bond look (GDD Diegetic feedback, "which bond" row). The head and eyes go to the
+/// selected bond and the torso leans toward it. The head shows the selection and the
+/// torso shows the beat, so the beat yaw on the head drops to headBeatWhileLooking.
+/// The bias is a constant offset and the sway stays centred on it, so the beat event
+/// doesn't move. With her hands out and an ankle selected she looks all the way down
+/// at the knot. Hiding the hands brings her head back up. Values are set by eye in the
+/// scene: the signs on this rig are unverified, so flip any that look wrong.
+/// Day 208 playtest: her ankles are tied together: one Ankles bond, one look.
 /// </summary>
 public class CassieStruggleDriver : CassieRigLayer
 {
@@ -145,6 +156,41 @@ public class CassieStruggleDriver : CassieRigLayer
 	[Range(1f, 3f)]
 	[SerializeField] private float beatShape = 2f;
 
+	[System.Serializable]
+	public struct LookPose
+	{
+		[Tooltip("Head local Euler offset (x = pitch, + is down like the spine lean; y = yaw).")]
+		public Vector3 head;
+		[Tooltip("Spine local Euler offset, the constant torso bias. Chest takes half.")]
+		public Vector3 spine;
+	}
+
+	[Header("Bond look (Day 208 — BondStruggle levels)")]
+	[Tooltip("Head and eyes go to the selected bond, torso leans toward it. Off = Day 204 behaviour.")]
+	[SerializeField] private bool bondLook = true;
+
+	[Tooltip("Wrists, behind her back: over the shoulder, down and back.")]
+	[SerializeField] private LookPose lookWrists =
+		new LookPose { head = new Vector3(15f, 35f, 0f), spine = new Vector3(-3f, 6f, 0f) };
+	[Tooltip("Elbows: same shoulder as the wrists, higher.")]
+	[SerializeField] private LookPose lookElbows =
+		new LookPose { head = new Vector3(-5f, 45f, 0f), spine = new Vector3(-5f, 8f, 0f) };
+	[Tooltip("Ankles. They're tied TOGETHER (one Ankles bond): down, centred on the one knot.")]
+	[SerializeField] private LookPose lookAnkles =
+		new LookPose { head = new Vector3(30f, 0f, 0f), spine = new Vector3(6f, 0f, 0f) };
+
+	[Tooltip("Extra pitch (head, spine) when her hands are OUT and an ankle is selected: " +
+		"she's down at the knot, untying. Hidden hands drop this, so her head comes back up.")]
+	[SerializeField] private Vector2 untieExtraPitch = new Vector2(15f, 12f);
+
+	[Tooltip("Ease time constant (s) for the look. 0.08 ≈ 95% of the way in 0.25 s.")]
+	[SerializeField] private float lookTau = 0.08f;
+
+	[Tooltip("The head's beat yaw is scaled by this while a bond is selected. The head shows " +
+		"the selection, the torso shows the beat: one channel per job.")]
+	[Range(0f, 1f)]
+	[SerializeField] private float headBeatWhileLooking = 0.3f;
+
 	[Header("Debug")]
 	[Tooltip("Overrides the press envelope with the two sliders below so you can HOLD a " +
 		"struggle frame in Play Mode. Presses are ignored while this is on. Needed for " +
@@ -165,6 +211,9 @@ public class CassieStruggleDriver : CassieRigLayer
 	private float _energy;      // press target: topped to 1 per attempt, decays over `sustain`
 	private float _intensity;   // smoothed follower of _energy — what actually scales the motion
 	private float _phase;       // continuous oscillation phase (radians), never restarted mid-motion
+	private Vector3 _lookHead;  // eased bond-look offsets (Day 208)
+	private Vector3 _lookSpine;
+	private float _headBeatScale = 1f;
 
 	protected override void DeclareBones()
 	{
@@ -206,6 +255,10 @@ public class CassieStruggleDriver : CassieRigLayer
 		// Tuning mode: pose follows the sliders, the envelope doesn't run. On untick,
 		// _energy is wherever the live path left it (normally 0) and _intensity eases
 		// back to it over `attack` — so leaving scrub mode is smooth, not a pop.
+		// Day 208: the bond look runs in scrub mode too, so selecting a bond and scrubbing
+		// holds a frame of the look you can judge.
+		if (struggle != null) ApplyBondLook(dt);
+
 		if (debugScrubEnabled)
 		{
 			_intensity = debugIntensity;
@@ -282,8 +335,9 @@ public class CassieStruggleDriver : CassieRigLayer
 		AddLocalEuler(HumanBodyBones.Spine, lean,        twist,        0f);
 		AddLocalEuler(HumanBodyBones.Chest, lean * 0.5f, twist * 0.5f, 0f);
 
-		// Head: turns opposite the torso, straining to look for the knot.
-		AddLocalEuler(HumanBodyBones.Head, 0f, -headTwist * w * _intensity, 0f);
+		// Head: turns opposite the torso, straining to look for the knot. Day 208: scaled
+		// down while she's looking at a bond, so the head reads selection, not beat.
+		AddLocalEuler(HumanBodyBones.Head, 0f, -headTwist * w * _intensity * _headBeatScale, 0f);
 
 		// Wrists: roll about the forearm axis, counter-rotating — twisting against
 		// each other within the rope. Rotation only, so the hands stay together.
@@ -292,6 +346,48 @@ public class CassieStruggleDriver : CassieRigLayer
 		if (Mathf.Abs(roll) < 0.0001f) return;
 		AddOffset(HumanBodyBones.LeftLowerArm,  Quaternion.AngleAxis( roll, axis));
 		AddOffset(HumanBodyBones.RightLowerArm, Quaternion.AngleAxis(-roll, axis));
+	}
+
+	/// <summary>
+	/// Day 208 — the "which bond" channel. Eases the head and a constant torso bias toward
+	/// the selected bond, and sets how much beat the head keeps. Additive on top of the
+	/// sway, so the oscillation stays centred on the bias and the beat event doesn't move.
+	/// </summary>
+	private void ApplyBondLook(float dt)
+	{
+		Vector3 headT = Vector3.zero, spineT = Vector3.zero;
+		bool looking = false;
+
+		int sel = struggle.Selected;
+		if (bondLook && sel >= 0 && sel < struggle.bonds.Length && struggle.bonds[sel].Bound)
+		{
+			var b = struggle.bonds[sel];
+			LookPose p;
+			bool ankle = (b.limb & BoundLimbs.Ankles) != 0;
+			if ((b.limb & BoundLimbs.Elbows) != 0)      p = lookElbows;
+			else if ((b.limb & BoundLimbs.Wrists) != 0) p = lookWrists;
+			else if (ankle) p = lookAnkles;   // one rope, one knot: same target for L and R
+			else            p = default;
+
+			headT = p.head;
+			spineT = p.spine;
+			if (ankle && struggle.HandsOut && struggle.CanUntie(sel))
+			{
+				headT.x  += untieExtraPitch.x;
+				spineT.x += untieExtraPitch.y;
+			}
+			looking = true;
+		}
+
+		float k = 1f - Mathf.Exp(-dt / Mathf.Max(0.001f, lookTau));
+		_lookHead  = Vector3.Lerp(_lookHead,  headT,  k);
+		_lookSpine = Vector3.Lerp(_lookSpine, spineT, k);
+		_headBeatScale = Mathf.Lerp(_headBeatScale, looking ? headBeatWhileLooking : 1f, k);
+
+		if (_lookHead.sqrMagnitude < 1e-6f && _lookSpine.sqrMagnitude < 1e-6f) return;
+		AddLocalEuler(HumanBodyBones.Spine, _lookSpine.x,        _lookSpine.y,        _lookSpine.z);
+		AddLocalEuler(HumanBodyBones.Chest, _lookSpine.x * 0.5f, _lookSpine.y * 0.5f, _lookSpine.z * 0.5f);
+		AddLocalEuler(HumanBodyBones.Head,  _lookHead.x,         _lookHead.y,         _lookHead.z);
 	}
 
 	/// <summary>Day 162 — recording aid. Tops up effort from script exactly as a press

@@ -393,8 +393,8 @@ dies when this lands. **In the demo** (decided Day 207).
 |---|---|---|
 | Beat | Her sway (YankOnBeat) | Done |
 | Hit / miss | Audio after the press | Done |
-| **Which bond** | Head and eyes go to it (wrists, an ankle, over the shoulder for elbows). Sway biased toward that limb | Next |
-| **Progress** | The rope gives: slack and slide with progress, snap on free. Strain on that limb grows | Next |
+| **Which bond** | Head and eyes go to it (wrists, an ankle, over the shoulder for elbows). Sway biased toward that limb | Code Day 208 (`CassieStruggleDriver` Bond look). Values by eye, pending |
+| **Progress** | The rope gives: slack and slide with progress, snap on free. Strain on that limb grows | Next. Needs ankle ropes: only the wrists have rope today |
 | Hands out / hidden | Feign pose (`IsFeigning`) | Done |
 | Catches | Elbows tied on, ropes tighter, his line | Done |
 | **Knot** | **Open** | — |
@@ -407,6 +407,57 @@ up is faster and more exposed. The knot is the linchpin of a bond.
 is how the rope itself shows the next direction, with nothing on screen.
 Considered, not chosen: she leads with a hand tug and you follow (A); drop the sequence
 and untie on the beat (B); hold to untie; fingers at double time.
+
+**Leading candidate (Day 208): the bight points the way.** A bight (a loop of rope)
+stands proud of the knot, pointing the next direction on screen. A correct input pulls
+it through, the knot loosens, and the next bight shows. A wrong input cinches it back
+(the fumble noise is already in). A bight, not a tail: pulling a tail tightens a knot,
+pulling a bight loosens it. Only `knot[0]` shows. Reading it puts the eyes on her ankle
+while his threat is at the door, so untying costs attention as well as hidden hands.
+Risk: the bight is small at over-the-shoulder distance. Fixes in order: oversize it with
+a contrasting colour, let the Day 208 head-look lead the eye, nudge the camera toward the
+ankle while she unties. Test: read the direction from a Game-view still in under 0.3 s.
+
+**Bond look (Day 208).** Head eases to the bond (τ 0.08, ~0.25 s). The head's beat yaw
+drops to ×0.3 while a bond is selected, so the head reads selection and the torso reads
+the beat. Torso bias is a constant offset with the sway centred on it, so the beat event
+doesn't move. Her ankles are tied together, so they're one **Ankles** bond with one look
+(one knot, no side shift). Hands out with an ankle selected: head all the way down to the knot.
+Hiding the hands lifts it. Defaults are unverified on this rig, so flip signs by eye.
+
+**Bond selection (Day 208): relative, in screen space.** A flick moves the selection from
+the current bond to the nearest bound bond that way *on screen*. Down from wrists is
+ankles, up is elbows. Later, down from knees is ankles, and with each ankle tied to its
+own chair leg, left and right step between them as the camera shows them. Each bond sits
+at the midpoint of its anchor bones (default by limb, overridable per bond). Cone ±45°;
+closest wins, alignment breaks near-ties. One flick, one step: holding doesn't repeat.
+Nothing that way: stay put. A freed bond hands the selection to the nearest one still tied.
+Why screen space: it never contradicts the picture, whatever the camera does.
+
+**Elbows tied block untie (Day 208).** Elbows bound behind her = her hands can't reach the
+knots in front. Escalation after the first catch: wrists, then elbows, then untie.
+
+**Hands (Day 208): three states, three poses.** Mechanically the game draws hard lines
+between bound, feigning and hands out, so the body has to as well.
+
+| State | Arms | Reads as |
+|---|---|---|
+| Bound | Behind her back, wrists together, the grind | "Struggle" |
+| Feigning | **Identical to bound**, plus the compliant dip. Player's tell: the slack wrist rope (with rope progress) | He can't tell |
+| Hands out | Forward on the selected knot (`CassieHandsDriver`, two-bone IK). Each untie input tugs along the pressed direction, the bight's direction | "Exposed, working" |
+
+Out in 0.25 s. Back in `handsBackTime` (0.4 s), which is the hide budget, so the picture
+matches what he sees. Hands out with nothing untieable selected: hands in her lap. The
+strike and a held item own the arms; the layer fades out for them. Knot = the bond's
+anchor midpoint + `knotOffset` until the ropes carry it. IK runs in a post-apply pass on
+`CassieRig` so it sees the torso lean. Knees (escalation, post-demo) are a new bond with
+knee anchors: no new animation.
+- [ ] Set targets, pole, lean in VS_Demo by eye (Debug Force Reach holds the pose).
+- [ ] Untested: can she reach her ankles seated without the arms locking straight? If not,
+      more lean, then knot higher on the rope.
+
+- [ ] Set the look values in VS_Demo (selection holds, use the debug scrub to freeze a frame).
+- [ ] Clean day: does the bias or the head-look blur the beat? (Timing runs vs −100 ms.)
 
 ### Noise thresholds (Rara Day 206)
 

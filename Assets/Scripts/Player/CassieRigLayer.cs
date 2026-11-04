@@ -62,6 +62,15 @@ public abstract class CassieRigLayer : MonoBehaviour
 	/// <summary>Push this frame's offsets. Called by CassieRig each LateUpdate.</summary>
 	public abstract void Contribute(float dt);
 
+	/// <summary>
+	/// Day 208. Runs after CassieRig has written every bone this frame, so the layer sees
+	/// the final composed pose in world space. For solvers that need it (arm IK reads where
+	/// the torso lean left the shoulders). Writes here override the rig's write for that
+	/// frame only: the rig rewrites rest * offset next LateUpdate, so nothing accumulates.
+	/// Default no-op.
+	/// </summary>
+	public virtual void PostApply(float dt) { }
+
 	// Passthroughs so concrete layers read cleanly.
 	protected void Declare(HumanBodyBones b) { if (rig != null) rig.Claim(b); }
 	protected void AddLocalEuler(HumanBodyBones b, float x, float y, float z) { if (rig != null) rig.AddLocalEuler(b, x, y, z); }

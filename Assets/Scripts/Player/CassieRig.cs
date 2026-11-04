@@ -124,5 +124,13 @@ public class CassieRig : MonoBehaviour
 			Quaternion off = _offset.TryGetValue(kv.Key, out Quaternion q) ? q : Quaternion.identity;
 			kv.Value.localRotation = _rest[kv.Key] * off;
 		}
+
+		// 4. Day 208: post-apply solvers (arm IK), in the same ascending Order, on the
+		//    final composed pose. See CassieRigLayer.PostApply.
+		for (int i = 0; i < _layers.Count; i++)
+		{
+			CassieRigLayer layer = _layers[i];
+			if (layer != null && layer.isActiveAndEnabled) layer.PostApply(dt);
+		}
 	}
 }
