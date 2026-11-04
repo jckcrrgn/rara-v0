@@ -19,6 +19,12 @@ using UnityEngine;
 /// Never while the wrists are bound: a bound bond is worked by the bound + struggle pose.
 /// Lives on Cassie_D136 (the live model), next to CassieRig and the other layers.
 ///
+/// FOLD (Day 209): seated, a fixed lean leaves the ankle knot ~0.2 m out of reach. Now the
+/// reach decides the lean: PostApply measures how far the shoulders must tip for both wrists
+/// to land, Contribute eases the spine + chest pitch there next frame (cap maxFoldPitch). The
+/// deep fold is the tell: the further she reaches, the more it shows. Comes back inside
+/// handsBackTime with the hands.
+///
 /// The IK has to see where the torso lean leaves the shoulders, so it runs in PostApply,
 /// after CassieRig has written every bone. The torso lean that makes the reach possible
 /// is contributed normally, in Contribute, so it's in the pose the IK reads.
@@ -70,6 +76,14 @@ public class CassieHandsDriver : CassieRigLayer
 	[Tooltip("Share of the lean kept for the lap rest (hands out, no knot).")]
 	[Range(0f, 1f)] [SerializeField] private float lapLeanShare = 0.25f;
 
+	[Header("Fold (Day 209: the reach decides the lean)")]
+	[Tooltip("Total forward pitch cap (spine + chest, degrees) at a knot. The two pitches above " +
+		"are the MINIMUM lean and the spine/chest split. Past the minimum she folds exactly as far " +
+		"as the knot needs, up to this.")]
+	[SerializeField] private float maxFoldPitch = 60f;
+	[Tooltip("Metres short of a dead-straight arm the fold aims for. Keeps a little elbow bend.")]
+	[SerializeField] private float reachMargin = 0.03f;
+
 	[Header("Targets")]
 	[Tooltip("Knot = bond anchor midpoint + this, in her facing frame (x right, y up, z forward). " +
 		"Default: a little above and in front of the ankles, where a knot sits on top of the rope.")]
@@ -107,6 +121,9 @@ public class CassieHandsDriver : CassieRigLayer
 	private float _lean;          // eased torso share: 1 at a knot, lapLeanShare in the lap
 	private float _workT = 1f;    // 0..1 through the current tug; 1 = idle
 	private Vector3 _workDir;     // world-space tug direction, signed
+	private float _fold;          // eased extra pitch past the minimum, degrees
+	private float _foldWanted;    // what the last PostApply asked for
+	private float _applied;       // total pitch applied this frame (spine + chest)
 	private Vector3 _gizL, _gizR, _gizPoleL, _gizPoleR;
 	private bool _gizValid;
 
@@ -189,10 +206,65 @@ public class CassieHandsDriver : CassieRigLayer
 			dt / Mathf.Max(0.01f, reachTime));
 		if (_workT < 1f) _workT = Mathf.Min(1f, _workT + dt / Mathf.Max(0.01f, workTime));
 
+		// Fold: eases toward what the reach asked for last frame. Comes back on the same clock
+		// as the hands (handsBackTime while hiding), so the fold never outlives the hide budget.
+		float baseP = reachSpinePitch + reachChestPitch;
+		float foldMax = Mathf.Max(0f, maxFoldPitch - baseP);
+		float foldGoal = WantOut && AtKnot ? Mathf.Clamp(_foldWanted, 0f, foldMax) : 0f;
+		_fold = Mathf.MoveTowards(_fold, foldGoal, Mathf.Max(foldMax, 1f) * dt / Mathf.Max(0.01f, time));
+
 		float e = Ease(_weight) * _lean;
+		_applied = 0f;
 		if (e <= 0.0001f) return;
-		AddLocalEuler(HumanBodyBones.Spine, reachSpinePitch * e, 0f, 0f);
-		AddLocalEuler(HumanBodyBones.Chest, reachChestPitch * e, 0f, 0f);
+		float total = (baseP + _fold) * e;
+		float spineShare = baseP > 0.01f ? reachSpinePitch / baseP : 0.67f;
+		AddLocalEuler(HumanBodyBones.Spine, total * spineShare, 0f, 0f);
+		AddLocalEuler(HumanBodyBones.Chest, total * (1f - spineShare), 0f, 0f);
+		_applied = total;
+	}
+
+	/// <summary>
+	/// Day 209. How much MORE pitch (degrees, can be negative) the shoulders need so both wrists
+	/// reach their targets. Rotates the measured shoulders about the Spine bone around her right
+	/// axis and bisects for the smallest pitch that reaches. Treats the chest share as pivoting
+	/// at the spine too, which overshoots a little; next frame re-measures, so it self-corrects.
+	/// </summary>
+	float FoldDelta(Vector3 tL, Vector3 tR, Vector3 right, float baseP)
+	{
+		Transform sp = animator.GetBoneTransform(HumanBodyBones.Spine);
+		if (sp == null) return 0f;
+		Vector3 P = sp.position;
+		if (!Arm(HumanBodyBones.LeftUpperArm, HumanBodyBones.LeftLowerArm, HumanBodyBones.LeftHand, out Vector3 sL, out float rL)) return 0f;
+		if (!Arm(HumanBodyBones.RightUpperArm, HumanBodyBones.RightLowerArm, HumanBodyBones.RightHand, out Vector3 sR, out float rR)) return 0f;
+
+		bool Reaches(float deg)
+		{
+			Quaternion q = Quaternion.AngleAxis(deg, right);   // + tips the shoulders forward
+			Vector3 l = P + q * (sL - P), r = P + q * (sR - P);
+			return (tL - l).magnitude - wristBack <= rL - reachMargin
+				&& (tR - r).magnitude - wristBack <= rR - reachMargin;
+		}
+
+		float lo = baseP - _applied, hi = maxFoldPitch - _applied;
+		if (hi <= lo) return lo;
+		if (Reaches(lo)) return lo;
+		if (!Reaches(hi)) return hi;
+		for (int k = 0; k < 12; k++)
+		{
+			float mid = (lo + hi) * 0.5f;
+			if (Reaches(mid)) hi = mid; else lo = mid;
+		}
+		return hi;
+	}
+
+	bool Arm(HumanBodyBones upB, HumanBodyBones loB, HumanBodyBones handB, out Vector3 shoulder, out float reach)
+	{
+		shoulder = Vector3.zero; reach = 0f;
+		Transform u = animator.GetBoneTransform(upB), l = animator.GetBoneTransform(loB), h = animator.GetBoneTransform(handB);
+		if (u == null || l == null || h == null) return false;
+		shoulder = u.position;
+		reach = (l.position - u.position).magnitude + (h.position - l.position).magnitude;
+		return true;
 	}
 
 	// ---- PostApply: the IK, on the final pose ---------------------------------------
@@ -205,14 +277,23 @@ public class CassieHandsDriver : CassieRigLayer
 		if (!Facing(out Vector3 right, out Vector3 up, out Vector3 fwd)) return;
 
 		Vector3 center;
+		Vector3 half = right * (handSpread * 0.5f);
 		int sel = struggle != null ? struggle.Selected : -1;
 		if (AtKnot && struggle.TryAnchorWorld(sel, out Vector3 anchor))
+		{
 			center = anchor + right * knotOffset.x + up * knotOffset.y + fwd * knotOffset.z;
-		else if (!RealOut || !Lap(up, out center)) return;   // lap only for real hands-out
+			// Measured before the tug, so a tug never pumps the fold.
+			float baseP = reachSpinePitch + reachChestPitch;
+			_foldWanted = Mathf.Max(0f, _applied + FoldDelta(center - half, center + half, right, baseP) - baseP);
+		}
+		else
+		{
+			_foldWanted = 0f;
+			if (!RealOut || !Lap(up, out center)) return;   // lap only for real hands-out
+		}
 
 		if (_workT < 1f) center += _workDir * workAmplitude * Mathf.Sin(Mathf.PI * _workT);
 
-		Vector3 half = right * (handSpread * 0.5f);
 		_gizL = center - half;
 		_gizR = center + half;
 		Solve(HumanBodyBones.LeftUpperArm,  HumanBodyBones.LeftLowerArm,  HumanBodyBones.LeftHand,
