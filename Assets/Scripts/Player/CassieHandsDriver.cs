@@ -83,6 +83,10 @@ public class CassieHandsDriver : CassieRigLayer
 	[SerializeField] private float maxFoldPitch = 60f;
 	[Tooltip("Metres short of a dead-straight arm the fold aims for. Keeps a little elbow bend.")]
 	[SerializeField] private float reachMargin = 0.03f;
+	[Tooltip("Day 209: share of the fold PAST the minimum lean that goes to the pelvis (hip " +
+		"flexion), not the spine. People fold at the hip. The thighs are counter-rotated so the " +
+		"legs and the seat contact stay put. 0 = old spine-only fold.")]
+	[Range(0f, 1f)] [SerializeField] private float hipFoldShare = 0.6f;
 
 	[Header("Targets")]
 	[Tooltip("Knot = bond anchor midpoint + this, in her facing frame (x right, y up, z forward). " +
@@ -123,12 +127,17 @@ public class CassieHandsDriver : CassieRigLayer
 	private Vector3 _workDir;     // world-space tug direction, signed
 	private float _fold;          // eased extra pitch past the minimum, degrees
 	private float _foldWanted;    // what the last PostApply asked for
-	private float _applied;       // total pitch applied this frame (spine + chest)
+	private float _applied;       // total pitch applied this frame (hips + spine + chest)
+	private Quaternion _hipsRest, _legRestL, _legRestR;   // seated rest locals, for the counter
+	private bool _hipsOk;
 	private Vector3 _gizL, _gizR, _gizPoleL, _gizPoleR;
 	private bool _gizValid;
 
 	protected override void DeclareBones()
 	{
+		Declare(HumanBodyBones.Hips);             // Day 209: the fold at the hip
+		Declare(HumanBodyBones.LeftUpperLeg);     // counter-rotated: legs stay put
+		Declare(HumanBodyBones.RightUpperLeg);
 		Declare(HumanBodyBones.Spine);
 		Declare(HumanBodyBones.Chest);            // optional
 		Declare(HumanBodyBones.LeftUpperArm);
@@ -148,6 +157,16 @@ public class CassieHandsDriver : CassieRigLayer
 		if (animator == null) animator = GetComponentInChildren<Animator>();
 		if (struggle == null)
 			Debug.LogWarning("[CassieHandsDriver] No BondStruggle — hands never come out (legacy level).");
+
+		// Same moment CassieRig captures rest (Declare, above): the authored seated pose.
+		if (animator != null)
+		{
+			Transform h = animator.GetBoneTransform(HumanBodyBones.Hips);
+			Transform l = animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
+			Transform r = animator.GetBoneTransform(HumanBodyBones.RightUpperLeg);
+			_hipsOk = h != null && l != null && r != null;
+			if (_hipsOk) { _hipsRest = h.localRotation; _legRestL = l.localRotation; _legRestR = r.localRotation; }
+		}
 	}
 
 	protected override void OnEnable()
@@ -217,10 +236,32 @@ public class CassieHandsDriver : CassieRigLayer
 		_applied = 0f;
 		if (e <= 0.0001f) return;
 		float total = (baseP + _fold) * e;
+		float hipsDeg = HipsFold(_fold * e * hipFoldShare);
+		float torso = total - hipsDeg;
 		float spineShare = baseP > 0.01f ? reachSpinePitch / baseP : 0.67f;
-		AddLocalEuler(HumanBodyBones.Spine, total * spineShare, 0f, 0f);
-		AddLocalEuler(HumanBodyBones.Chest, total * (1f - spineShare), 0f, 0f);
+		AddLocalEuler(HumanBodyBones.Spine, torso * spineShare, 0f, 0f);
+		AddLocalEuler(HumanBodyBones.Chest, torso * (1f - spineShare), 0f, 0f);
 		_applied = total;
+	}
+
+	/// <summary>
+	/// Day 209. Pitches the pelvis forward `deg` about her right axis, in WORLD space (so the
+	/// Hips bone's own axes don't matter), and counter-rotates both thighs by the exact inverse
+	/// so the legs don't swing. Returns the degrees actually applied (0 if it couldn't).
+	/// </summary>
+	float HipsFold(float deg)
+	{
+		if (deg <= 0.0001f || !_hipsOk || animator == null) return 0f;
+		if (!Facing(out Vector3 right, out _, out _)) return 0f;
+		Transform h = animator.GetBoneTransform(HumanBodyBones.Hips);
+		Quaternion parent = h.parent != null ? h.parent.rotation : Quaternion.identity;
+		Quaternion w0 = parent * _hipsRest;
+		Quaternion q = Quaternion.Inverse(w0) * Quaternion.AngleAxis(deg, right) * w0;   // world pitch → hips local
+		Quaternion qi = Quaternion.Inverse(q);
+		AddOffset(HumanBodyBones.Hips, q);
+		AddOffset(HumanBodyBones.LeftUpperLeg,  Quaternion.Inverse(_legRestL) * qi * _legRestL);
+		AddOffset(HumanBodyBones.RightUpperLeg, Quaternion.Inverse(_legRestR) * qi * _legRestR);
+		return deg;
 	}
 
 	/// <summary>
@@ -233,7 +274,9 @@ public class CassieHandsDriver : CassieRigLayer
 	{
 		Transform sp = animator.GetBoneTransform(HumanBodyBones.Spine);
 		if (sp == null) return 0f;
-		Vector3 P = sp.position;
+		Transform hp = animator.GetBoneTransform(HumanBodyBones.Hips);
+		// Pivot between spine and pelvis by the hip share: the fold now bends at both.
+		Vector3 P = hp != null ? Vector3.Lerp(sp.position, hp.position, hipFoldShare) : sp.position;
 		if (!Arm(HumanBodyBones.LeftUpperArm, HumanBodyBones.LeftLowerArm, HumanBodyBones.LeftHand, out Vector3 sL, out float rL)) return 0f;
 		if (!Arm(HumanBodyBones.RightUpperArm, HumanBodyBones.RightLowerArm, HumanBodyBones.RightHand, out Vector3 sR, out float rR)) return 0f;
 
