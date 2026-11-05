@@ -1140,3 +1140,9 @@ it out loud.
 as "clunky", not "fun", so this may be a pre-freeze (Nov 13) friction fix rather than
 post-demo. Decide at kickoff. Cheapest cut: flip every demo mutter to Background and add a
 head anchor. No new art.
+
+**Decided Day 210: pre-freeze, cheapest cut.** `MutterSystem.bubbleMode` (one toggle, no
+caller changes). Lines queue in order, never block, and dismiss after
+max(1.2, words × 0.35) + 0.6 s. Speaker `worldAnchor` works without a panel override in
+bubble mode. No skip press: pad A is pick up. Narrative lines beat ambient lines on a shared
+panel. Bubble art, failure-loop holds, and skip are post-demo.

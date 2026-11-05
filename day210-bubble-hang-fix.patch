@@ -1,0 +1,45 @@
+diff --git a/Assets/Scripts/Managers/MutterSystem.cs b/Assets/Scripts/Managers/MutterSystem.cs
+index d2f2a79..f62d035 100644
+--- a/Assets/Scripts/Managers/MutterSystem.cs
++++ b/Assets/Scripts/Managers/MutterSystem.cs
+@@ -362,6 +362,7 @@ public class MutterSystem : MonoBehaviour
+ 	private float mutterStartTime;
+ 	private bool isRevealing;
+ 	private bool isWaitingForDismiss;
++	private float bubbleDismissAt;   // Day 210: when Update auto-dismisses the current bubble
+ 
+ 	// Set true on the frame Dismiss() runs; cleared at the end of the next
+ 	// LateUpdate. PlayerController checks this to suppress Struggle on the
+@@ -464,7 +465,14 @@ public class MutterSystem : MonoBehaviour
+ 	void Update()
+ 	{
+ 		// Bubbles dismiss themselves. No key, and pad A stays free for pick up.
+-		if (bubbleMode) return;
++		// Dismissed here (Update runs before coroutines) so the WasJustDismissed
++		// pulse is visible to every sequencer coroutine this frame.
++		if (bubbleMode)
++		{
++			if (isWaitingForDismiss && Time.time >= bubbleDismissAt)
++				Dismiss(byPlayer: false);
++			return;
++		}
+ 
+ 		// Release-before-input gate: when a mutter is dismissed and the queue
+ 		// has another mutter waiting, that next mutter must NOT accept input
+@@ -749,11 +757,13 @@ public class MutterSystem : MonoBehaviour
+ 		// mutterStartTime stays as-is; minVisibleTime is measured from when the
+ 		// mutter first appeared, not from when reveal finished.
+ 
+-		// Day 210: bubble — hold for the spoken time, then dismiss itself.
++		// Day 210: bubble — hold for the spoken time, then Update dismisses it.
++		// Must be Update, not here: sequencers poll the one-frame WasJustDismissed
++		// pulse from their own coroutines, and a dismiss fired from inside a
++		// coroutine can land after they've polled that frame (caught-sequence hang).
+ 		if (bubbleMode)
+ 		{
+-			yield return new WaitForSeconds(BubbleHold(content, mutterStartTime));
+-			Dismiss(byPlayer: false);
++			bubbleDismissAt = Time.time + BubbleHold(content, mutterStartTime);
+ 			yield break;
+ 		}
+ 

@@ -347,7 +347,8 @@ public class PlayerController : MonoBehaviour
 		// MutterSystem owns the dismissKey input itself (Space, currently shared
 		// with Struggle); gating here keeps Struggle from double-firing on the
 		// frame of dismissal.
-		if (MutterSystem.Instance != null && MutterSystem.Instance.IsActive)
+		// Day 210: BlocksInput, not IsActive — bubbles never freeze the world.
+		if (MutterSystem.Instance != null && MutterSystem.Instance.BlocksInput)
 		{
 			return;
 		}
@@ -356,7 +357,9 @@ public class PlayerController : MonoBehaviour
 		// happens in MutterSystem.Update; depending on script execution order,
 		// PlayerController.Update could see Space pressed AND IsActive already
 		// false in the same frame. WasJustDismissed catches this.
+		// Day 210: a bubble ending itself isn't a key press — don't eat a pull.
 		bool justDismissed = MutterSystem.Instance != null
+			&& !MutterSystem.Instance.BubbleMode
 			&& MutterSystem.Instance.WasJustDismissed;
 
 		// Day 202 — BondStruggle path. Feign here is "hands hidden" and does NOT

@@ -77,6 +77,28 @@ using TMPro;
 /// session but resets on game restart. That's correct -- a returning player
 /// in a fresh session benefits from the teach-prompt timing on their first
 /// mutter again.
+///
+/// BUBBLE MODE (Day 210)
+/// ---------------------
+/// bubbleMode = true turns every mutter into a non-blocking speech bubble.
+/// Callers don't change: Blocking Play() calls still queue in order (so
+/// guard-then-Cassie pairs play in sequence), but they never freeze input
+/// (BlocksInput stays false) and each one dismisses itself after roughly the
+/// time it takes to say it: max(bubbleMinOnScreen, words x bubbleSecondsPerWord)
+/// + bubbleTail, measured from the first character. No dismiss key, no prompt.
+///
+/// Sequencers that wait on IsActive / WasJustDismissed (caught sequence,
+/// taken, slipped out) keep working: IsActive still means "a line is showing
+/// or queued", and the auto-dismiss still pulses WasJustDismissed.
+///
+/// Anchors: in bubble mode a speaker's worldAnchor is used even without a
+/// panel override, so Cassie's default panel can follow her. Parent her
+/// anchor to the chair / root, NOT the Head bone -- a bubble that bobs on the
+/// struggle sway is a second beat channel (GDD Feedback channels).
+///
+/// Narrative lines win over ambient ones: a queued line that needs the panel
+/// an ambient (Background) line is using tears the ambient one down; an
+/// ambient line that would land on the narrative line's panel drops.
 /// </summary>
 public class MutterSystem : MonoBehaviour
 {
@@ -263,6 +285,25 @@ public class MutterSystem : MonoBehaviour
 		"pressure beat; tune in playtest. Ignored for Blocking mutters.")]
 	[SerializeField] private float backgroundHoldDuration = 3.0f;
 
+	[Header("Bubbles (Day 210)")]
+	[Tooltip("Every mutter becomes a self-dismissing, non-blocking bubble. Blocking " +
+		"calls still queue in order but never freeze input. See class docstring.")]
+	[SerializeField] private bool bubbleMode = false;
+
+	[Tooltip("Spoken-pace clock: seconds per word. 0.30-0.35 is talking speed.")]
+	[SerializeField] private float bubbleSecondsPerWord = 0.35f;
+
+	[Tooltip("Floor on the spoken time, so one-word lines don't flash.")]
+	[SerializeField] private float bubbleMinOnScreen = 1.2f;
+
+	[Tooltip("Extra read time after the spoken time. Also the minimum hold after a " +
+		"reveal that ran longer than the spoken time.")]
+	[SerializeField] private float bubbleTail = 0.6f;
+
+	[Tooltip("Bubble mode only. Keeps world-anchored panels this many pixels inside " +
+		"the screen edge.")]
+	[SerializeField] private float bubbleEdgeMargin = 40f;
+
 	[Header("Audio")]
 	[Tooltip("Per-speaker configuration. Index of this array maps 1:1 to the " +
 		"Speaker enum order — element 0 is Cassie, element 1 is Guard, etc. " +
@@ -321,6 +362,7 @@ public class MutterSystem : MonoBehaviour
 	private float mutterStartTime;
 	private bool isRevealing;
 	private bool isWaitingForDismiss;
+	private float bubbleDismissAt;   // Day 210: when Update auto-dismisses the current bubble
 
 	// Set true on the frame Dismiss() runs; cleared at the end of the next
 	// LateUpdate. PlayerController checks this to suppress Struggle on the
@@ -374,6 +416,14 @@ public class MutterSystem : MonoBehaviour
 	public bool IsActive => isRevealing || isWaitingForDismiss || queuedMutters.Count > 0;
 
 	/// <summary>
+	/// True when a mutter should freeze player input. Input gates read this, not
+	/// IsActive. Sequencers keep reading IsActive. Always false in bubble mode.
+	/// </summary>
+	public bool BlocksInput => !bubbleMode && IsActive;
+
+	public bool BubbleMode => bubbleMode;
+
+	/// <summary>
 	/// True for one frame after the player dismisses a mutter. Used by
 	/// PlayerController to suppress Struggle on that frame (Space is shared).
 	/// </summary>
@@ -414,6 +464,16 @@ public class MutterSystem : MonoBehaviour
 
 	void Update()
 	{
+		// Bubbles dismiss themselves. No key, and pad A stays free for pick up.
+		// Dismissed here (Update runs before coroutines) so the WasJustDismissed
+		// pulse is visible to every sequencer coroutine this frame.
+		if (bubbleMode)
+		{
+			if (isWaitingForDismiss && Time.time >= bubbleDismissAt)
+				Dismiss(byPlayer: false);
+			return;
+		}
+
 		// Release-before-input gate: when a mutter is dismissed and the queue
 		// has another mutter waiting, that next mutter must NOT accept input
 		// until the dismiss key has been released at least once. Without this,
@@ -488,6 +548,13 @@ public class MutterSystem : MonoBehaviour
 			if (isBackgroundActive)
 			{
 				Debug.Log($"MutterSystem: background already active, dropping new background mutter \"{content}\".");
+				return false;
+			}
+			// Day 210: ambient lines never overwrite a narrative line on the same panel.
+			if ((isRevealing || isWaitingForDismiss) && activeRoot != null
+				&& ResolvePanelRoot(GetSpeakerConfig(speaker)) == activeRoot)
+			{
+				Debug.Log($"MutterSystem: panel busy with a narrative line, dropping background mutter \"{content}\".");
 				return false;
 			}
 			backgroundCoroutine = StartCoroutine(BackgroundRevealCycle(content, speaker));
@@ -632,6 +699,13 @@ public class MutterSystem : MonoBehaviour
 			yield break;
 		}
 
+		// Day 210: narrative wins. If an ambient line holds this panel, end it.
+		if (isBackgroundActive && backgroundActiveRoot == activeRoot)
+		{
+			if (backgroundCoroutine != null) StopCoroutine(backgroundCoroutine);
+			TearDownBackground();
+		}
+
 		activeRoot.SetActive(true);
 		activeText.text = "";
 
@@ -683,6 +757,16 @@ public class MutterSystem : MonoBehaviour
 		// mutterStartTime stays as-is; minVisibleTime is measured from when the
 		// mutter first appeared, not from when reveal finished.
 
+		// Day 210: bubble — hold for the spoken time, then Update dismisses it.
+		// Must be Update, not here: sequencers poll the one-frame WasJustDismissed
+		// pulse from their own coroutines, and a dismiss fired from inside a
+		// coroutine can land after they've polled that frame (caught-sequence hang).
+		if (bubbleMode)
+		{
+			bubbleDismissAt = Time.time + BubbleHold(content, mutterStartTime);
+			yield break;
+		}
+
 		// Kick off the prompt's delayed-appear-then-pulse animation. The delay
 		// to use (or whether to show at all) depends on promptMode and whether
 		// the player has dismissed any mutter this session.
@@ -705,6 +789,7 @@ public class MutterSystem : MonoBehaviour
 	private IEnumerator BackgroundRevealCycle(string content, Speaker speaker)
 	{
 		isBackgroundActive = true;
+		float startTime = Time.time;
 
 		SpeakerConfig config = GetSpeakerConfig(speaker);
 
@@ -731,7 +816,7 @@ public class MutterSystem : MonoBehaviour
 			}
 			root = mutterRoot;
 			text = mutterText;
-			anchor = null;
+			anchor = (bubbleMode && config != null) ? config.worldAnchor : null;
 		}
 
 		if (root == null || text == null)
@@ -780,9 +865,48 @@ public class MutterSystem : MonoBehaviour
 
 		// Hold the fully-revealed text on screen, then auto-dismiss. No prompt,
 		// no input — this is ambient pressure, not a beat that demands attention.
-		yield return new WaitForSeconds(backgroundHoldDuration);
+		yield return new WaitForSeconds(bubbleMode
+			? BubbleHold(content, startTime)
+			: backgroundHoldDuration);
 
 		TearDownBackground();
+	}
+
+	/// <summary>
+	/// Day 210. Seconds to hold a fully-revealed bubble so its total time on
+	/// screen (from startTime) is the spoken time plus the tail. Never less
+	/// than the tail, so a long reveal still gets a beat to be read.
+	/// </summary>
+	private float BubbleHold(string content, float startTime)
+	{
+		int words = CountWords(content);
+		float total = Mathf.Max(bubbleMinOnScreen, words * bubbleSecondsPerWord) + bubbleTail;
+		float elapsed = Time.time - startTime;
+		return Mathf.Max(bubbleTail, total - elapsed);
+	}
+
+	private static int CountWords(string s)
+	{
+		if (string.IsNullOrEmpty(s)) return 0;
+		int count = 0;
+		bool inWord = false;
+		foreach (char c in s)
+		{
+			if (char.IsWhiteSpace(c)) inWord = false;
+			else if (!inWord) { inWord = true; count++; }
+		}
+		return count;
+	}
+
+	/// <summary>
+	/// The root a speaker's line would land on, without touching state.
+	/// Mirrors ResolveActivePanel.
+	/// </summary>
+	private GameObject ResolvePanelRoot(SpeakerConfig config)
+	{
+		if (config != null && config.mutterRootOverride != null && config.mutterTextOverride != null)
+			return config.mutterRootOverride;
+		return mutterRoot;
 	}
 
 	/// <summary>
@@ -809,7 +933,8 @@ public class MutterSystem : MonoBehaviour
 
 		activeRoot = mutterRoot;
 		activeText = mutterText;
-		activeWorldAnchor = null;
+		// Day 210: in bubble mode the default panel can follow a speaker too.
+		activeWorldAnchor = (bubbleMode && config != null) ? config.worldAnchor : null;
 	}
 
 	/// <summary>
@@ -960,14 +1085,28 @@ public class MutterSystem : MonoBehaviour
 		if (anchor == null || root == null) return;
 		RectTransform rt = root.transform as RectTransform;
 		if (rt == null) return;
-		rt.position = cam.WorldToScreenPoint(anchor.position);
+		Vector3 sp = cam.WorldToScreenPoint(anchor.position);
+		if (bubbleMode)
+		{
+			// Behind the camera: hold the last on-screen position.
+			if (sp.z < 0f) return;
+			float m = bubbleEdgeMargin;
+			sp.x = Mathf.Clamp(sp.x, m, Screen.width - m);
+			sp.y = Mathf.Clamp(sp.y, m, Screen.height - m);
+		}
+		rt.position = sp;
 	}
 
-	private void Dismiss()
+	/// <summary>
+	/// byPlayer false = a bubble ending itself (Day 210). It still pulses
+	/// WasJustDismissed (sequencers wait on it), but doesn't count as the player
+	/// learning the dismiss key, and doesn't make the next line wait for a key release.
+	/// </summary>
+	private void Dismiss(bool byPlayer = true)
 	{
 		isWaitingForDismiss = false;
 		wasJustDismissed = true;
-		hasEverDismissed = true; // teach-mode is over for the rest of the session.
+		if (byPlayer) hasEverDismissed = true; // teach-mode is over for the rest of the session.
 
 		// Cancel the prompt animation if it's still running (either still in
 		// the delay phase, mid-fade, or pulsing). Without this, a fast dismiss
@@ -1000,7 +1139,7 @@ public class MutterSystem : MonoBehaviour
 		if (queuedMutters.Count > 0)
 		{
 			QueuedMutter next = queuedMutters.Dequeue();
-			requireDismissKeyRelease = true;
+			requireDismissKeyRelease = byPlayer;
 			StartCoroutine(RevealCycle(next.Content, next.Speaker));
 		}
 	}
