@@ -1110,3 +1110,33 @@ Any fix: re-verify wrist-to-wrist bound at 0.8 (validated Day 138 under the
 old orientation) and post-strike at 2.0 separately.
 
 Escalation ladder (Day 175): one multi-path level where getting caught escalates the restraint (chair tie -> cuffed to post). Each rung must make escape harder and open a different route, so failing is a cost, not a reward. Decide post-demo.
+
+## Mutters → speech bubbles (Day 209)
+
+**Problem (replaying VS_Demo):** Blocking mutters are a chore. Every box must be dismissed,
+input freezes while one is up, and the panel-plus-dismiss rhythm reads as Pokemon / JRPG.
+It also fights the Nov 2 direction: the eyes stay on Cassie while she's bound, and a
+screen-fixed panel pulls them off her.
+
+**Idea:** Mutters become speech bubbles anchored to the speaker, following them in screen
+space. Non-blocking. Each one dismisses itself after roughly the time it would take to say
+it out loud.
+
+- **Duration from the line.** About 0.3–0.35 s per word, plus a floor (~1.2 s) and a short
+  tail. Words already drive the per-word grunt cadence, so the "spoken" clock exists.
+- **Never blocks.** The world doesn't freeze. Most of this already exists as
+  `MutterMode.Background` (auto-dismiss, no prompt, not IsActive). Bubbles ≈ Background
+  becoming the default, plus a world anchor.
+- **Anchor per speaker.** Cassie: above her head. Guard: above his head when visible; when
+  offstage, pinned to the door / screen edge on his side, so it reads as "from off there".
+- **Skip, not dismiss.** A press can fast-forward a bubble, but it's never required.
+- **Queue.** Back-to-back lines (L6 Beat 6a → 6b) play in sequence, each on its own
+  speaker.
+- **Open:** Do the narrative beats (failure-loop 6a/6b) keep a hold? Probably not: let them
+  play over the fade-in. Readability vs. cel-shaded noir clutter: small, high contrast,
+  short lines (the 5–10 word rule already fits).
+
+**Scope call:** The cold test is Nov 14. A modal-box chore during the cold test will read
+as "clunky", not "fun", so this may be a pre-freeze (Nov 13) friction fix rather than
+post-demo. Decide at kickoff. Cheapest cut: flip every demo mutter to Background and add a
+head anchor. No new art.
