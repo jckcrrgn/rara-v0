@@ -128,7 +128,11 @@ public class CassieHandsDriver : CassieRigLayer
 	private float _fold;          // eased extra pitch past the minimum, degrees
 	private float _foldWanted;    // what the last PostApply asked for
 	private float _applied;       // total pitch applied this frame (hips + spine + chest)
-	private Quaternion _hipsRest, _legRestL, _legRestR;   // seated rest locals, for the counter
+	private Quaternion _hipsRest;                       // seated rest local rotation
+	private Vector3 _hipsRestPos;                       // seated rest local position
+	private Quaternion _legRelL, _legRelR;              // thigh world rotation, in the Hips PARENT's frame
+	private Vector3 _jointsRel;                         // hip-joint midpoint, in the Hips parent's frame
+	private float _hipsDeg;                             // pelvis pitch applied this frame
 	private bool _hipsOk;
 	private Vector3 _gizL, _gizR, _gizPoleL, _gizPoleR;
 	private bool _gizValid;
@@ -164,8 +168,19 @@ public class CassieHandsDriver : CassieRigLayer
 			Transform h = animator.GetBoneTransform(HumanBodyBones.Hips);
 			Transform l = animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
 			Transform r = animator.GetBoneTransform(HumanBodyBones.RightUpperLeg);
-			_hipsOk = h != null && l != null && r != null;
-			if (_hipsOk) { _hipsRest = h.localRotation; _legRestL = l.localRotation; _legRestR = r.localRotation; }
+			_hipsOk = h != null && l != null && r != null && h.parent != null;
+			if (_hipsOk)
+			{
+				// Rest, measured in the frame of whatever the pelvis hangs from (not driven by
+				// any layer). Pinning to this frame is independent of what bones sit between
+				// Hips and the thighs.
+				Transform hp = h.parent;
+				_hipsRest = h.localRotation;
+				_hipsRestPos = h.localPosition;
+				_legRelL = Quaternion.Inverse(hp.rotation) * l.rotation;
+				_legRelR = Quaternion.Inverse(hp.rotation) * r.rotation;
+				_jointsRel = hp.InverseTransformPoint((l.position + r.position) * 0.5f);
+			}
 		}
 	}
 
@@ -234,9 +249,11 @@ public class CassieHandsDriver : CassieRigLayer
 
 		float e = Ease(_weight) * _lean;
 		_applied = 0f;
+		_hipsDeg = 0f;
 		if (e <= 0.0001f) return;
 		float total = (baseP + _fold) * e;
 		float hipsDeg = HipsFold(_fold * e * hipFoldShare);
+		_hipsDeg = hipsDeg;
 		float torso = total - hipsDeg;
 		float spineShare = baseP > 0.01f ? reachSpinePitch / baseP : 0.67f;
 		AddLocalEuler(HumanBodyBones.Spine, torso * spineShare, 0f, 0f);
@@ -246,8 +263,8 @@ public class CassieHandsDriver : CassieRigLayer
 
 	/// <summary>
 	/// Day 209. Pitches the pelvis forward `deg` about her right axis, in WORLD space (so the
-	/// Hips bone's own axes don't matter), and counter-rotates both thighs by the exact inverse
-	/// so the legs don't swing. Returns the degrees actually applied (0 if it couldn't).
+	/// Hips bone's own axes don't matter). The legs are put back in PostApply (PinLegs).
+	/// Returns the degrees actually applied (0 if it couldn't).
 	/// </summary>
 	float HipsFold(float deg)
 	{
@@ -257,11 +274,32 @@ public class CassieHandsDriver : CassieRigLayer
 		Quaternion parent = h.parent != null ? h.parent.rotation : Quaternion.identity;
 		Quaternion w0 = parent * _hipsRest;
 		Quaternion q = Quaternion.Inverse(w0) * Quaternion.AngleAxis(deg, right) * w0;   // world pitch → hips local
-		Quaternion qi = Quaternion.Inverse(q);
 		AddOffset(HumanBodyBones.Hips, q);
-		AddOffset(HumanBodyBones.LeftUpperLeg,  Quaternion.Inverse(_legRestL) * qi * _legRestL);
-		AddOffset(HumanBodyBones.RightUpperLeg, Quaternion.Inverse(_legRestR) * qi * _legRestR);
 		return deg;
+	}
+
+	/// <summary>
+	/// Day 209, v2. Runs first in PostApply, on the written pose. The pelvis turned about the
+	/// Hips bone, which isn't at the hip joints, and the thighs turned with it. Undo both:
+	/// slide the pelvis so the hip-joint midpoint is back at rest, then set each thigh's WORLD
+	/// rotation back to rest. Legs, knees and feet end exactly where they were. Hips position
+	/// is rewritten from rest every frame, so nothing accumulates.
+	/// </summary>
+	void PinLegs()
+	{
+		if (!_hipsOk || animator == null) return;
+		Transform h = animator.GetBoneTransform(HumanBodyBones.Hips);
+		Transform l = animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
+		Transform r = animator.GetBoneTransform(HumanBodyBones.RightUpperLeg);
+		Transform hp = h.parent;
+		h.localPosition = _hipsRestPos;
+		if (_hipsDeg <= 0.0001f) return;
+
+		Vector3 want = hp.TransformPoint(_jointsRel);
+		Vector3 now = (l.position + r.position) * 0.5f;
+		h.position += want - now;
+		l.rotation = hp.rotation * _legRelL;
+		r.rotation = hp.rotation * _legRelR;
 	}
 
 	/// <summary>
@@ -274,9 +312,11 @@ public class CassieHandsDriver : CassieRigLayer
 	{
 		Transform sp = animator.GetBoneTransform(HumanBodyBones.Spine);
 		if (sp == null) return 0f;
-		Transform hp = animator.GetBoneTransform(HumanBodyBones.Hips);
-		// Pivot between spine and pelvis by the hip share: the fold now bends at both.
-		Vector3 P = hp != null ? Vector3.Lerp(sp.position, hp.position, hipFoldShare) : sp.position;
+		// Pivot between spine and the hip joints by the hip share: the fold bends at both.
+		Transform tl = animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
+		Transform tr = animator.GetBoneTransform(HumanBodyBones.RightUpperLeg);
+		Vector3 joints = tl != null && tr != null ? (tl.position + tr.position) * 0.5f : sp.position;
+		Vector3 P = Vector3.Lerp(sp.position, joints, hipFoldShare);
 		if (!Arm(HumanBodyBones.LeftUpperArm, HumanBodyBones.LeftLowerArm, HumanBodyBones.LeftHand, out Vector3 sL, out float rL)) return 0f;
 		if (!Arm(HumanBodyBones.RightUpperArm, HumanBodyBones.RightLowerArm, HumanBodyBones.RightHand, out Vector3 sR, out float rR)) return 0f;
 
@@ -315,6 +355,7 @@ public class CassieHandsDriver : CassieRigLayer
 	public override void PostApply(float dt)
 	{
 		_gizValid = false;
+		PinLegs();   // before anything reads the pose
 		float w = Ease(_weight);
 		if (w <= 0.0001f || animator == null) return;
 		if (!Facing(out Vector3 right, out Vector3 up, out Vector3 fwd)) return;
