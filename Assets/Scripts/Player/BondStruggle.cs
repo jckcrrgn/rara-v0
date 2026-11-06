@@ -173,6 +173,12 @@ public class BondStruggle : MonoBehaviour
 	// ---------------------------------------------------------------------------------
 
 	public System.Action<StruggleBond> OnBondFreed;
+
+	/// <summary>Day 211: how a pull resolved. The guard reads misses (suspicion) and spam (taunts).</summary>
+	public enum PullKind { Start, Hit, Miss, Spam }
+	/// <summary>Day 211: fired at the end of every pull. bool = a tool was engaged (table edge,
+	/// held blade) — a missed saw is a lot more suspicious than a missed squirm.</summary>
+	public System.Action<PullKind, bool> OnPullResolved;
 	/// <summary>Day 208: every untie input on a reachable knot. (direction 0 up / 1 right /
 	/// 2 down / 3 left in screen space, correct). CassieHandsDriver works the knot on it.</summary>
 	public System.Action<int, bool> OnUntieInput;
@@ -374,6 +380,7 @@ public class BondStruggle : MonoBehaviour
 			beatOrigin = now;
 			AddNoise(noisePerPull);
 			LastResult = "starts struggling";
+			OnPullResolved?.Invoke(PullKind.Start, false);
 			return;
 		}
 
@@ -386,6 +393,7 @@ public class BondStruggle : MonoBehaviour
 			AddNoise(noisePerSpam);
 			PlaySfx(spamClip != null ? spamClip : missClip, missVolume);
 			LastResult = "SPAM";
+			OnPullResolved?.Invoke(PullKind.Spam, ToolEngaged(Selected));
 			return;
 		}
 
@@ -394,6 +402,7 @@ public class BondStruggle : MonoBehaviour
 			AddNoise(noisePerMiss);
 			PlaySfx(missClip, missVolume);
 			LastResult = $"off-beat {accuracy:P0}";
+			OnPullResolved?.Invoke(PullKind.Miss, ToolEngaged(Selected));
 			return;
 		}
 
@@ -416,7 +425,20 @@ public class BondStruggle : MonoBehaviour
 		b.progress = Mathf.Clamp01(b.progress + gain);
 		LastResult = tool != null ? $"pull {accuracy:P0} · {LastBoost}" : $"pull {accuracy:P0}";
 		if (Selected == WristsIndex) player.NotifyStruggleProgress();
+		OnPullResolved?.Invoke(PullKind.Hit, tool != null);
 		if (b.progress >= 1f) Freed(b);
+	}
+
+	// Day 211: would a pull on bond i be using a tool? Same reach rules as ToolMultFor, no
+	// side effects (ToolMultFor pings the env tool).
+	bool ToolEngaged(int i)
+	{
+		if (i < 0 || i >= bonds.Length) return false;
+		var b = bonds[i];
+		if (b.envToolsReach && player.FindUsableEnvTool() != null) return true;
+		Pickupable held = player.GetHeldItem();
+		bool heldReaches = i == WristsIndex ? !HandsFree : b.untieable;
+		return held != null && heldReaches && MultFor(held.ToolType) > 0f;
 	}
 
 	// Day 211: 0..1 within the beat, measured from the bout's beat 0.
@@ -569,6 +591,32 @@ public class BondStruggle : MonoBehaviour
 	public void OnItemTaken() => BringHandsOut();
 
 	public void AddNoise(float amount) => Noise = Mathf.Clamp01(Noise + amount);
+
+	/// <summary>
+	/// Day 211: the guard checks her bonds. Returns the most loosened bond she's been tied
+	/// with (a freed one counts — it's the loudest evidence), or -1. found = its progress.
+	/// </summary>
+	public int MostLoosened(out float found)
+	{
+		int best = -1; found = 0f;
+		for (int i = 0; i < bonds.Length; i++)
+		{
+			var b = bonds[i];
+			if (!b.active || b.progress <= found) continue;
+			best = i; found = b.progress;
+		}
+		return best;
+	}
+
+	/// <summary>Day 211: "Still tight." He gives bond i a tug. Progress only, no new knot.</summary>
+	public void Cinch(int i, float amount)
+	{
+		if (i < 0 || i >= bonds.Length || !bonds[i].Bound) return;
+		bonds[i].progress = Mathf.Max(0f, bonds[i].progress - amount);
+		LastResult = $"he cinched your {bonds[i].name.ToLower()}";
+		if (i == WristsIndex) player.NotifyStruggleProgress();
+		SyncLimbs();
+	}
 
 	/// <summary>The guard reacted to this sound. It's spent — what catches her is the NEXT one.</summary>
 	public void SpendNoise() => Noise = 0f;

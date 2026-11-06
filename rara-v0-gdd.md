@@ -516,7 +516,7 @@ this is the first knob. The middle is 0.10–0.12.
       on the line. The old tooltip said two hops = call-out. Decide: 0.15 (two hops
       call him) or leave it (moving the chair is cheap).
 
-### Guard watch states (Rara Day 211) — decided, not built
+### Guard watch states (Rara Day 211)
 
 > Replaces "noise never catches her" (Day 202 rev). A same-day draft (mash in front of
 > him = warning, then catch) was dropped: it didn't fit the fiction.
@@ -534,7 +534,31 @@ this is the first knob. The middle is 0.10–0.12.
 
 Free hands seen while he's watching are still the instant, heavy catch.
 
-Built after Struggle on demand, one change at a time.
+**Built (Day 211, `day211-guard-suspicion`).** Values, all on `GuardController`:
+
+| Field | Value | Reads as |
+|---|---|---|
+| `suspicionPerMiss` | 0.35 | 3 barehand misses in his sight = check |
+| `suspicionPerToolMiss` | 0.7 | 2 missed saws, or 1 saw + 1 squirm |
+| `suspicionTellAt` | 0.5 | "...Hm." once per visit: the warning |
+| `checkEvidence` | 0.5 | any bond ≥ 50% = caught (light) |
+| `checkDuration` | 1.2 s | he examines, at her side |
+| `cinchSetback` | 0.15 | "Still tight." tugs the most loosened bond |
+| `tauntCooldown` / `tauntLinger` / `maxLingerPerVisit` | 4 s / 2 s / 6 s | mashing keeps him watching |
+
+- Suspicion resets every visit and after a clean check. Only pulls made while he's
+  looking count (attention > 0). A freed bond counts as evidence (100%).
+- Filled on the approach: he finishes walking up, then checks. From the door he takes the
+  lean-in route; from inside the room he goes straight to her.
+- New state `Checking` (attention 1, no strike window). `BondStruggle.OnPullResolved`
+  (Start / Hit / Miss / Spam, tool engaged) is what he reads.
+
+**Open:**
+- [ ] Play: does "...Hm." read as the warning? Is 3 misses too few for a sloppy player?
+- [ ] Mashing never catches. Mashing is also loud, so offstage it still calls him in. Check
+      that it doesn't feel like a free action in front of him.
+- [ ] Hands hidden + wrists already free = evidence 100% on a check. Intended: feign only
+      holds until he looks closely.
 
 ---
 

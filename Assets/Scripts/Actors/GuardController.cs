@@ -105,6 +105,7 @@ public class GuardController : MonoBehaviour
 		Caught,
 		LeanIn,
 		Downed,
+		Checking,   // Day 211: walked in on suspicion, examining her bonds
 	}
 
 	public GuardState CurrentState { get; private set; } = GuardState.Offstage;
@@ -342,10 +343,13 @@ public class GuardController : MonoBehaviour
 	// The StruggleProto captor, mapped onto the check-in loop. Ignored entirely when
 	// the player has no BondStruggle (legacy evidence-at-the-door inspection runs).
 	//
-	//   Day 202 rev: NOISE NEVER CATCHES HER. He doesn't punish sound — he likes
-	//   watching her struggle. What he's stopping is the ESCAPE: the only catch is
-	//   free hands out while he's looking (attention >= seenAttention). Noise only
-	//   decides how often he looks.
+	//   Day 202 rev: noise never catches her. Noise decides how often he looks.
+	//   Day 211 rev: three states — not paying attention / watching / checking.
+	//   While he's WATCHING: mashing amuses him (taunt, he lingers, no catch). On-beat
+	//   pulls are squirming. MISSES are the tell: each one builds suspicion, a tool miss
+	//   (sawing the table edge) builds a lot. Full = he walks in and CHECKS her bonds.
+	//   Evidence decides: a bond past checkEvidence = light catch; otherwise "Still
+	//   tight." and he cinches it. Free hands seen = instant heavy catch, as before.
 	//
 	//   Offstage            "on his phone". Noise draws him:
 	//                         noise >= glanceNoise  -> he CALLS OUT (alert window)
@@ -354,8 +358,9 @@ public class GuardController : MonoBehaviour
 	//                       The sound that drew him is spent.
 	//   Approaching         footsteps = the telegraph. Attention 0 until the last
 	//                       turnTime seconds, then ramps to 1 (the turn is the tell).
-	//   AtDoor / LeanIn     watching, attention 1. Struggle all she likes.
-	//                       Free hands out = caught.
+	//   AtDoor / LeanIn     watching, attention 1. Struggle on the beat all she likes.
+	//                       Misses build suspicion. Free hands out = caught.
+	//   Checking            walks in, examines (Day 211). Attention 1.
 	//   Leaving             attention ramps 1 -> 0 over turnAwayTime, then he's
 	//                       listening again on his way out (and can turn back).
 	//   Rule carried from the proto: randomise WHEN he looks, never HOW FAST he turns.
@@ -387,6 +392,36 @@ public class GuardController : MonoBehaviour
 	[Tooltip("Optional SFX for a call-out. The line below plays as a background (non-blocking) mutter.")]
 	[SerializeField] private AudioClip calloutClip;
 	[SerializeField] private string[] calloutLines = { "Hm?", "You say something?", "Quiet in there." };
+
+	[Header("Watching — suspicion and bond check (Day 211)")]
+	[Tooltip("Suspicion from one missed pull while he's watching. 1 = he checks.")]
+	[SerializeField] private float suspicionPerMiss = 0.35f;
+	[Tooltip("Suspicion from a missed pull with a tool engaged (table edge, held blade).")]
+	[SerializeField] private float suspicionPerToolMiss = 0.7f;
+	[Tooltip("Suspicion at which he says the tell line, once per visit.")]
+	[SerializeField] private float suspicionTellAt = 0.5f;
+	[SerializeField] private string[] suspicionTellLines = { "...Hm.", "What are you doing back there?" };
+	[Tooltip("Bond progress he'll notice when he checks. Any bond at or past this = caught (light).")]
+	[Range(0f, 1f)]
+	[SerializeField] private float checkEvidence = 0.5f;
+	[Tooltip("How long he examines her bonds once he's at her.")]
+	[SerializeField] private float checkDuration = 1.2f;
+	[Tooltip("Nothing found: he tugs the most loosened bond back by this much.")]
+	[SerializeField] private float cinchSetback = 0.15f;
+	[SerializeField] private string[] checkClearLines = { "Still tight.", "Not going anywhere." };
+	[Tooltip("Guard line when the check finds evidence. Plays over black.")]
+	[TextArea(2, 4)]
+	[SerializeField] private string caughtCheckGuardLine = "Thought so. Let's tighten these.";
+
+	[Header("Watching — mashing amuses him (Day 211)")]
+	[SerializeField] private string[] tauntLines =
+		{ "Putting on a show? Nobody can hear you.", "Go on. Wear yourself out.", "Nobody's coming." };
+	[Tooltip("Min seconds between taunts.")]
+	[SerializeField] private float tauntCooldown = 4f;
+	[Tooltip("Each taunt keeps him watching this much longer...")]
+	[SerializeField] private float tauntLinger = 2f;
+	[Tooltip("...up to this much extra per visit.")]
+	[SerializeField] private float maxLingerPerVisit = 6f;
 
 	[Header("Listening — Caught lines (Day 202)")]
 	[TextArea(2, 4)]
@@ -440,6 +475,14 @@ public class GuardController : MonoBehaviour
 	private float approachStart, approachLen, approachTurn;
 	private float leaveStart;
 	private bool pendingSeen;
+	private bool pendingCheck;      // Day 211: this catch came from a bond check
+	// Day 211: per-visit watch state, reset when he starts an approach.
+	private float suspicion;
+	private bool tellShown;
+	private bool checkPending;
+	private float lastTauntAt = -99f;
+	private float lingerAdded;
+	private float watchExtendUntil;
 	private BondStruggle.CatchResult lastCatch;
 	private bool stoodDown;     // slipped-out stub: cycle stopped for good
 	private bool frozen;        // strike landed: StrikeableGuard owns the body now
@@ -455,6 +498,8 @@ public class GuardController : MonoBehaviour
 	public float InspectNoise => inspectNoise;
 	public float SeenAttention => seenAttention;
 	public bool IsAlerted => Time.time < alertUntil;
+	/// <summary>Day 211: 0..1 this visit. 1 = he checks her bonds. HUD reads it.</summary>
+	public float Suspicion => suspicion;
 	/// <summary>Last thing he did in response to noise. HUD reads it.</summary>
 	public string ListenStatus => listenStatus;
 
@@ -482,6 +527,7 @@ public class GuardController : MonoBehaviour
 	void OnDestroy()
 	{
 		if (Instance == this) Instance = null;
+		if (struggle != null) struggle.OnPullResolved -= OnPullResolved;
 	}
 
 	void Start()
@@ -512,6 +558,7 @@ public class GuardController : MonoBehaviour
 		if (player != null)
 		{
 			struggle = player.Struggle;
+			if (struggle != null) struggle.OnPullResolved += OnPullResolved;   // Day 211
 			playerStartPos = player.transform.position;
 			playerStartRot = player.transform.rotation;
 		}
@@ -560,6 +607,7 @@ public class GuardController : MonoBehaviour
 				return Mathf.Clamp01((el - rampStart) / Mathf.Max(0.01f, approachTurn));
 			case GuardState.AtDoor:
 			case GuardState.LeanIn:
+			case GuardState.Checking:
 				return 1f;
 			case GuardState.Leaving:
 				return Mathf.Clamp01(1f - (Time.time - leaveStart) / Mathf.Max(0.01f, turnAwayTime));
@@ -568,8 +616,126 @@ public class GuardController : MonoBehaviour
 		}
 	}
 
-	// Noise while he's NOT looking draws him in. Noise while he IS looking is judged
-	// against Threshold in Update.
+	// -------------------------------------------------------------------------
+	// Day 211 — Watching: misses build suspicion, mashing amuses him
+	// -------------------------------------------------------------------------
+
+	private void OnPullResolved(BondStruggle.PullKind kind, bool tool)
+	{
+		if (struggle == null || stoodDown || frozen || caughtSequenceRunning) return;
+		if (CurrentState == GuardState.Checking || CurrentState == GuardState.Caught
+			|| CurrentState == GuardState.Downed) return;
+		if (attention <= 0f) return;   // not looking: noise is all he gets (Listen)
+
+		switch (kind)
+		{
+			case BondStruggle.PullKind.Spam:
+				Taunt();
+				break;
+			case BondStruggle.PullKind.Miss:
+				suspicion = Mathf.Min(1f, suspicion + (tool ? suspicionPerToolMiss : suspicionPerMiss));
+				Log($"Miss in his sight{(tool ? " (tool)" : "")} — suspicion {suspicion:F2}.");
+				if (suspicion >= 1f) { BeginCheck(); break; }
+				if (!tellShown && suspicion >= suspicionTellAt)
+				{
+					tellShown = true;
+					listenStatus = "suspicious";
+					SayGuard(suspicionTellLines);
+				}
+				break;
+		}
+	}
+
+	private void Taunt()
+	{
+		if (Time.time - lastTauntAt < tauntCooldown) return;
+		lastTauntAt = Time.time;
+		float add = Mathf.Min(tauntLinger, maxLingerPerVisit - lingerAdded);
+		if (add > 0f)
+		{
+			lingerAdded += add;
+			watchExtendUntil = Mathf.Max(watchExtendUntil, Time.time) + add;
+		}
+		listenStatus = "amused";
+		Log($"Mashing in his sight — taunt. Lingering +{add:F1}s.");
+		SayGuard(tauntLines);
+	}
+
+	private void SayGuard(string[] lines)
+	{
+		if (MutterSystem.Instance == null || lines == null || lines.Length == 0) return;
+		MutterSystem.Instance.Play(lines[Random.Range(0, lines.Length)], MutterSystem.Speaker.Guard);
+	}
+
+	// Taunts keep him watching. Waited on at the end of AtDoor and LeanIn.
+	private IEnumerator HoldWhileLingering()
+	{
+		while (Time.time < watchExtendUntil) yield return null;
+	}
+
+	private void BeginCheck()
+	{
+		listenStatus = "CHECKING YOUR BONDS";
+		// Still walking up: finish the approach, AtDoor turns it into the check.
+		if (CurrentState == GuardState.Approaching)
+		{
+			checkPending = true;
+			Log("Suspicion full on the approach — will check on arrival.");
+			return;
+		}
+		if (checkPending) return;
+		bool fromDoor = CurrentState == GuardState.AtDoor;
+		Log("Suspicion full — checking her bonds.");
+		StopAllCoroutines();
+		SetLean(false);
+		StartCoroutine(CheckBondsPhase(fromDoor));
+	}
+
+	/// <summary>
+	/// Day 211: he walks in (same route as the lean-in) and examines her bonds. Evidence
+	/// decides. Free hands out on the way in are caught by Update, as always.
+	/// </summary>
+	/// <param name="fromDoor">Route in through the lean-in waypoints. From inside the room
+	/// (lean-in, the start of leaving) he goes straight to her.</param>
+	private IEnumerator CheckBondsPhase(bool fromDoor)
+	{
+		checkPending = false;
+		SetState(GuardState.Checking);
+
+		if (fromDoor && leanInWaypoints != null)
+		{
+			foreach (Transform wp in leanInWaypoints)
+			{
+				if (wp == null) continue;
+				yield return MoveBodyAtSpeed(wp.position, guardMoveSpeed);
+			}
+		}
+		yield return MoveBodyAtSpeed(ComputeLeanInPoint(), guardMoveSpeed);
+		if (player != null) yield return TurnToFace(player.transform.position);
+		SetLean(true);
+
+		yield return new WaitForSeconds(checkDuration);
+
+		int i = struggle.MostLoosened(out float found);
+		if (i >= 0 && found >= checkEvidence)
+		{
+			Log($"Check: {struggle.bonds[i].name} at {found:P0} — caught.");
+			TriggerCaught(false, byCheck: true);
+			yield break;
+		}
+
+		if (i >= 0) struggle.Cinch(i, cinchSetback);
+		Log($"Check: nothing ({(i >= 0 ? $"{struggle.bonds[i].name} {found:P0}" : "clean")}). Cinched.");
+		listenStatus = "still tight";
+		SayGuard(checkClearLines);
+		suspicion = 0f;
+
+		yield return new WaitForSeconds(1f);
+		StartCoroutine(LeavingPhase());
+	}
+
+	// Noise while he's NOT looking draws him in. While he IS looking, misses and
+	// mashing are read in OnPullResolved (Day 211).
 	private void Listen()
 	{
 		if (CurrentState != GuardState.Offstage && CurrentState != GuardState.Leaving) return;
@@ -600,14 +766,15 @@ public class GuardController : MonoBehaviour
 		}
 	}
 
-	private void TriggerCaught(bool seen)
+	private void TriggerCaught(bool seen, bool byCheck = false)
 	{
 		if (caughtSequenceRunning) return;
 
 		pendingSeen = seen;
+		pendingCheck = byCheck && !seen;
 		bool taken = struggle.Catches + 1 >= struggle.maxCatches;
-		listenStatus = seen ? "SAW YOUR HANDS" : "CAUGHT";
-		Log($"CAUGHT ({(seen ? "seen free hands" : "other")}) " +
+		listenStatus = seen ? "SAW YOUR HANDS" : byCheck ? "FOUND LOOSE BONDS" : "CAUGHT";
+		Log($"CAUGHT ({(seen ? "seen free hands" : byCheck ? "bond check" : "other")}) " +
 			$"at attention {attention:F2}, state {CurrentState}.{(taken ? " TAKEN." : "")}");
 
 		StopAllCoroutines();
@@ -733,6 +900,13 @@ public class GuardController : MonoBehaviour
 		approachLen = duration;
 		approachTurn = Mathf.Min(heard ? heardTurnTime : turnTime, duration);
 
+		// Day 211: a new visit. Watch state starts clean.
+		suspicion = 0f;
+		tellShown = false;
+		checkPending = false;
+		lingerAdded = 0f;
+		watchExtendUntil = 0f;
+
 		SetState(GuardState.Approaching);
 		Log(heard ? "Guard HEARD something — hurried approach." : "Guard approaching — feign window OPEN.");
 		if (!heard) listenStatus = "footsteps";
@@ -766,6 +940,9 @@ public class GuardController : MonoBehaviour
 		// here means she held still. He walks in.
 		if (struggle != null)
 		{
+			if (checkPending) { StartCoroutine(CheckBondsPhase(true)); yield break; }
+			yield return HoldWhileLingering();
+			if (checkPending) { StartCoroutine(CheckBondsPhase(true)); yield break; }
 			Log("Inspection (listening): she held still. Walking in.");
 			StartCoroutine(LeanInPhase());
 			yield break;
@@ -857,6 +1034,7 @@ public class GuardController : MonoBehaviour
 		// Hold the strike window. If a strike lands, OnGuardDowned fires
 		// StopAllCoroutines — this yield never returns.
 		yield return new WaitForSeconds(leanInDuration);
+		if (struggle != null) yield return HoldWhileLingering();
 
 		// Window lapsed (no weapon, or the player held off). Guard straightens
 		// and leaves; the next check-in is another chance.
@@ -946,6 +1124,8 @@ public class GuardController : MonoBehaviour
 		{
 			if (lastCatch.seen && !string.IsNullOrEmpty(caughtSeenGuardLine))
 				guardLine = caughtSeenGuardLine;
+			else if (pendingCheck && !string.IsNullOrEmpty(caughtCheckGuardLine))
+				guardLine = caughtCheckGuardLine;
 			if (lastCatch.addedBond != null && !string.IsNullOrEmpty(escalationCassieReaction))
 				cassieLine = escalationCassieReaction;
 		}

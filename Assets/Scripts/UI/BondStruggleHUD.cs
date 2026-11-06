@@ -154,12 +154,13 @@ public class BondStruggleHUD : MonoBehaviour
 				GuardController.GuardState.Leaving => looking ? "turning away" : "walking off",
 				GuardController.GuardState.Caught => "CAUGHT",
 				GuardController.GuardState.Downed => "down",
+				GuardController.GuardState.Checking => "CHECKING YOUR BONDS",
 				_ => "",
 			};
 			if (looking && struggle.HandsOut) GUI.color = Color.red;   // the only danger
 			else if (looking || guard.IsAlerted) GUI.color = Color.yellow;
 			GUI.Label(new Rect(20, barY + 30, 600, 22),
-				$"CAPTOR  {captor}  (attention {guard.Attention:P0})   {guard.ListenStatus}");
+				$"CAPTOR  {captor}  (attention {guard.Attention:P0}, suspicion {guard.Suspicion:P0})   {guard.ListenStatus}");
 			GUI.color = prev;
 		}
 
