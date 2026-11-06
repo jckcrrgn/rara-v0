@@ -267,12 +267,13 @@ public class CassieStruggleDriver : CassieRigLayer
 			return;
 		}
 
-		// Day 202: BondStruggle levels — the sway is locked to the beat and never
-		// fully stops while she's tied. Pulls still top up the effort.
+		// Day 202: BondStruggle levels — the sway is locked to the beat. Pulls top up
+		// the effort. Day 211: the idle floor only holds during a bout (BondStruggle
+		// boutMode) — she's still until the player starts her, and settles when they stop.
 		if (struggle != null)
 		{
 			_energy = Mathf.MoveTowards(_energy, 0f, dt / Mathf.Max(0.01f, sustain));
-			float floor = struggle.AnyBound ? idleIntensity : 0f;
+			float floor = struggle.AnyBound && struggle.InBout ? idleIntensity : 0f;
 			_intensity = Mathf.MoveTowards(_intensity, Mathf.Max(_energy, floor),
 				dt / Mathf.Max(0.01f, attack));
 			if (_intensity <= 0.0001f) return;

@@ -104,6 +104,13 @@ public class BondStruggle : MonoBehaviour
 	public float gainPerPull = 0.08f;
 	public float spamGap = 0.25f;
 
+	[Header("Struggle on demand (Day 211)")]
+	[Tooltip("She sits still until a pull starts a bout. The first press is beat 0 (no progress); " +
+		"the player keeps the tempo from there. Off = Day 202 always-on beat clock.")]
+	public bool boutMode = true;
+	[Tooltip("Beats without a press before the bout ends and she settles.")]
+	public float boutTimeoutBeats = 2f;
+
 	[Header("Noise")]
 	[Tooltip("Even a clean pull makes some sound. Steady on-beat pulling never reaches the glance line.")]
 	public float noisePerPull = 0.05f;
@@ -195,9 +202,12 @@ public class BondStruggle : MonoBehaviour
 	}
 	public bool CanUntie(int i) => HandsFree && !ElbowsBound && i >= 0 && i < bonds.Length && bonds[i].untieable && bonds[i].Bound;
 	/// <summary>0..1, 1 exactly on the beat.</summary>
-	public float Pulse01 { get { float bp = (Time.time % beatInterval) / beatInterval; return 1f - Mathf.Min(bp, 1f - bp) * 2f; } }
-	/// <summary>Beats elapsed (Time.time / beatInterval). Integers are the beats. CassieStruggleDriver locks to this.</summary>
-	public float Beats => Time.time / Mathf.Max(0.01f, beatInterval);
+	public float Pulse01 { get { float bp = BeatPhase(Time.time); return 1f - Mathf.Min(bp, 1f - bp) * 2f; } }
+	/// <summary>Beats elapsed since the bout started (Day 211; Time.time when boutMode is off).
+	/// Integers are the beats. CassieStruggleDriver locks to this.</summary>
+	public float Beats => (Time.time - beatOrigin) / Mathf.Max(0.01f, beatInterval);
+	/// <summary>Day 211: she's mid-struggle. Always true when boutMode is off.</summary>
+	public bool InBout => !boutMode || Time.time < boutUntil;
 	/// <summary>Any bond still holding her. The beat-locked sway runs while true.</summary>
 	public bool AnyBound => NextBound(-1) >= 0;
 	/// <summary>Tool that boosted the last good pull ("TableEdge ×2.5"), or "" if none.</summary>
@@ -211,6 +221,8 @@ public class BondStruggle : MonoBehaviour
 	bool handsOut;
 	float hidingUntil;
 	float lastPull = -99f;
+	float beatOrigin;         // Day 211: beat 0 = the press that started the bout
+	float boutUntil;
 	int prevStickZone = -1;   // -1 neutral, 0 up, 1 right, 2 down, 3 left
 
 	[Header("Bond selection (Day 208)")]
@@ -352,7 +364,20 @@ public class BondStruggle : MonoBehaviour
 		// Presentation: she commits to a struggle, pass or fail.
 		player.NotifyStruggleAttempt();
 
-		float beatPhase = (now % beatInterval) / beatInterval;
+		// Day 211: struggle on demand. A press while she's still starts a bout: it IS
+		// beat 0, so it isn't scored and makes no progress. Every press, hit or not,
+		// keeps the bout alive.
+		bool starting = !InBout;
+		boutUntil = now + boutTimeoutBeats * beatInterval;
+		if (starting)
+		{
+			beatOrigin = now;
+			AddNoise(noisePerPull);
+			LastResult = "starts struggling";
+			return;
+		}
+
+		float beatPhase = BeatPhase(now);
 		float accuracy = 1f - Mathf.Min(beatPhase, 1f - beatPhase) * 2f;
 		LogTiming(beatPhase, accuracy, spam);
 
@@ -393,6 +418,9 @@ public class BondStruggle : MonoBehaviour
 		if (Selected == WristsIndex) player.NotifyStruggleProgress();
 		if (b.progress >= 1f) Freed(b);
 	}
+
+	// Day 211: 0..1 within the beat, measured from the bout's beat 0.
+	float BeatPhase(float t) => Mathf.Repeat(t - beatOrigin, beatInterval) / beatInterval;
 
 	// Barehand gain x best available tool. Env tools reach only envToolsReach bonds (wrists,
 	// hands behind her back). A held tool works the wrists while bound, and anything she
@@ -575,6 +603,7 @@ public class BondStruggle : MonoBehaviour
 		Catches++;
 		var r = new CatchResult { seen = seenFreeHands, catches = Catches };
 		Noise = 0f;
+		boutUntil = 0f;   // Day 211: she's re-tied and still; the next press starts fresh
 		handsOut = false;
 		hidingUntil = 0f;
 		player.SetFeignState(false);

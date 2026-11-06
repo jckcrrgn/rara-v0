@@ -351,6 +351,29 @@ not the peak itself.
 - [x] ~~`noisePerMiss` 0.15 → 0.08.~~ **Day 206.** Reasoning re-derived in **Noise
       thresholds**, below. Feel check pending a clean day.
 
+### Struggle on demand (Rara Day 211)
+
+**She sits still until the player starts her.** The always-on idle sway (Day 202,
+`idleIntensity` 0.4) is gone from the default. The first RT press starts a **bout**. That
+press *is* beat 0: it isn't scored, makes no progress and costs one clean pull of noise.
+From there the player holds the tempo (`beatInterval` 0.7). Any press, hit or miss, keeps
+the bout alive. `boutTimeoutBeats` (2) with no press ends it and she settles. A catch ends
+it too.
+
+**Why.** The constant writhe read as an animation playing, not as her struggling. Still
+by default also gives composure a body: in front of him, still is what calm looks like.
+
+**Code.** `BondStruggle.boutMode` (off = the Day 202 global clock). `Beats`, `Pulse01` and
+the pull phase measure from the bout's beat 0. `CassieStruggleDriver` holds the idle
+floor only `InBout`.
+
+**Voids the Day 204 timing baseline.** The −100 ms offset was measured on an always-on cue.
+The `beatShape` 3 runs (clean day) now test this cue, not that one.
+
+**Open:**
+- [ ] Play: does the first press feel like starting her, or like a dropped input?
+- [ ] Is 2 beats the right settle? Shorter is stiller, longer forgives a missed beat.
+
 ### Feedback channels (Rara Day 205)
 
 **One channel per job.** Each cue answers exactly one question, so the player never has
@@ -492,6 +515,26 @@ this is the first knob. The middle is 0.10–0.12.
 - [ ] Hops. `noisePerHop` 0.12: two quick hops peak at 0.21, three at ~0.30, right
       on the line. The old tooltip said two hops = call-out. Decide: 0.15 (two hops
       call him) or leave it (moving the chair is cheap).
+
+### Guard watch states (Rara Day 211) — decided, not built
+
+> Replaces "noise never catches her" (Day 202 rev). A same-day draft (mash in front of
+> him = warning, then catch) was dropped: it didn't fit the fiction.
+
+**Three states.**
+1. **Not paying attention** (offstage, on his phone). Noise calls him. As now.
+2. **Watching** (drawn in by noise, or a routine check-in). Mashing amuses him. He taunts
+   ("Putting on a show? Nobody can hear you."), and lingers to enjoy it, which costs untie
+   time but never catches her. On-beat pulls are just squirming. **Misses are a tell**:
+   each miss in his sight builds suspicion, and a tool miss (sawing the table edge) builds
+   a lot. Full suspicion = he checks.
+3. **Checking her bonds.** He walks in and looks. **Evidence decides:** any bond past ~50%
+   = light catch (`RegisterCatch(false)`). Otherwise "Still tight." and he cinches the bond
+   he checked (small setback). That's pillar 1's re-secure.
+
+Free hands seen while he's watching are still the instant, heavy catch.
+
+Built after Struggle on demand, one change at a time.
 
 ---
 
