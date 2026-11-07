@@ -363,9 +363,8 @@ public class CassieHandsDriver : CassieRigLayer
 		Vector3 center;
 		Vector3 half = right * (handSpread * 0.5f);
 		int sel = struggle != null ? struggle.Selected : -1;
-		if (AtKnot && struggle.TryAnchorWorld(sel, out Vector3 anchor))
+		if (AtKnot && TryKnotWorld(sel, out center))
 		{
-			center = anchor + right * knotOffset.x + up * knotOffset.y + fwd * knotOffset.z;
 			// Measured before the tug, so a tug never pumps the fold.
 			float baseP = reachSpinePitch + reachChestPitch;
 			_foldWanted = Mathf.Max(0f, _applied + FoldDelta(center - half, center + half, right, baseP) - baseP);
@@ -385,6 +384,21 @@ public class CassieHandsDriver : CassieRigLayer
 		Solve(HumanBodyBones.RightUpperArm, HumanBodyBones.RightLowerArm, HumanBodyBones.RightHand,
 			_gizR, +1f, right, up, fwd, w, out _gizPoleR);
 		_gizValid = true;
+	}
+
+	/// <summary>
+	/// Day 212: where bond i's knot sits in the world. The bond's anchor midpoint plus
+	/// knotOffset in her facing frame. The hands reach for it (PostApply), and
+	/// BondStruggleHUD pins the bight cue to it, so the two can't drift apart.
+	/// </summary>
+	public bool TryKnotWorld(int bond, out Vector3 world)
+	{
+		world = Vector3.zero;
+		if (struggle == null || animator == null) return false;
+		if (!struggle.TryAnchorWorld(bond, out Vector3 anchor)) return false;
+		if (!Facing(out Vector3 right, out Vector3 up, out Vector3 fwd)) return false;
+		world = anchor + right * knotOffset.x + up * knotOffset.y + fwd * knotOffset.z;
+		return true;
 	}
 
 	/// <summary>

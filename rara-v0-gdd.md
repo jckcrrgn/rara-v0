@@ -420,7 +420,7 @@ dies when this lands. **In the demo** (decided Day 207).
 | **Progress** | The rope gives: slack and slide with progress, snap on free. Strain on that limb grows | Next. Needs ankle ropes: only the wrists have rope today |
 | Hands out / hidden | Feign pose (`IsFeigning`) | Done |
 | Catches | Elbows tied on, ropes tighter, his line | Done |
-| **Knot** | **Open** | — |
+| **Knot** | Bight glyph pinned to the knot, pointing `knot[0]` (Day 212) | Code Day 212 (`BondStruggleHUD` knot cue). Interim for the 3D bight |
 
 **The knot — open.** Its job is a **speed tier**: struggle (slow, hands can stay hidden)
 → untie (faster, hands out) → cut (future: fastest, needs a blade, hands out). Each step
@@ -440,6 +440,19 @@ while his threat is at the door, so untying costs attention as well as hidden ha
 Risk: the bight is small at over-the-shoulder distance. Fixes in order: oversize it with
 a contrasting colour, let the Day 208 head-look lead the eye, nudge the camera toward the
 ankle while she unties. Test: read the direction from a Game-view still in under 0.3 s.
+
+**Decided Day 212: a screen glyph pinned to the knot, for the demo.** No ankle rope
+exists yet, so a 3D bight would be a loop floating on bare ankles. It would also be small
+at OTS distance. Instead: a rope-loop glyph (cream, dark outline, darker knot disc) drawn
+at the knot's screen position. `CassieHandsDriver.TryKnotWorld` is the single source, so
+the glyph and the IK hands share one point. Fixed size (7% of screen height), so hands and
+knees never hide it. Only `knot[0]` shows. **Hit:** the loop pulls through its own way,
+and the next one grows in (0.15 s). **Fumble:** it cinches, shrinking and flushing red
+(0.22 s). Dimmed (0.45) while the hands are hidden and untie is available. Full strength
+once they're out. The KNOT sequence line is debug-only (F1).
+**Post-demo:** the same cue becomes a 3D bight on the real ankle rope.
+- [ ] Read test: direction from a Game-view still in under 0.3 s.
+- [ ] Does the glyph over her hands bother anyone? `knotCueStandOff` pushes it out.
 
 **Bond look (Day 208).** Head eases to the bond (τ 0.08, ~0.25 s). The head's beat yaw
 drops to ×0.3 while a bond is selected, so the head reads selection and the torso reads
