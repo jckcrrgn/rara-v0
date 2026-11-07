@@ -206,7 +206,10 @@ public class BondStruggle : MonoBehaviour
 	{
 		get { foreach (var b in bonds) if ((b.limb & BoundLimbs.Elbows) != 0 && b.Bound) return true; return false; }
 	}
-	public bool CanUntie(int i) => HandsFree && !ElbowsBound && i >= 0 && i < bonds.Length && bonds[i].untieable && bonds[i].Bound;
+	/// <summary>Day 212: holding an item (the bottle). Untie takes both hands, and she has no
+	/// way to put it down, so picking it up commits her to the strike. Struggle still works.</summary>
+	public bool HandsFull => player != null && player.GetHeldItem() != null;
+	public bool CanUntie(int i) => HandsFree && !ElbowsBound && !HandsFull && i >= 0 && i < bonds.Length && bonds[i].untieable && bonds[i].Bound;
 	/// <summary>0..1, 1 exactly on the beat.</summary>
 	public float Pulse01 { get { float bp = BeatPhase(Time.time); return 1f - Mathf.Min(bp, 1f - bp) * 2f; } }
 	/// <summary>Beats elapsed since the bout started (Day 211; Time.time when boutMode is off).
@@ -544,6 +547,7 @@ public class BondStruggle : MonoBehaviour
 	{
 		if (!HandsFree) { LastResult = "hands are bound — struggle"; return; }
 		if (ElbowsBound) { LastResult = "elbows tied — can't reach. Struggle them free"; return; }
+		if (HandsFull) { LastResult = "hands full — struggle"; return; }
 		if (!CanUntie(Selected)) { LastResult = "can't reach that one — struggle"; return; }
 		if (hidingUntil > 0f) return;   // busy hiding
 
