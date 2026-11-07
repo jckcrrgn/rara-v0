@@ -608,7 +608,15 @@ public class PlayerController : MonoBehaviour
 	}
 
 	/// <summary>
-	/// True if a Strike would currently succeed: Cassie's wrists are free,
+	/// Day 212: elbows tied behind her = no swing. Free wrists can still pick the
+	/// bottle up, but the strike needs the arm. Struggle the elbows free first.
+	/// BondStruggle path only; legacy levels have no elbow bond.
+	/// </summary>
+	bool ElbowsBlockStrike => struggle != null && struggle.ElbowsBound;
+
+	/// <summary>
+	/// True if a Strike would currently succeed: Cassie's wrists are free, her elbows
+	/// aren't tied (Day 212),
 	/// she holds a weapon, the scene's StrikeableGuard reports CanBeStruck()
 	/// (guard in LeanIn, not yet struck), AND the guard is within strikeRange
 	/// of Cassie. Used by Update to decide whether H should interrupt an active
@@ -627,6 +635,7 @@ public class PlayerController : MonoBehaviour
 	public bool CanStrikeNow()
 	{
 		if (!wristsFree) return false;
+		if (ElbowsBlockStrike) return false;
 		if (heldItem == null || !heldItem.IsWeapon) return false;
 		StrikeableGuard target = GetStrikeableGuard();
 		if (target == null || !target.CanBeStruck()) return false;
@@ -640,7 +649,7 @@ public class PlayerController : MonoBehaviour
 
 	/// <summary>
 	/// Strike verb entry point. Three gates must all pass:
-	///   1. Cassie's wrists are free (wristsFree = true).
+	///   1. Cassie's wrists are free (wristsFree = true), elbows not tied (Day 212).
 	///   2. Player is holding a weapon (heldItem != null and IsWeapon true).
 	///   3. The nearest StrikeableGuard reports CanBeStruck() — guard in LeanIn.
 	///
@@ -658,6 +667,12 @@ public class PlayerController : MonoBehaviour
 		if (!wristsFree)
 		{
 			Debug.Log("[PlayerController] TryStrike: wrists not yet free.");
+			return;
+		}
+
+		if (ElbowsBlockStrike)
+		{
+			Debug.Log("[PlayerController] TryStrike: elbows tied — she can't swing.");
 			return;
 		}
 
