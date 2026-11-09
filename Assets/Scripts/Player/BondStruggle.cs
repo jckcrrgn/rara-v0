@@ -31,8 +31,9 @@
 //   untie (follow knot)   IJKL              D-pad     (hands free only; not elbows)
 //   hide hands / feign    G                 LB
 //   move the chair        Shift + WASD      LT + left stick
-//   pick up               E                 A
+//   pick up / set down    E                 A         (Day 214: A again puts it back)
 //   strike                H                 X
+//   restart               R                 Start     (LevelManager)
 // Pad setup: see RaraInput.cs.
 
 using System.Collections;
@@ -140,6 +141,9 @@ public class BondStruggle : MonoBehaviour
 	public float untieGain = 0.1f;
 	public float noisePerUntie = 0.01f;
 	public float noisePerFumble = 0.1f;
+	[Tooltip("Day 214: glass back on the table. Same as a clean pull — it never calls him on " +
+		"its own. Setting it down brings her hands out, and that's the real cost.")]
+	public float noisePerSetDown = 0.05f;
 	[Tooltip("Time to get hands back behind her. Must finish before the guard's seenAttention.")]
 	public float handsBackTime = 0.4f;
 
@@ -214,8 +218,9 @@ public class BondStruggle : MonoBehaviour
 	{
 		get { foreach (var b in bonds) if ((b.limb & BoundLimbs.Elbows) != 0 && b.Bound) return true; return false; }
 	}
-	/// <summary>Day 212: holding an item (the bottle). Untie takes both hands, and she has no
-	/// way to put it down, so picking it up commits her to the strike. Struggle still works.</summary>
+	/// <summary>Day 212: holding an item (the bottle). Untie takes both hands, so the knot cue
+	/// goes away while she holds it. Day 214: A again puts it back where she took it
+	/// (PlayerController.TrySetDown), and the knot cue comes back. Struggle still works.</summary>
 	public bool HandsFull => player != null && player.GetHeldItem() != null;
 	public bool CanUntie(int i) => HandsFree && !ElbowsBound && !HandsFull && i >= 0 && i < bonds.Length && bonds[i].untieable && bonds[i].Bound;
 	/// <summary>0..1, 1 exactly on the beat.</summary>
@@ -556,7 +561,7 @@ public class BondStruggle : MonoBehaviour
 	{
 		if (!HandsFree) { LastResult = "hands are bound — struggle"; return; }
 		if (ElbowsBound) { LastResult = "elbows tied — can't reach. Struggle them free"; return; }
-		if (HandsFull) { LastResult = "hands full — struggle"; return; }
+		if (HandsFull) { LastResult = "hands full — A to set it down"; return; }
 		if (!CanUntie(Selected)) { LastResult = "can't reach that one — struggle"; return; }
 		if (hidingUntil > 0f) return;   // busy hiding
 
@@ -602,6 +607,18 @@ public class BondStruggle : MonoBehaviour
 
 	/// <summary>PlayerController.HoldItem: grabbing something with free hands puts them out.</summary>
 	public void OnItemTaken() => BringHandsOut();
+
+	/// <summary>Day 214: PlayerController.TrySetDown. Putting it back is a visible move: hands
+	/// out (hide them after), a little noise.</summary>
+	public void OnItemSetDown()
+	{
+		BringHandsOut();
+		AddNoise(noisePerSetDown);
+		LastResult = "set it down";
+	}
+
+	/// <summary>Day 214: too far from where she took it to put it back.</summary>
+	public void OnSetDownOutOfReach() => LastResult = "too far to set it down — move back to the table";
 
 	public void AddNoise(float amount) => Noise = Mathf.Clamp01(Noise + amount);
 

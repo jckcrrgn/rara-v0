@@ -55,7 +55,8 @@ public class LevelManager : MonoBehaviour
 
 	void Update()
 	{
-		if (Input.GetKeyDown(KeyCode.R))
+		// Day 214: Start on the pad too (RaraInput already samples it; StruggleProto uses it).
+		if (Input.GetKeyDown(KeyCode.R) || RaraInput.Read().restart)
 		{
 			RestartLevel();
 		}

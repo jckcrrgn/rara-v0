@@ -11,9 +11,9 @@
 //   LT  (hold)   move layer
 //   D-pad        untie (follow the knot)
 //   LB           hide hands / feign
-//   A            pick up · dismiss mutter
+//   A            pick up / put back (Day 214) · dismiss mutter
 //   X            strike
-//   Start        (reserved: restart)
+//   Start        restart (LevelManager, Day 214)
 //
 // SETUP
 //   Input System package installed (Active Input Handling = Both): nothing to do.

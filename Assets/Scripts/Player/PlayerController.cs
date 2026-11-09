@@ -392,8 +392,13 @@ public class PlayerController : MonoBehaviour
 			if (currentRestraint != null)
 				currentRestraint.HandleMovementInput(this);
 
+			// Day 214: A / E with something in hand puts it back (the bottle used to
+			// block untie for good). Legacy path below is untouched.
 			if (!justDismissed && (Input.GetKeyDown(KeyCode.E) || RaraInput.Read().interact))
-				TryPickUp();
+			{
+				if (heldItem != null) TrySetDown();
+				else TryPickUp();
+			}
 
 			if (Input.GetKeyDown(KeyCode.F))
 				TryKick();
@@ -729,13 +734,14 @@ public class PlayerController : MonoBehaviour
 			// Graybox fallback — no rig in the scene (abstract-testing mode).
 			// Land it on the input frame so the beat stays testable without Cassie.
 			Debug.Log("[PlayerController] No CassieStrikeDriver — landing strike immediately.");
+			strikeLanded = true;
 			target.OnStruck(this);
 			isStriking = false;
 			return;
 		}
 
 		driver.Play(
-			onContact: () => target.OnStruck(this),
+			onContact: () => { strikeLanded = true; target.OnStruck(this); },
 			onComplete: () => isStriking = false);
 	}
 
@@ -1040,6 +1046,29 @@ public class PlayerController : MonoBehaviour
 		// mean their own E-key verb -- a back-facing drawer opens, a lever
 		// flips, etc. Each subclass decides what E means in its context.
 		nearby.OnPickUp(this);
+	}
+
+	bool strikeLanded;   // Day 214: set on contact. The bottle smashed; it can't go back on the table.
+
+	/// <summary>
+	/// Day 214, BondStruggle path. She puts the held item back where she took it — same
+	/// placement as the guard's disarm (ReturnHeldItemToWorld), so reach is already proven
+	/// and nothing is left out of place for him to see. Only within the item's own
+	/// interactionRange of that spot: hop away with it and she has to hop back.
+	/// </summary>
+	void TrySetDown()
+	{
+		if (heldItem == null || struggle == null) return;
+		// Mid-swing, or the bottle's already in pieces: nothing to put back.
+		if (isStriking || strikeLanded) return;
+		float d = Vector3.Distance(transform.position, heldItem.transform.position);
+		if (d > heldItem.InteractionRange)
+		{
+			struggle.OnSetDownOutOfReach();
+			return;
+		}
+		ReturnHeldItemToWorld();
+		struggle.OnItemSetDown();
 	}
 
 	public void HoldItem(Pickupable item)

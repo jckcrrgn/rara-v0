@@ -394,7 +394,7 @@ public class BondStruggleHUD : MonoBehaviour
 	// Player-facing, not debug: stays in every build.
 	void DrawControlsCard(float sw)
 	{
-		const float cw = 340f, ch = 250f;
+		const float cw = 340f, ch = 268f;
 		string card =
 			"Get every bond free — or get the bottle.\n" +
 			"Don't get caught.\n\n" +
@@ -404,8 +404,9 @@ public class BondStruggleHUD : MonoBehaviour
 			"Untie            D-pad  /  IJKL   (follow the loop)\n" +
 			"Hide hands       LB  /  G\n" +
 			"Move chair       hold LT  /  Shift\n" +
-			"Pick up          A  /  E\n" +
-			"Strike           X  /  H\n\n" +
+			"Pick up / put back  A  /  E\n" +
+			"Strike           X  /  H\n" +
+			"Restart          Start  /  R\n\n" +
 			"Back / Tab: hide this card";
 		GUI.Box(new Rect(sw - cw - 20, 20, cw, ch), "");
 		var cs = new GUIStyle(GUI.skin.label) { wordWrap = false };

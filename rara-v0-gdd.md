@@ -271,6 +271,15 @@ level" pivot, and stays parked for the weekly review.
 follows. Feign no longer locks struggling. Untie, pick-up with free hands, and strike
 bring the hands out. A bottle in free hands counts as hands out.
 
+**Bottle vs. untie (Day 214).** Untie takes both hands, so holding the bottle blocks it
+and hides the knot cue (Day 212). The Day 212 rule had no way back: picking it up
+committed her to the strike. Playtest called that wrong. **A again puts it back where
+she took it** (the guard's disarm placement), within its `interactionRange` of that
+spot. Hands come out, `noisePerSetDown` 0.05, the knot cue returns. Not at her feet:
+the table is proven reach and leaves nothing out of place for him to see. Not a
+one-handed untie: that needs a new hands pose four days before freeze, and it erases the
+choice. Picking it up still means something: it costs time and a set-down to undo.
+
 **Tools are multipliers:** blade ×2.5, point ×1.6, key ×4. The TableEdge reaches the
 wrists only. A held tool works the wrists while she's bound, then the untieable bonds
 once her hands are free. A bond with `barehandGain` 0 (cuffs) needs one.
@@ -280,7 +289,8 @@ lines are the VS ones. A seen catch has its own guard line. The 3rd catch = take
 guard line over black, then the scene reloads.
 
 **Pad map:** left stick bond · RT pull · D-pad untie · LB hide · LT move · A pick
-up / dismiss mutter · X strike. Keyboard: WASD · Space · IJKL · G · Shift · E · H.
+up / put back / dismiss mutter · X strike · Start restart (Day 214). Keyboard: WASD ·
+Space · IJKL · G · Shift · E · H · R.
 
 **Open (Day 202):**
 - [ ] First play in VS_Demo. Start `offstageRange` at 8–16 s. With 10–22 s, a clean
