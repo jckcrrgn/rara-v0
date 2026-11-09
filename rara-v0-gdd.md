@@ -277,7 +277,8 @@ committed her to the strike. Playtest called that wrong. **A again sets it down.
 reach of where she took it, it goes back on the table and nothing's out of place. Anywhere
 else, it goes on the floor beside her (`setDownOffset`), where she can pick it up again.
 Hands come out, `noisePerSetDown` 0.05, the knot cue returns.
-**A bottle on the floor is evidence.** Each look (attention crossing `seenAttention`),
+**A bottle on the floor is evidence.** One roll per visit, made when his body first comes
+within `strayNoticeRange` 2 m of it while watching (so the walk in, not the door):
 `strayNoticeChance` 0.4 that he notices: +`suspicionPerStray` 0.65 and a line. That's past
 the tell, so one miss after it sends him in to check. On a check or a catch he puts it back
 on the table. **Bottle in hand = hands out, and it shows:** hands out carries it to her lap,

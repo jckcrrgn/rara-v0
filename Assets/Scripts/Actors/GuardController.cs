@@ -401,10 +401,13 @@ public class GuardController : MonoBehaviour
 	[Tooltip("Suspicion at which he says the tell line, once per visit.")]
 	[SerializeField] private float suspicionTellAt = 0.5f;
 	[SerializeField] private string[] suspicionTellLines = { "...Hm.", "What are you doing back there?" };
-	[Tooltip("Day 214: chance, each time he looks (attention crosses seenAttention), that he " +
-		"notices something she set down off the table. One roll per look.")]
+	[Tooltip("Day 214: chance he notices something she set down off the table. One roll per " +
+		"visit, made when he first comes within strayNoticeRange of it while watching.")]
 	[Range(0f, 1f)]
 	[SerializeField] private float strayNoticeChance = 0.4f;
+	[Tooltip("Day 214: how close (metres, flat) his body has to get to it before he can notice. " +
+		"From the door he can't; on the walk in he can. Tune against the lean-in point.")]
+	[SerializeField] private float strayNoticeRange = 2f;
 	[Tooltip("Suspicion when he notices it. Above the tell line on its own; one miss after it = he checks.")]
 	[SerializeField] private float suspicionPerStray = 0.65f;
 	[SerializeField] private string[] strayNoticeLines = { "...Was that bottle on the floor before?", "Where'd that come from?" };
@@ -486,7 +489,7 @@ public class GuardController : MonoBehaviour
 	// Day 211: per-visit watch state, reset when he starts an approach.
 	private float suspicion;
 	private bool tellShown;
-	private bool wasLooking;   // Day 214: attention was >= seenAttention last frame
+	private bool strayRolled;  // Day 214: this visit's notice roll is spent
 	private bool checkPending;
 	private float lastTauntAt = -99f;
 	private float lingerAdded;
@@ -586,16 +589,13 @@ public class GuardController : MonoBehaviour
 		if (caughtSequenceRunning || CurrentState == GuardState.Caught || CurrentState == GuardState.Downed)
 		{
 			attention = 0f;
-			wasLooking = false;
 			return;
 		}
 
 		attention = ComputeAttention();
 
-		// Day 214: each new look is one roll on a bottle left out.
-		bool looking = attention >= seenAttention;
-		if (looking && !wasLooking) OnLookStarted();
-		wasLooking = looking;
+		// Day 214: a bottle left out gets one roll per visit, once he's close to it.
+		if (!strayRolled && attention >= seenAttention) CheckStray();
 
 		// Mid-swing, her hands are out by definition. The strike resolves the beat.
 		if (player != null && player.IsStriking) return;
@@ -661,22 +661,28 @@ public class GuardController : MonoBehaviour
 	}
 
 	/// <summary>
-	/// Day 214: a look has started. If she left something off the table, he might notice:
-	/// strayNoticeChance, once per look. Noticing raises suspicion past the tell; a miss
-	/// after that sends him in to check (and he puts it back while he's there).
+	/// Day 214: if she left something off the table and he's watching from within
+	/// strayNoticeRange of it, he gets one roll this visit (strayNoticeChance). Noticing
+	/// raises suspicion past the tell; a miss after that sends him in to check (and he puts
+	/// it back while he's there).
 	/// </summary>
-	private void OnLookStarted()
+	private void CheckStray()
 	{
-		if (CurrentState == GuardState.Checking || player == null) return;
+		if (CurrentState == GuardState.Checking || player == null || guardBody == null) return;
 		Pickupable stray = player.StrayItem;
 		if (stray == null) return;
+		Vector3 d = stray.transform.position - guardBody.position;
+		d.y = 0f;
+		if (d.magnitude > strayNoticeRange) return;
+
+		strayRolled = true;
 		if (Random.value >= strayNoticeChance)
 		{
-			Log($"{stray.ItemName} on the floor — didn't notice.");
+			Log($"{stray.ItemName} on the floor, {d.magnitude:F1} m — didn't notice.");
 			return;
 		}
 		suspicion = Mathf.Min(1f, suspicion + suspicionPerStray);
-		Log($"Noticed {stray.ItemName} on the floor — suspicion {suspicion:F2}.");
+		Log($"Noticed {stray.ItemName} on the floor, {d.magnitude:F1} m — suspicion {suspicion:F2}.");
 		tellShown = true;
 		listenStatus = "noticed the bottle";
 		SayGuard(strayNoticeLines);
@@ -943,6 +949,7 @@ public class GuardController : MonoBehaviour
 		// Day 211: a new visit. Watch state starts clean.
 		suspicion = 0f;
 		tellShown = false;
+		strayRolled = false;
 		checkPending = false;
 		lingerAdded = 0f;
 		watchExtendUntil = 0f;
