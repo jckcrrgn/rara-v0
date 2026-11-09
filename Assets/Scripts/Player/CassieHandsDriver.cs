@@ -41,8 +41,9 @@ using UnityEngine;
 ///
 /// YIELDS
 /// ------
-/// The strike owns the arms while it plays or holds (CassieStrikeDriver.OwnsArms). A held
-/// item (the bottle) keeps its own pose. Both fade this layer out over reachTime.
+/// The strike owns the arms while it plays or holds (CassieStrikeDriver.OwnsArms) and fades
+/// this layer out over reachTime. Day 214: a held item (the bottle) no longer yields. Out,
+/// it rides to her lap with the hands; hidden, it's back behind her (heldItemShowsOut).
 ///
 /// WORK MOTION
 /// -----------
@@ -120,6 +121,10 @@ public class CassieHandsDriver : CassieRigLayer
 		"bonds that have a knot (untieable: Ankles, later Knees). Wrists or elbows selected = " +
 		"nothing, as in play. Remember to untick.")]
 	[SerializeField] private bool debugForceReach = false;
+	[Tooltip("Day 214: holding the bottle with hands out shows it — hands in her lap, bottle in " +
+		"front. LB tucks it behind her back. Off = the old Day 208 yield: the bottle always " +
+		"sits behind her back, even while the guard counts her hands as out.")]
+	[SerializeField] private bool heldItemShowsOut = true;
 
 	private float _weight;        // 0 = rest pose (bound / feigning), 1 = solved
 	private float _lean;          // eased torso share: 1 at a knot, lapLeanShare in the lap
@@ -198,7 +203,10 @@ public class CassieHandsDriver : CassieRigLayer
 
 	// ---- state ------------------------------------------------------------------------
 
-	bool Yielding => (strike != null && strike.OwnsArms) || (player != null && player.GetHeldItem() != null);
+	// Day 214: the bottle used to yield always, so she looked concealed while BondStruggle
+	// (and the guard) had her hands out. Now it yields only when heldItemShowsOut is off.
+	bool Yielding => (strike != null && strike.OwnsArms)
+		|| (!heldItemShowsOut && player != null && player.GetHeldItem() != null);
 
 	// Day 208 rule: her hands only leave the bound pose when they're free AND out. A
 	// bound bond (wrists, elbows) is worked by the bound + struggle pose, never by reaching.
