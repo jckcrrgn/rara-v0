@@ -404,7 +404,7 @@ public class BondStruggleHUD : MonoBehaviour
 			"Untie            D-pad  /  IJKL   (follow the loop)\n" +
 			"Hide hands       LB  /  G\n" +
 			"Move chair       hold LT  /  Shift\n" +
-			"Pick up / put back  A  /  E\n" +
+			"Pick up / set down  A  /  E\n" +
 			"Strike           X  /  H\n" +
 			"Restart          Start  /  R\n\n" +
 			"Back / Tab: hide this card";

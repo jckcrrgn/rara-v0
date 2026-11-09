@@ -11,7 +11,7 @@
 //   LT  (hold)   move layer
 //   D-pad        untie (follow the knot)
 //   LB           hide hands / feign
-//   A            pick up / put back (Day 214) · dismiss mutter
+//   A            pick up / set down (Day 214) · dismiss mutter
 //   X            strike
 //   Start        restart (LevelManager, Day 214)
 //

@@ -401,6 +401,13 @@ public class GuardController : MonoBehaviour
 	[Tooltip("Suspicion at which he says the tell line, once per visit.")]
 	[SerializeField] private float suspicionTellAt = 0.5f;
 	[SerializeField] private string[] suspicionTellLines = { "...Hm.", "What are you doing back there?" };
+	[Tooltip("Day 214: chance, each time he looks (attention crosses seenAttention), that he " +
+		"notices something she set down off the table. One roll per look.")]
+	[Range(0f, 1f)]
+	[SerializeField] private float strayNoticeChance = 0.4f;
+	[Tooltip("Suspicion when he notices it. Above the tell line on its own; one miss after it = he checks.")]
+	[SerializeField] private float suspicionPerStray = 0.65f;
+	[SerializeField] private string[] strayNoticeLines = { "...Was that bottle on the floor before?", "Where'd that come from?" };
 	[Tooltip("Bond progress he'll notice when he checks. Any bond at or past this = caught (light).")]
 	[Range(0f, 1f)]
 	[SerializeField] private float checkEvidence = 0.5f;
@@ -479,6 +486,7 @@ public class GuardController : MonoBehaviour
 	// Day 211: per-visit watch state, reset when he starts an approach.
 	private float suspicion;
 	private bool tellShown;
+	private bool wasLooking;   // Day 214: attention was >= seenAttention last frame
 	private bool checkPending;
 	private float lastTauntAt = -99f;
 	private float lingerAdded;
@@ -578,10 +586,16 @@ public class GuardController : MonoBehaviour
 		if (caughtSequenceRunning || CurrentState == GuardState.Caught || CurrentState == GuardState.Downed)
 		{
 			attention = 0f;
+			wasLooking = false;
 			return;
 		}
 
 		attention = ComputeAttention();
+
+		// Day 214: each new look is one roll on a bottle left out.
+		bool looking = attention >= seenAttention;
+		if (looking && !wasLooking) OnLookStarted();
+		wasLooking = looking;
 
 		// Mid-swing, her hands are out by definition. The strike resolves the beat.
 		if (player != null && player.IsStriking) return;
@@ -644,6 +658,29 @@ public class GuardController : MonoBehaviour
 				}
 				break;
 		}
+	}
+
+	/// <summary>
+	/// Day 214: a look has started. If she left something off the table, he might notice:
+	/// strayNoticeChance, once per look. Noticing raises suspicion past the tell; a miss
+	/// after that sends him in to check (and he puts it back while he's there).
+	/// </summary>
+	private void OnLookStarted()
+	{
+		if (CurrentState == GuardState.Checking || player == null) return;
+		Pickupable stray = player.StrayItem;
+		if (stray == null) return;
+		if (Random.value >= strayNoticeChance)
+		{
+			Log($"{stray.ItemName} on the floor — didn't notice.");
+			return;
+		}
+		suspicion = Mathf.Min(1f, suspicion + suspicionPerStray);
+		Log($"Noticed {stray.ItemName} on the floor — suspicion {suspicion:F2}.");
+		tellShown = true;
+		listenStatus = "noticed the bottle";
+		SayGuard(strayNoticeLines);
+		if (suspicion >= 1f) BeginCheck();
 	}
 
 	private void Taunt()
@@ -715,6 +752,9 @@ public class GuardController : MonoBehaviour
 		SetLean(true);
 
 		yield return new WaitForSeconds(checkDuration);
+
+		// Day 214: whatever she left on the floor goes back on the table.
+		if (player != null) player.ReturnStrayItemHome();
 
 		int i = struggle.MostLoosened(out float found);
 		if (i >= 0 && found >= checkEvidence)

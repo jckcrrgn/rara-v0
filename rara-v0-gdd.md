@@ -273,12 +273,17 @@ bring the hands out. A bottle in free hands counts as hands out.
 
 **Bottle vs. untie (Day 214).** Untie takes both hands, so holding the bottle blocks it
 and hides the knot cue (Day 212). The Day 212 rule had no way back: picking it up
-committed her to the strike. Playtest called that wrong. **A again puts it back where
-she took it** (the guard's disarm placement), within its `interactionRange` of that
-spot. Hands come out, `noisePerSetDown` 0.05, the knot cue returns. Not at her feet:
-the table is proven reach and leaves nothing out of place for him to see. Not a
-one-handed untie: that needs a new hands pose four days before freeze, and it erases the
-choice. Picking it up still means something: it costs time and a set-down to undo.
+committed her to the strike. Playtest called that wrong. **A again sets it down.** In
+reach of where she took it, it goes back on the table and nothing's out of place. Anywhere
+else, it goes on the floor beside her (`setDownOffset`), where she can pick it up again.
+Hands come out, `noisePerSetDown` 0.05, the knot cue returns.
+**A bottle on the floor is evidence.** Each look (attention crossing `seenAttention`),
+`strayNoticeChance` 0.4 that he notices: +`suspicionPerStray` 0.65 and a line. That's past
+the tell, so one miss after it sends him in to check. On a check or a catch he puts it back
+on the table. **Bottle in hand = hands out, and it shows:** hands out carries it to her lap,
+LB tucks it behind her back (`heldItemShowsOut`; before, it always sat behind her while
+the guard counted her hands as out). Not a one-handed untie: that needs a new hands pose
+four days before freeze, and it removes the choice.
 
 **Tools are multipliers:** blade ×2.5, point ×1.6, key ×4. The TableEdge reaches the
 wrists only. A held tool works the wrists while she's bound, then the untieable bonds
@@ -289,7 +294,7 @@ lines are the VS ones. A seen catch has its own guard line. The 3rd catch = take
 guard line over black, then the scene reloads.
 
 **Pad map:** left stick bond · RT pull · D-pad untie · LB hide · LT move · A pick
-up / put back / dismiss mutter · X strike · Start restart (Day 214). Keyboard: WASD ·
+up / set down / dismiss mutter · X strike · Start restart (Day 214). Keyboard: WASD ·
 Space · IJKL · G · Shift · E · H · R.
 
 **Open (Day 202):**

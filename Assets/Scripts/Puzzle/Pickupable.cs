@@ -57,6 +57,42 @@ public class Pickupable : InteractableBase
 	// Default tool type is BareHands (i.e. no upgrade). Subclasses override.
 	public virtual ToolType ToolType => ToolType.BareHands;
 
+	// Day 214: where it started. Captured on the first pick-up, before anything moves it, so
+	// no Awake ordering with subclasses. The guard always puts it back here.
+	Vector3 homePos;
+	Quaternion homeRot;
+	bool homeCaptured;
+
+	public Vector3 HomePosition => homeCaptured ? homePos : transform.position;
+	/// <summary>Day 214: still (or back) where it started. True before it's ever been moved.</summary>
+	public bool IsAtHome => !homeCaptured || (transform.position - homePos).sqrMagnitude < 0.0025f;
+
+	void CaptureHome()
+	{
+		if (homeCaptured) return;
+		homeCaptured = true;
+		homePos = transform.position;
+		homeRot = transform.rotation;
+	}
+
+	/// <summary>Day 214: back where it started, world version on, hand copy off.</summary>
+	public void ReturnHome()
+	{
+		if (homeCaptured) transform.SetPositionAndRotation(homePos, homeRot);
+		DropFromPlayer();
+	}
+
+	/// <summary>Day 214: stood upright on the floor at floorPoint (base on the floor).</summary>
+	public void PlaceAt(Vector3 floorPoint)
+	{
+		HideHeldVisual();
+		transform.SetPositionAndRotation(floorPoint, homeCaptured ? homeRot : transform.rotation);
+		gameObject.SetActive(true);
+		Renderer r = GetComponent<Renderer>();
+		if (r == null) r = GetComponentInChildren<Renderer>();
+		if (r != null) transform.position += Vector3.up * (floorPoint.y - r.bounds.min.y);
+	}
+
 	public override void OnPickUp(PlayerController player)
 	{
 		// Floor-access gate. A tool lying on the ground can only be taken when
@@ -102,6 +138,7 @@ public class Pickupable : InteractableBase
 			}
 		}
 
+		CaptureHome();
 		player.HoldItem(this);
 		// Hide the world version while held — the hand copy takes over.
 		if (heldVisual != null) heldVisual.SetActive(true);

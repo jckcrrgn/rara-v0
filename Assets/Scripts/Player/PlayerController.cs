@@ -1050,30 +1050,74 @@ public class PlayerController : MonoBehaviour
 
 	bool strikeLanded;   // Day 214: set on contact. The bottle smashed; it can't go back on the table.
 
+	[Header("Set down (Day 214)")]
+	[Tooltip("Where a set-down lands when she's out of reach of where she took it: local to " +
+		"the player (x right, z forward), dropped to the floor. Tune by eye.")]
+	[SerializeField] private Vector3 setDownOffset = new Vector3(0.4f, 0f, 0.2f);
+
+	Pickupable strayItem;
+	/// <summary>Day 214: something she set down away from where she took it, still lying
+	/// there. The guard may notice it (GuardController.strayNoticeChance).</summary>
+	public Pickupable StrayItem =>
+		strayItem != null && strayItem.gameObject.activeInHierarchy && !strayItem.IsAtHome ? strayItem : null;
+
 	/// <summary>
-	/// Day 214, BondStruggle path. She puts the held item back where she took it — same
-	/// placement as the guard's disarm (ReturnHeldItemToWorld), so reach is already proven
-	/// and nothing is left out of place for him to see. Only within the item's own
-	/// interactionRange of that spot: hop away with it and she has to hop back.
+	/// Day 214, BondStruggle path. A again with something in hand: she sets it down. In
+	/// reach of where she took it, it goes back there (on the table: nothing out of place).
+	/// Anywhere else, it goes on the floor beside her, where he might notice it.
 	/// </summary>
 	void TrySetDown()
 	{
 		if (heldItem == null || struggle == null) return;
 		// Mid-swing, or the bottle's already in pieces: nothing to put back.
 		if (isStriking || strikeLanded) return;
-		float d = Vector3.Distance(transform.position, heldItem.transform.position);
-		if (d > heldItem.InteractionRange)
+
+		Pickupable item = heldItem;
+		heldItem = null;
+		bool home = Vector3.Distance(transform.position, item.HomePosition) <= item.InteractionRange;
+		if (home)
 		{
-			struggle.OnSetDownOutOfReach();
-			return;
+			item.ReturnHome();
+			strayItem = null;
 		}
-		ReturnHeldItemToWorld();
-		struggle.OnItemSetDown();
+		else
+		{
+			item.PlaceAt(FloorPointBeside());
+			strayItem = item;
+		}
+		Debug.Log($"[PlayerController] Set down {item.ItemName} {(home ? "where she found it" : "on the floor")}.");
+		struggle.OnItemSetDown(home);
+	}
+
+	Vector3 FloorPointBeside()
+	{
+		Vector3 p = transform.position + transform.rotation * setDownOffset;
+		Vector3 origin = p + Vector3.up * 1.5f;
+		float floorY = transform.position.y;
+		float best = float.MaxValue;
+		foreach (RaycastHit h in Physics.RaycastAll(origin, Vector3.down, 4f, ~0, QueryTriggerInteraction.Ignore))
+		{
+			if (h.transform.IsChildOf(transform)) continue;   // her, the chair if it's under her
+			if (h.point.y < transform.position.y - 1f) continue;
+			if (h.point.y < best) best = h.point.y;            // lowest = the floor, not a seat or tabletop
+		}
+		if (best < float.MaxValue) floorY = best;
+		return new Vector3(p.x, floorY, p.z);
+	}
+
+	/// <summary>Day 214: the guard puts a stray item back where it came from.</summary>
+	public void ReturnStrayItemHome()
+	{
+		if (StrayItem == null) { strayItem = null; return; }
+		Debug.Log($"[PlayerController] Guard returns {strayItem.ItemName} to where it was.");
+		strayItem.ReturnHome();
+		strayItem = null;
 	}
 
 	public void HoldItem(Pickupable item)
 	{
 		heldItem = item;
+		if (strayItem == item) strayItem = null;
 		Debug.Log($"Picked up {item.ItemName}.");
 		if (struggle != null) struggle.OnItemTaken();   // free hands grabbing = hands out
 	}
@@ -1127,7 +1171,7 @@ public class PlayerController : MonoBehaviour
 	{
 		if (heldItem == null) return;
 		Debug.Log($"[PlayerController] Returning held item to world: {heldItem.ItemName}.");
-		heldItem.DropFromPlayer();
+		heldItem.ReturnHome();   // Day 214: home is cached, since she can now move it
 		heldItem = null;
 	}
 
@@ -1135,6 +1179,7 @@ public class PlayerController : MonoBehaviour
 	/// call — see Pickupable.returnedOnDisarm.
 	public void DisarmHeldItem()
 	{
+		ReturnStrayItemHome();   // Day 214: and the one she left on the floor
 		if (heldItem == null) return;
 		if (heldItem.ReturnedOnDisarm) ReturnHeldItemToWorld();
 		else ConfiscateHeldItem();
