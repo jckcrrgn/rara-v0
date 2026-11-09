@@ -70,6 +70,14 @@ public class BondStruggle : MonoBehaviour
 		[Tooltip("Barehand pull effectiveness. 1 = rope. 0 = needs a tool or key (cuffs).")]
 		public float barehandGain = 1f;
 
+		[Tooltip("Day 213: rope objects shown while this bond is bound. Hidden when it's freed, " +
+			"back on when a catch re-ties it. Empty = no rope. Wrists stay on HideWhenBondBroken.")]
+		public GameObject[] ropes;
+		[Tooltip("Day 213: where the knot sits on the rope (an empty, child of the rope). Set = the " +
+			"hands reach here and the bight cue pins here, instead of anchor midpoint + knotOffset. " +
+			"Empty = computed knot, as before.")]
+		public Transform knotPoint;
+
 		[System.NonSerialized] public bool active;
 		[System.NonSerialized] public float progress;
 		[System.NonSerialized] public float tightness = 1f;
@@ -277,6 +285,7 @@ public class BondStruggle : MonoBehaviour
 	void Update()
 	{
 		Noise = Mathf.Max(0f, Noise - noiseDecay * Time.deltaTime);
+		SyncRopes();
 
 		if (hidingUntil > 0f && Time.time >= hidingUntil)
 		{
@@ -786,6 +795,30 @@ public class BondStruggle : MonoBehaviour
 		if (cam == null || !TryAnchorWorld(i, out Vector3 w)) return bonds[i].dir;
 		Vector3 sp = cam.WorldToScreenPoint(w);
 		return new Vector2(sp.x, sp.y);
+	}
+
+	/// <summary>Day 213: rope shown exactly while its bond is bound. Covers free (untied or
+	/// struggled off), re-tied on a catch, and elbows tied on at the first catch.</summary>
+	void SyncRopes()
+	{
+		foreach (var b in bonds)
+		{
+			if (b.ropes == null) continue;
+			bool show = b.Bound;
+			foreach (var r in b.ropes)
+				if (r != null && r.activeSelf != show) r.SetActive(show);
+		}
+	}
+
+	/// <summary>Day 213: the authored knot on the rope, if the bond has one and it's showing.</summary>
+	public bool TryKnotPoint(int i, out Vector3 world)
+	{
+		world = Vector3.zero;
+		if (i < 0 || i >= bonds.Length) return false;
+		Transform k = bonds[i].knotPoint;
+		if (k == null || !k.gameObject.activeInHierarchy) return false;
+		world = k.position;
+		return true;
 	}
 
 	/// <summary>World position of bond i on her body: the midpoint of its anchor bones.
