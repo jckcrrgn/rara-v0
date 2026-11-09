@@ -619,6 +619,11 @@ Keep lines short. 5–10 words max. No voice acting needed for v0 — text popup
 
 ## Level Structure (12 Levels)
 
+**Day 214: misses need him close.** A miss builds suspicion only within `missNoticeRange`
+2.5 m of her (flat). From the door (~6 m) a miss looks like any other squirm; on the walk in
+and at the lean-in (`leanInStandoff` 1 m) he can tell. Free hands and mashing still read from
+the door. A stray bottle works the same way (`strayNoticeRange`, see Bottle vs. untie).
+
 ### Act 1 — Noir (Levels 1–5)
 **Setting:** Grounded, gritty. Back rooms, storage units, a parked van, a basement office.
 **Tension:** None. Pure puzzle solving. Take your time.

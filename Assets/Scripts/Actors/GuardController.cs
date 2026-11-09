@@ -359,7 +359,8 @@ public class GuardController : MonoBehaviour
 	//   Approaching         footsteps = the telegraph. Attention 0 until the last
 	//                       turnTime seconds, then ramps to 1 (the turn is the tell).
 	//   AtDoor / LeanIn     watching, attention 1. Struggle on the beat all she likes.
-	//                       Misses build suspicion. Free hands out = caught.
+	//                       Misses build suspicion, only within missNoticeRange (Day 214:
+	//                       not from the door). Free hands out = caught.
 	//   Checking            walks in, examines (Day 211). Attention 1.
 	//   Leaving             attention ramps 1 -> 0 over turnAwayTime, then he's
 	//                       listening again on his way out (and can turn back).
@@ -398,6 +399,10 @@ public class GuardController : MonoBehaviour
 	[SerializeField] private float suspicionPerMiss = 0.35f;
 	[Tooltip("Suspicion from a missed pull with a tool engaged (table edge, held blade).")]
 	[SerializeField] private float suspicionPerToolMiss = 0.7f;
+	[Tooltip("Day 214: how close (metres, flat) he has to be to her to read a miss. From the " +
+		"door (~6 m) a miss looks like any other squirm; on the walk in and at the lean-in " +
+		"(leanInStandoff 1 m) he can tell. Free hands and mashing still read from the door.")]
+	[SerializeField] private float missNoticeRange = 2.5f;
 	[Tooltip("Suspicion at which he says the tell line, once per visit.")]
 	[SerializeField] private float suspicionTellAt = 0.5f;
 	[SerializeField] private string[] suspicionTellLines = { "...Hm.", "What are you doing back there?" };
@@ -647,6 +652,16 @@ public class GuardController : MonoBehaviour
 				Taunt();
 				break;
 			case BondStruggle.PullKind.Miss:
+				if (guardBody != null && player != null)
+				{
+					Vector3 d = player.transform.position - guardBody.position;
+					d.y = 0f;
+					if (d.magnitude > missNoticeRange)
+					{
+						Log($"Miss at {d.magnitude:F1} m — too far to tell.");
+						break;
+					}
+				}
 				suspicion = Mathf.Min(1f, suspicion + (tool ? suspicionPerToolMiss : suspicionPerMiss));
 				Log($"Miss in his sight{(tool ? " (tool)" : "")} — suspicion {suspicion:F2}.");
 				if (suspicion >= 1f) { BeginCheck(); break; }
