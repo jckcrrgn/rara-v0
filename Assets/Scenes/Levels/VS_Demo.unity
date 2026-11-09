@@ -2417,6 +2417,18 @@ MonoBehaviour:
   showControlsCard: 1
   showPlayerReadout: 1
   showDebug: 1
+  showKnotCue: 1
+  handsDriver: {fileID: 0}
+  knotCueSize: 0.07
+  knotCueStandOff: 0
+  knotRope: {r: 0.94, g: 0.88, b: 0.74, a: 1}
+  knotOutline: {r: 0.07, g: 0.06, b: 0.05, a: 1}
+  knotHiddenAlpha: 0.45
+  knotPullTime: 0.15
+  knotPullDistance: 0.6
+  knotCinchTime: 0.22
+  knotCinchScale: 0.7
+  knotFumbleTint: {r: 1, g: 0.35, b: 0.3, a: 1}
 --- !u!1 &680010493
 GameObject:
   m_ObjectHideFlags: 0
@@ -3394,6 +3406,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8727927942516596988, guid: 22d31df2335b87a43ab5befae53c9344, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1205098897}
+    - targetCorrespondingSourceObject: {fileID: 8259906762516723408, guid: 22d31df2335b87a43ab5befae53c9344, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7130213003}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 22d31df2335b87a43ab5befae53c9344, type: 3}
       insertIndex: 1
@@ -5305,6 +5320,26 @@ MonoBehaviour:
   - Hm?
   - You say something?
   - Quiet in there.
+  suspicionPerMiss: 0.35
+  suspicionPerToolMiss: 0.7
+  suspicionTellAt: 0.5
+  suspicionTellLines:
+  - ...Hm.
+  - What are you doing back there?
+  checkEvidence: 0.5
+  checkDuration: 1.2
+  cinchSetback: 0.15
+  checkClearLines:
+  - Still tight.
+  - Not going anywhere.
+  caughtCheckGuardLine: Thought so. Let's tighten these.
+  tauntLines:
+  - Putting on a show? Nobody can hear you.
+  - Go on. Wear yourself out.
+  - Nobody's coming.
+  tauntCooldown: 4
+  tauntLinger: 2
+  maxLingerPerVisit: 6
   caughtSeenGuardLine: Busy hands. Let's fix that.
   escalationCassieReaction: My ELBOWS? Really?
   takenGuardLine: Enough. You're coming with me.
@@ -6757,6 +6792,8 @@ MonoBehaviour:
     untieable: 0
     envToolsReach: 0
     barehandGain: 1
+    ropes: []
+    knotPoint: {fileID: 0}
   - name: Wrists
     dir: {x: 0, y: -1}
     anchors: 
@@ -6766,6 +6803,8 @@ MonoBehaviour:
     untieable: 0
     envToolsReach: 1
     barehandGain: 1
+    ropes: []
+    knotPoint: {fileID: 0}
   - name: Ankles
     dir: {x: -1, y: 0}
     anchors: 
@@ -6775,10 +6814,15 @@ MonoBehaviour:
     untieable: 1
     envToolsReach: 0
     barehandGain: 1
+    ropes:
+    - {fileID: 7130213002}
+    knotPoint: {fileID: 0}
   beatInterval: 0.7
   goodWindow: 0.6
   gainPerPull: 0.08
   spamGap: 0.25
+  boutMode: 1
+  boutTimeoutBeats: 2
   noisePerPull: 0.05
   noisePerMiss: 0.08
   noisePerSpam: 0.25
@@ -8592,6 +8636,98 @@ Transform:
   - {fileID: 1600075688}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &7130213001
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 7130213004}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1.0707
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.2895945
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.0707
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.019999996
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.386001
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.0089996755
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.12155695
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.065790825
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.73242813
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.66666675
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: -83.009
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 132.075
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 32.671
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+      propertyPath: m_CastShadows
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: c7a85393ea2c93f4b96624b5d858721c, type: 2}
+    - target: {fileID: 919132149155446097, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+      propertyPath: m_Name
+      value: Rope_Ankles
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+--- !u!1 &7130213002 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+  m_PrefabInstance: {fileID: 7130213001}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &7130213003 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 3511f0ec1b486d846a08d39c42fc3a57, type: 3}
+  m_PrefabInstance: {fileID: 7130213001}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &7130213004 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8259906762516723408, guid: 22d31df2335b87a43ab5befae53c9344, type: 3}
+  m_PrefabInstance: {fileID: 979654068}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &8205259987904620297
 PrefabInstance:
   m_ObjectHideFlags: 0
