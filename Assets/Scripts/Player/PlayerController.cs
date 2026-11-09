@@ -89,6 +89,13 @@ public class PlayerController : MonoBehaviour
 		"is 0.8m; the small buffer is what gives the brief mid-walk strike window.")]
 	[SerializeField] private float strikeRange = 1.2f;
 
+	[Tooltip("Day 213: Cassie's line when X is pressed with the bottle but her elbows are tied. " +
+		"Background bubble: never blocks, drops if her panel is busy.")]
+	[SerializeField] private string elbowsStrikeLine = "Not with my elbows tied.";
+	[Tooltip("Seconds before the elbows line can play again. Stops a mashed X from spamming it.")]
+	[SerializeField] private float elbowsLineCooldown = 4f;
+	private float nextElbowsLine;
+
 	[Header("Restraint")]
 	[SerializeField] private RestraintBase currentRestraint;
 
@@ -341,6 +348,18 @@ public class PlayerController : MonoBehaviour
 			}
 			TryStrike();
 			return;
+		}
+
+		// Day 213: X with the bottle up but elbows tied. TryStrike never runs (CanStrikeNow
+		// is false), so say why here. Above the mutter gate: the guard's gloat is exactly
+		// when she'll try it.
+		if ((Input.GetKeyDown(KeyCode.H) || RaraInput.Read().strike) && ElbowsBlockStrike
+			&& wristsFree && heldItem != null && heldItem.IsWeapon && Time.time >= nextElbowsLine
+			&& MutterSystem.Instance != null)
+		{
+			if (MutterSystem.Instance.Play(elbowsStrikeLine, MutterSystem.Speaker.Cassie,
+				MutterSystem.MutterMode.Background))
+				nextElbowsLine = Time.time + elbowsLineCooldown;
 		}
 
 		// While a mutter is showing, world is paused — no movement, no verbs.
