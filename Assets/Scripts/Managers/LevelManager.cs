@@ -75,6 +75,14 @@ public class LevelManager : MonoBehaviour
 		isLevelComplete = true;
 		Debug.Log(isFinalLevel ? "Game Complete!" : "Level Complete!");
 
+		// Day 215: a scene with an EndCard (VS_Demo) ends on it instead of the panel.
+		// It disables the player itself; no auto-advance. Start / R still restarts.
+		if (EndCard.Instance != null)
+		{
+			EndCard.Instance.ShowForLevelComplete();
+			return;
+		}
+
 		// Pick which panel to show.
 		GameObject panel = (isFinalLevel && gameCompleteUI != null) ? gameCompleteUI : levelCompleteUI;
 		if (panel != null) panel.SetActive(true);

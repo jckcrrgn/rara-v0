@@ -880,6 +880,13 @@ public class GuardController : MonoBehaviour
 
 		yield return new WaitForSeconds(takenHoldTime);
 
+		// Day 215: the end card, over the black. Start / R plays again (LevelManager).
+		if (EndCard.Instance != null)
+		{
+			EndCard.Instance.Show(EndCard.Outcome.Taken);
+			yield break;
+		}
+
 		// Loss. Somewhere worse is a later build; for now, from the top.
 		var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
 		UnityEngine.SceneManagement.SceneManager.LoadScene(scene.name);

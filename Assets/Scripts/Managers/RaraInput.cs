@@ -14,6 +14,7 @@
 //   A            pick up / set down (Day 214) · dismiss mutter
 //   X            strike
 //   Start        restart (LevelManager, Day 214)
+//   Y            end card: open the owned channel (Day 215)
 //
 // SETUP
 //   Input System package installed (Active Input Handling = Both): nothing to do.
@@ -42,6 +43,7 @@ public static class RaraInput
 		public bool interactHeld;  // A held (mutter release gate)
 		public bool strike;        // X pressed this frame
 		public bool restart;       // Start pressed this frame
+		public bool secondary;     // Y pressed this frame (Day 215: end card channel link)
 	}
 
 	const float TriggerPress = 0.6f;
@@ -82,6 +84,7 @@ public static class RaraInput
 		p.interactHeld = gp.buttonSouth.isPressed;
 		p.strike = gp.buttonWest.wasPressedThisFrame;
 		p.restart = gp.startButton.wasPressedThisFrame;
+		p.secondary = gp.buttonNorth.wasPressedThisFrame;
 #else
 		if (!axesChecked)
 		{
@@ -107,6 +110,7 @@ public static class RaraInput
 		p.strike = Input.GetKeyDown(KeyCode.JoystickButton2);      // X
 		p.hide = Input.GetKeyDown(KeyCode.JoystickButton4);        // LB
 		p.restart = Input.GetKeyDown(KeyCode.JoystickButton7);     // Start
+		p.secondary = Input.GetKeyDown(KeyCode.JoystickButton3);   // Y
 #endif
 		return p;
 	}
