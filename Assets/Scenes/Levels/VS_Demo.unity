@@ -3462,16 +3462,17 @@ MonoBehaviour:
   sustain: 0.8
   attack: 0.15
   cyclePeriod: 1.2
-  leanPitch: 13
-  torsoTwist: 8
-  headTwist: 5
+  leanPitch: 16
+  torsoTwist: 16
+  headTwist: 10
   wristTwistAxis: {x: 0, y: 1, z: 0}
   wristTwistAmplitude: 15
   struggle: {fileID: 0}
-  idleIntensity: 0.4
+  idleIntensity: 0.7
   swayShape: 1
   beatSharpness: 0.6
-  beatShape: 2
+  beatShape: 2.5
+  beatSurge: 0.6
   bondLook: 1
   lookWrists:
     head: {x: 15, y: 35, z: 0}
@@ -4665,6 +4666,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1166659433}
+  - component: {fileID: 1215000021}
   m_Layer: 0
   m_Name: MutterAnchor
   m_TagString: Untagged
@@ -9124,6 +9126,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1215000012}
+  - component: {fileID: 1215000013}
   m_Layer: 0
   m_Name: GuardMutterAnchor
   m_TagString: Untagged
@@ -9146,6 +9149,36 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1299264755}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1215000021
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1166659432}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b826d87f500b4c55be3e7c94b4027206, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  character: {fileID: 0}
+  lift: 0.08
+  headBoneToTop: 0.2
+--- !u!114 &1215000013
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1215000011}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b826d87f500b4c55be3e7c94b4027206, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  character: {fileID: 0}
+  lift: 0.08
+  headBoneToTop: 0.2
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -156,6 +156,11 @@ public class CassieStruggleDriver : CassieRigLayer
 	[Range(1f, 3f)]
 	[SerializeField] private float beatShape = 2f;
 
+	[Tooltip("Day 215: share of the forward lean that comes and goes with each beat — she " +
+		"heaves into every pulse. 0.25 = the old subtle surge; 1 = the lean is all beat.")]
+	[Range(0f, 1f)]
+	[SerializeField] private float beatSurge = 0.25f;
+
 	[System.Serializable]
 	public struct LookPose
 	{
@@ -331,7 +336,7 @@ public class CassieStruggleDriver : CassieRigLayer
 		// Torso: forward lean held for the duration of the effort (unipolar, with a
 		// small surge at each twist peak) plus a side-to-side search twist. Chest adds
 		// a fraction so it's a whole-upper-body strain, not a hinge at the waist.
-		float lean = leanPitch * _intensity * (0.75f + 0.25f * Mathf.Abs(w));
+		float lean = leanPitch * _intensity * (1f - beatSurge + beatSurge * Mathf.Abs(w));
 		float twist = torsoTwist * w * _intensity;
 		AddLocalEuler(HumanBodyBones.Spine, lean,        twist,        0f);
 		AddLocalEuler(HumanBodyBones.Chest, lean * 0.5f, twist * 0.5f, 0f);
