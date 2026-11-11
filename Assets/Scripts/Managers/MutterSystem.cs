@@ -478,7 +478,7 @@ public class MutterSystem : MonoBehaviour
 	}
 
 	/// <summary>
-	/// Day 215: box off, halo on. Uses a material copy per text (not the font's shared
+	/// Day 215: box off, halo on, text centred above the speaker's anchor. Uses a material copy per text (not the font's shared
 	/// material), so other text using the font is untouched.
 	/// </summary>
 	void MakeFloating(GameObject root, TMP_Text text)
@@ -487,8 +487,16 @@ public class MutterSystem : MonoBehaviour
 		{
 			var box = root.GetComponent<Image>();
 			if (box != null) box.enabled = false;
+
+			// Hang from the speaker: bottom-centre on the world anchor, lines stack upward.
+			if (root.transform is RectTransform rt) rt.pivot = new Vector2(0.5f, 0f);
+			var layout = root.GetComponent<HorizontalOrVerticalLayoutGroup>();
+			if (layout != null) layout.childAlignment = TextAnchor.LowerCenter;
 		}
-		if (text == null || text.fontSharedMaterial == null) return;
+		if (text == null) return;
+		text.horizontalAlignment = HorizontalAlignmentOptions.Center;
+		text.verticalAlignment = VerticalAlignmentOptions.Bottom;
+		if (text.fontSharedMaterial == null) return;
 
 		var mat = new Material(text.fontSharedMaterial) { name = text.fontSharedMaterial.name + " (Floating)" };
 		mat.EnableKeyword(ShaderUtilities.Keyword_Underlay);
