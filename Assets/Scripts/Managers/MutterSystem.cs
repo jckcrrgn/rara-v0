@@ -404,6 +404,7 @@ public class MutterSystem : MonoBehaviour
 	private GameObject activeRoot;
 	private TMP_Text activeText;
 	private Transform activeWorldAnchor;
+	private Vector2 activeLineSize;       // Day 216: the full line's size, for the screen clamp
 
 	// Background mutter state. Runs in parallel to the blocking pipeline above
 	// (different state vars, different coroutine, different panel — guard's
@@ -417,6 +418,7 @@ public class MutterSystem : MonoBehaviour
 	private GameObject backgroundActiveRoot;
 	private TMP_Text backgroundActiveText;
 	private Transform backgroundActiveWorldAnchor;
+	private Vector2 backgroundLineSize;
 
 	/// <summary>
 	/// True if a mutter is currently showing (either revealing characters or waiting
@@ -760,6 +762,7 @@ public class MutterSystem : MonoBehaviour
 
 		activeRoot.SetActive(true);
 		activeText.text = "";
+		activeLineSize = LineSize(activeRoot, activeText, content);
 
 		// Apply per-speaker text color if configured. Cassie's entry leaves
 		// overrideTextColor=false, so her mutters inherit whatever color
@@ -884,6 +887,7 @@ public class MutterSystem : MonoBehaviour
 
 		root.SetActive(true);
 		text.text = "";
+		backgroundLineSize = LineSize(root, text, content);
 
 		if (config != null && config.overrideTextColor)
 		{
@@ -1122,9 +1126,27 @@ public class MutterSystem : MonoBehaviour
 		Camera cam = anchorCamera != null ? anchorCamera : Camera.main;
 		if (cam == null) return;
 
-		TrackPanelToAnchor(activeRoot, activeWorldAnchor, cam);
-		TrackPanelToAnchor(backgroundActiveRoot, backgroundActiveWorldAnchor, cam);
+		TrackPanelToAnchor(activeRoot, activeWorldAnchor, cam, activeLineSize);
+		TrackPanelToAnchor(backgroundActiveRoot, backgroundActiveWorldAnchor, cam, backgroundLineSize);
 	}
+
+	/// <summary>
+	/// Day 216: how big the whole line will be once typed out (wrapped to the panel's
+	/// width), in the panel's own units. Measured once per line so the clamp doesn't
+	/// creep while the letters come in.
+	/// </summary>
+	private static Vector2 LineSize(GameObject root, TMP_Text text, string content)
+	{
+		RectTransform rt = root != null ? root.transform as RectTransform : null;
+		if (rt == null || text == null || string.IsNullOrEmpty(content)) return Vector2.zero;
+		float maxW = rt.rect.width;
+		if (maxW <= 0f) return Vector2.zero;
+		Vector2 p = text.GetPreferredValues(content, maxW, 0f);
+		return new Vector2(Mathf.Min(p.x, maxW), p.y);
+	}
+
+	private static float ClampInside(float v, float min, float max) =>
+		min > max ? (min + max) * 0.5f : Mathf.Clamp(v, min, max);
 
 	/// <summary>
 	/// Project a world anchor to screen space and apply to the panel's
@@ -1132,7 +1154,7 @@ public class MutterSystem : MonoBehaviour
 	/// canvas (direct screen-coord assignment); Camera/World canvas would
 	/// need a conversion. L6 uses Overlay.
 	/// </summary>
-	private void TrackPanelToAnchor(GameObject root, Transform anchor, Camera cam)
+	private void TrackPanelToAnchor(GameObject root, Transform anchor, Camera cam, Vector2 lineSize)
 	{
 		if (anchor == null || root == null) return;
 		RectTransform rt = root.transform as RectTransform;
@@ -1140,11 +1162,27 @@ public class MutterSystem : MonoBehaviour
 		Vector3 sp = cam.WorldToScreenPoint(anchor.position);
 		if (bubbleMode)
 		{
-			// Behind the camera: hold the last on-screen position.
-			if (sp.z < 0f) return;
+			// Behind the camera the projection is mirrored. Un-mirror it and send the
+			// text to the edge on his side, so an offscreen speaker still reads. (Day 216;
+			// it used to hold its last position, which could be off screen.)
+			if (sp.z < 0f)
+			{
+				sp.x = (Screen.width - sp.x) < Screen.width * 0.5f ? float.MinValue : float.MaxValue;
+				sp.y = Screen.height - sp.y;
+			}
+
+			// Day 216: keep the WHOLE line on screen, not just the point it hangs from.
+			// Floating text is centred on the anchor and stacks upward from it, so the
+			// old point clamp let most of a line run past the edge.
+			Vector2 size = floatingText && lineSize.x > 0f ? lineSize : rt.rect.size;
+			Vector3 scale = rt.lossyScale;
+			float left = size.x * rt.pivot.x * scale.x;
+			float right = size.x * (1f - rt.pivot.x) * scale.x;
+			float down = size.y * rt.pivot.y * scale.y;
+			float up = size.y * (1f - rt.pivot.y) * scale.y;
 			float m = bubbleEdgeMargin;
-			sp.x = Mathf.Clamp(sp.x, m, Screen.width - m);
-			sp.y = Mathf.Clamp(sp.y, m, Screen.height - m);
+			sp.x = ClampInside(sp.x, m + left, Screen.width - m - right);
+			sp.y = ClampInside(sp.y, m + down, Screen.height - m - up);
 		}
 		rt.position = sp;
 	}
