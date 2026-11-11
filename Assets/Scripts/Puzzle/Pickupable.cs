@@ -39,6 +39,20 @@ public class Pickupable : InteractableBase
 	"and the strike's contact is a callback, not a physical hit.")]
 	[SerializeField] private GameObject heldVisual;
 
+	[Header("Set down on the floor (Day 216)")]
+	[Tooltip("Off = once she sets it on the floor (PlaceAt), she can't pick it back up from " +
+		"the chair. Dropping it is a commitment: hands free for the knots, weapon gone. " +
+		"Back on the table (home), it's reachable again.")]
+	[SerializeField] private bool reachableOnFloor = false;
+	[SerializeField] private string cantReachLine = "Can't... reach";
+	[SerializeField] private float cantReachCooldown = 4f;
+
+	bool onFloor;
+	float nextCantReach;
+
+	/// <summary>Day 216: she set it on the floor and it hasn't been put back.</summary>
+	public bool IsOnFloor => onFloor;
+
 	[Tooltip("On a caught failure, does the guard put this back where he found it?\n\n" +
 	"Set TRUE when the item is the level's ONLY route to the solve — the VS " +
 	"bottle, where confiscation would leave the slice unsolvable.\n\n" +
@@ -80,6 +94,7 @@ public class Pickupable : InteractableBase
 	{
 		if (homeCaptured) transform.SetPositionAndRotation(homePos, homeRot);
 		DropFromPlayer();
+		onFloor = false;
 		SetPassThrough(passThroughFor, false);   // Day 216: solid again once it's back in place
 	}
 
@@ -94,6 +109,7 @@ public class Pickupable : InteractableBase
 		Renderer r = GetComponent<Renderer>();
 		if (r == null) r = GetComponentInChildren<Renderer>();
 		if (r != null) transform.position += Vector3.up * (floorPoint.y - r.bounds.min.y);
+		onFloor = true;
 		SetPassThrough(setDownBy, true);
 	}
 
@@ -115,6 +131,18 @@ public class Pickupable : InteractableBase
 
 	public override void OnPickUp(PlayerController player)
 	{
+		// Day 216: set on the floor behind her, it's out of reach from the chair.
+		if (onFloor && !reachableOnFloor)
+		{
+			Debug.Log($"Pickupable ({itemName}): on the floor — she can't reach it.");
+			if (!string.IsNullOrEmpty(cantReachLine) && Time.time >= nextCantReach
+				&& MutterSystem.Instance != null
+				&& MutterSystem.Instance.Play(cantReachLine, MutterSystem.Speaker.Cassie,
+					MutterSystem.MutterMode.Background))
+				nextCantReach = Time.time + cantReachCooldown;
+			return;
+		}
+
 		// Floor-access gate. A tool lying on the ground can only be taken when
 		// Cassie is both (1) down on the floor and (2) has her bound hands over
 		// it. Mirrors how Drawer.OnPickUp self-gates: check, bail with a cue if

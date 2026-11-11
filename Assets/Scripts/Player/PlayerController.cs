@@ -1054,8 +1054,9 @@ public class PlayerController : MonoBehaviour
 
 	[Header("Set down (Day 214)")]
 	[Tooltip("Where a set-down lands when she's out of reach of where she took it: local to " +
-		"the player (x right, z forward), dropped to the floor. Tune by eye.")]
-	[SerializeField] private Vector3 setDownOffset = new Vector3(0.4f, 0f, 0.2f);
+		"the player (x right, z forward), dropped to the floor. Day 216: behind her, where her " +
+		"bound hands are (was 0.4, 0, 0.2: beside her). Tune by eye.")]
+	[SerializeField] private Vector3 setDownOffset = new Vector3(0f, 0f, -0.55f);
 
 	Pickupable strayItem;
 	/// <summary>Day 214: something she set down away from where she took it, still lying
@@ -1066,7 +1067,8 @@ public class PlayerController : MonoBehaviour
 	/// <summary>
 	/// Day 214, BondStruggle path. A again with something in hand: she sets it down. In
 	/// reach of where she took it, it goes back there (on the table: nothing out of place).
-	/// Anywhere else, it goes on the floor beside her, where he might notice it.
+	/// Anywhere else, it goes on the floor behind her, where he might notice it.
+	/// Day 216: and from the floor she can't get it back (Pickupable.reachableOnFloor).
 	/// </summary>
 	void TrySetDown()
 	{
