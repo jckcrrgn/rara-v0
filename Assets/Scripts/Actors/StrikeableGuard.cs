@@ -114,6 +114,9 @@ public class StrikeableGuard : MonoBehaviour
 	// Re-entry guard. Once struck, the guard is going down.
 	private bool hasBeenStruck = false;
 
+	/// <summary>Day 216: read by GuardIdleSway so the sway cuts the instant he's hit.</summary>
+	public bool IsStruck => hasBeenStruck;
+
 	/// <summary>
 	/// Gate checked by PlayerController.TryStrike() before doing anything.
 	/// True only when the guard is in LeanIn AND hasn't already been struck.
