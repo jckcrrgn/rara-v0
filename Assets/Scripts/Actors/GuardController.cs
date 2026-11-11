@@ -1212,6 +1212,12 @@ public class GuardController : MonoBehaviour
 		yield return new WaitUntil(() =>
 			MutterSystem.Instance == null || MutterSystem.Instance.WasJustDismissed);
 
+		// Snap the guard back offstage while the screen is still black, so he isn't
+		// seen popping from the door after fade-in. After his line (Day 216), so the
+		// line reads from where he caught her, not from the hall.
+		if (guardBody != null && offstageAnchor != null)
+			guardBody.position = OnFloor(offstageAnchor.position);
+
 		// Step 7: Fade in.
 		yield return FadeOverlay(1f, 0f, caughtFadeDuration);
 
@@ -1287,11 +1293,8 @@ public class GuardController : MonoBehaviour
 		// Scene-specific resets.
 		onCaughtReset?.Invoke();
 
-		// Snap the guard back offstage while the screen is black, so he isn't
-		// seen popping from the door after fade-in. OffstagePhase will also
-		// place him there, but doing it under the fade avoids the visible pop.
-		if (guardBody != null && offstageAnchor != null)
-			guardBody.position = OnFloor(offstageAnchor.position);
+		// Day 216: the snap offstage moved to CaughtPhase, after his line. His floating
+		// text hangs over his head, so snapping here sent the caught line to the hall.
 	}
 
 	// -------------------------------------------------------------------------
