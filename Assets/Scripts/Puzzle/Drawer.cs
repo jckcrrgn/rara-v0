@@ -112,6 +112,8 @@ public class Drawer : InteractableBase
 	// Note: "OnPickUp" is the player-facing verb (press E), not literally
 	// "pick up." Future refactor candidate: rename to OnInteract on
 	// InteractableBase. Not blocking.
+	public override bool AcceptsPickUp => requireBackFacing;   // Day 216: bump-only drawers ignore A
+
 	public override void OnPickUp(PlayerController player)
 	{
 		if (!requireBackFacing) return;

@@ -1859,7 +1859,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8080a4b026991ab41ae4933e347ce736, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  interactionRange: 1.5
+  interactionRange: 1
   itemName: Bottle
   requiresFloorAccess: 0
   grabRadius: 0.35

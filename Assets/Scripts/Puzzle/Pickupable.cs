@@ -93,6 +93,8 @@ public class Pickupable : InteractableBase
 		if (r != null) transform.position += Vector3.up * (floorPoint.y - r.bounds.min.y);
 	}
 
+	public override bool AcceptsPickUp => true;
+
 	public override void OnPickUp(PlayerController player)
 	{
 		// Floor-access gate. A tool lying on the ground can only be taken when

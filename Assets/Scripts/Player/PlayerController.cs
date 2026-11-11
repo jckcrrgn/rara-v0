@@ -1032,7 +1032,9 @@ public class PlayerController : MonoBehaviour
 			return;
 		}
 
-		InteractableBase nearby = FindNearestInteractable();
+		// Day 216: only things the press acts on compete. The table edge and the VS drawer
+		// were winning "nearest" when she sat right against the table, and did nothing.
+		InteractableBase nearby = FindNearestInteractable(i => i.AcceptsPickUp);
 		if (nearby == null)
 		{
 			Debug.Log("Nothing to interact with here.");
@@ -1185,7 +1187,7 @@ public class PlayerController : MonoBehaviour
 		else ConfiscateHeldItem();
 	}
 
-	InteractableBase FindNearestInteractable()
+	InteractableBase FindNearestInteractable(System.Predicate<InteractableBase> accepts = null)
 	{
 		// Broadphase: gather everything within the global interaction sweep.
 		// interactionCheckRadius is a generous upper bound; the per-instance
@@ -1200,6 +1202,7 @@ public class PlayerController : MonoBehaviour
 			InteractableBase interactable = hit.GetComponent<InteractableBase>();
 			if (interactable == null) continue;
 			if (!interactable.gameObject.activeInHierarchy) continue;
+			if (accepts != null && !accepts(interactable)) continue;
 
 			float dist = Vector3.Distance(transform.position, hit.transform.position);
 
