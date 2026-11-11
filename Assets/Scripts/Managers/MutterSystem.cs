@@ -304,6 +304,18 @@ public class MutterSystem : MonoBehaviour
 		"the screen edge.")]
 	[SerializeField] private float bubbleEdgeMargin = 40f;
 
+	[Header("Floating text (Day 215)")]
+	[Tooltip("No box. Hides each mutter panel's background Image and gives the text a " +
+		"soft dark halo (TMP underlay) so it reads over the room.")]
+	[SerializeField] private bool floatingText = true;
+	[SerializeField] private Color haloColor = new Color(0f, 0f, 0f, 0.85f);
+	[Tooltip("How far the halo spreads past the letters.")]
+	[Range(0f, 1f)] [SerializeField] private float haloDilate = 0.4f;
+	[Tooltip("0 = hard edge, 1 = soft glow.")]
+	[Range(0f, 1f)] [SerializeField] private float haloSoftness = 0.6f;
+	[Tooltip("Halo offset in font units (-1..1). Small down-right reads as a drop shadow.")]
+	[SerializeField] private Vector2 haloOffset = new Vector2(0.3f, -0.3f);
+
 	[Header("Audio")]
 	[Tooltip("Per-speaker configuration. Index of this array maps 1:1 to the " +
 		"Speaker enum order — element 0 is Cassie, element 1 is Guard, etc. " +
@@ -455,6 +467,38 @@ public class MutterSystem : MonoBehaviour
 				}
 			}
 		}
+
+		if (floatingText)
+		{
+			MakeFloating(mutterRoot, mutterText);
+			if (speakerConfigs != null)
+				foreach (var cfg in speakerConfigs)
+					if (cfg != null) MakeFloating(cfg.mutterRootOverride, cfg.mutterTextOverride);
+		}
+	}
+
+	/// <summary>
+	/// Day 215: box off, halo on. Uses a material copy per text (not the font's shared
+	/// material), so other text using the font is untouched.
+	/// </summary>
+	void MakeFloating(GameObject root, TMP_Text text)
+	{
+		if (root != null)
+		{
+			var box = root.GetComponent<Image>();
+			if (box != null) box.enabled = false;
+		}
+		if (text == null || text.fontSharedMaterial == null) return;
+
+		var mat = new Material(text.fontSharedMaterial) { name = text.fontSharedMaterial.name + " (Floating)" };
+		mat.EnableKeyword(ShaderUtilities.Keyword_Underlay);
+		mat.SetColor(ShaderUtilities.ID_UnderlayColor, haloColor);
+		mat.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, haloOffset.x);
+		mat.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, haloOffset.y);
+		mat.SetFloat(ShaderUtilities.ID_UnderlayDilate, haloDilate);
+		mat.SetFloat(ShaderUtilities.ID_UnderlaySoftness, haloSoftness);
+		text.fontSharedMaterial = mat;
+		text.UpdateMeshPadding();
 	}
 
 	void OnDestroy()
