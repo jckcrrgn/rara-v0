@@ -1,5 +1,8 @@
 // GuardIdleSway.cs — Rara Day 216. The guard is one unrigged mesh, so while he stands
-// watching he was stock still. This gives him a weight shift, a slight rock and a breath.
+// watching he was stock still. This gives him a slow weight shift and a breath.
+// Day 216 tune: 1.5 deg roll + 0.6 deg rock read seasick / drunk. Two axes on different
+// periods trace a wandering loop; one axis reads as a man shifting his weight. Rock kept
+// as an option at 0.
 //
 // Moves ONLY his model children (Guard_D133, Guard_D133_Lean): local rotation, scale and
 // the position offset that keeps his feet planted. Never the Guard transform itself:
@@ -23,16 +26,16 @@ public class GuardIdleSway : MonoBehaviour
 	public Transform[] models;
 
 	[Header("Weight shift (side to side)")]
-	public float rollDegrees = 1.5f;
+	public float rollDegrees = 0.5f;
 	public float rollPeriod = 4.3f;
 
 	[Header("Rock (forward / back)")]
-	public float pitchDegrees = 0.6f;
+	public float pitchDegrees = 0f;
 	public float pitchPeriod = 3.1f;
 
 	[Header("Breath (taller)")]
-	[Tooltip("0.01 = 1% taller at the top of the breath.")]
-	public float breath = 0.01f;
+	[Tooltip("0.005 = 0.5% taller at the top of the breath.")]
+	public float breath = 0.005f;
 	public float breathPeriod = 3.7f;
 
 	[Header("Gating")]
