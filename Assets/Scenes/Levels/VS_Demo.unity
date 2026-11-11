@@ -364,8 +364,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Strike (H)
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: d964c4079f7301d4cb8558997e01fa7b, type: 2}
+  m_sharedMaterial: {fileID: -3092504308094508657, guid: d964c4079f7301d4cb8558997e01fa7b, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1476,8 +1476,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: New Text
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: d964c4079f7301d4cb8558997e01fa7b, type: 2}
+  m_sharedMaterial: {fileID: -3092504308094508657, guid: d964c4079f7301d4cb8558997e01fa7b, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3624,6 +3624,7 @@ MonoBehaviour:
   workTime: 0.16
   fumbleShare: 0.4
   debugForceReach: 0
+  heldItemShowsOut: 1
 --- !u!1 &1007953695
 GameObject:
   m_ObjectHideFlags: 0
@@ -3797,6 +3798,30 @@ PrefabInstance:
     - target: {fileID: 3381840566022192056, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 230.62
+      objectReference: {fileID: 0}
+    - target: {fileID: 3893670613807947680, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: d964c4079f7301d4cb8558997e01fa7b, type: 2}
+    - target: {fileID: 3893670613807947680, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: -3092504308094508657, guid: d964c4079f7301d4cb8558997e01fa7b, type: 2}
+    - target: {fileID: 3893670613807947680, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
+      propertyPath: m_hasFontAssetChanged
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3979840843233017950, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: d964c4079f7301d4cb8558997e01fa7b, type: 2}
+    - target: {fileID: 3979840843233017950, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: -3092504308094508657, guid: d964c4079f7301d4cb8558997e01fa7b, type: 2}
+    - target: {fileID: 3979840843233017950, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
+      propertyPath: m_hasFontAssetChanged
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4667780769057533110, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
       propertyPath: m_LocalPosition.x
@@ -4866,6 +4891,69 @@ Transform:
   - {fileID: 1837236014}
   m_Father: {fileID: 1790634289}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: -84.625}
+--- !u!1 &1215000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1215000002}
+  - component: {fileID: 1215000003}
+  m_Layer: 0
+  m_Name: EndCard
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1215000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1215000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1215000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1215000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7acac807fcc6483986ee26f1feba9185, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  itchUrl: https://jckcrrgn.itch.io/cassie-conroy
+  channelUrl: 
+  channelLabel: Discord
+  slippedOutTitle: SLIPPED OUT
+  slippedOutLine: Gone before he thought to look.
+  strikeTitle: LIGHTS OUT
+  strikeLine: He was watching the wrong thing.
+  takenTitle: TAKEN
+  takenLine: He's moving her somewhere worse.
+  thanksLine: Thanks for playing the demo.
+  linksHeader: FOLLOW THE BUILD
+  font: {fileID: 0}
+  titleColor: {r: 1, g: 1, b: 1, a: 1}
+  takenTitleColor: {r: 0.82, g: 0.22, b: 0.2, a: 1}
+  bodyColor: {r: 0.85, g: 0.85, b: 0.85, a: 1}
+  dimColor: {r: 0.55, g: 0.55, b: 0.55, a: 1}
+  backdropAlpha: 0.9
+  fadeIn: 0.8
+  armDelay: 1.5
 --- !u!1 &1264245222
 GameObject:
   m_ObjectHideFlags: 0
@@ -5322,10 +5410,17 @@ MonoBehaviour:
   - Quiet in there.
   suspicionPerMiss: 0.35
   suspicionPerToolMiss: 0.7
+  missNoticeRange: 2.5
   suspicionTellAt: 0.5
   suspicionTellLines:
   - ...Hm.
   - What are you doing back there?
+  strayNoticeChance: 0.4
+  strayNoticeRange: 2
+  suspicionPerStray: 0.65
+  strayNoticeLines:
+  - ...Was that bottle on the floor before?
+  - Where'd that come from?
   checkEvidence: 0.5
   checkDuration: 1.2
   cinchSetback: 0.15
@@ -5921,8 +6016,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Holding: nothing'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: d964c4079f7301d4cb8558997e01fa7b, type: 2}
+  m_sharedMaterial: {fileID: -3092504308094508657, guid: d964c4079f7301d4cb8558997e01fa7b, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -6833,6 +6928,7 @@ MonoBehaviour:
   untieGain: 0.1
   noisePerUntie: 0.01
   noisePerFumble: 0.1
+  noisePerSetDown: 0.05
   handsBackTime: 0.4
   bladeMult: 2.5
   pointMult: 1.6
@@ -6844,7 +6940,7 @@ MonoBehaviour:
   slippedOutLine: Rookie knots.
   logTiming: 1
   hitClip: {fileID: 8300000, guid: d7e95b08ddc82b8469204d874282cce1, type: 3}
-  missClip: {fileID: 8300000, guid: c64dd3cab3e434a4ab777e0a44e25435, type: 3}
+  missClip: {fileID: 8300000, guid: ea76216119c12154686919a900143d4c, type: 3}
   spamClip: {fileID: 0}
   hitVolume: 0.8
   missVolume: 0.7
@@ -7554,7 +7650,7 @@ MonoBehaviour:
 
     Press R to restart'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: d964c4079f7301d4cb8558997e01fa7b, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
@@ -7620,7 +7716,7 @@ MonoBehaviour:
   m_margin: {x: 0, y: 0, z: 0, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 0
+  m_hasFontAssetChanged: 1
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &1885306890
@@ -8888,7 +8984,7 @@ PrefabInstance:
       addedObject: {fileID: 1166659433}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 2795448765098500059, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
-      insertIndex: -1
+      insertIndex: 6
       addedObject: {fileID: 1652804368}
   m_SourcePrefab: {fileID: 100100000, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
 --- !u!4 &8205259987904620298 stripped
@@ -8996,53 +9092,6 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 1735608664}
   m_SourcePrefab: {fileID: 100100000, guid: 046ff1e148847414782d65dd2597ab51, type: 3}
---- !u!1 &1215000001
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1215000002}
-  - component: {fileID: 1215000003}
-  m_Layer: 0
-  m_Name: EndCard
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1215000002
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1215000001}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1215000003
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1215000001}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7acac807fcc6483986ee26f1feba9185, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  itchUrl: https://jckcrrgn.itch.io/cassie-conroy
-  channelUrl: 
-  channelLabel: Discord
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
