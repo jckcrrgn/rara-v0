@@ -3728,6 +3728,18 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1421004131026076372, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
+      propertyPath: speakerConfigs.Array.data[1].textColor.r
+      value: 0.85
+      objectReference: {fileID: 0}
+    - target: {fileID: 1421004131026076372, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
+      propertyPath: speakerConfigs.Array.data[1].textColor.g
+      value: 0.72
+      objectReference: {fileID: 0}
+    - target: {fileID: 1421004131026076372, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
+      propertyPath: speakerConfigs.Array.data[1].textColor.b
+      value: 0.45
+      objectReference: {fileID: 0}
+    - target: {fileID: 1421004131026076372, guid: dc619cfe0b4e7da4187c212dcc653d1c, type: 3}
       propertyPath: speakerConfigs.Array.data[1].worldAnchor
       value: 
       objectReference: {fileID: 1215000012}

@@ -16,6 +16,12 @@
 //   Start        restart (LevelManager, Day 214)
 //   Y            end card: open the owned channel (Day 215)
 //
+// PROMPTS (Day 215)
+//   Buttons are read by position (south/west/...), so any pad the Input System knows
+//   works: Xbox, PlayStation, Switch Pro, generic XInput/HID. Names above are Xbox.
+//   Label(Button.X) gives the name on the player's pad ("X", "Square", "Y" on Switch).
+//   Pad.usingPad = the last thing touched was the pad -> show pad prompts, else keys.
+//
 // SETUP
 //   Input System package installed (Active Input Handling = Both): nothing to do.
 //   Legacy only — add these in the Input Manager, or triggers / D-pad stay dead:
@@ -44,6 +50,43 @@ public static class RaraInput
 		public bool strike;        // X pressed this frame
 		public bool restart;       // Start pressed this frame
 		public bool secondary;     // Y pressed this frame (Day 215: end card channel link)
+		public bool usingPad;      // Day 215: last input came from the pad (prompts follow this)
+	}
+
+	/// <summary>Pad buttons by position, Xbox names. Label() gives the player's pad's name.</summary>
+	public enum Button { A, B, X, Y, LB, RB, LT, RT, Start, Select }
+
+	/// <summary>
+	/// Day 215: what this button is called on the connected pad. "X" on Xbox, "Square" on
+	/// PlayStation, "Y" on Switch Pro. Falls back to the Xbox name with no pad.
+	/// </summary>
+	public static string Label(Button b)
+	{
+#if ENABLE_INPUT_SYSTEM
+		var gp = UnityEngine.InputSystem.Gamepad.current;
+		if (gp == null) return b.ToString();
+		UnityEngine.InputSystem.Controls.ButtonControl c = b switch
+		{
+			Button.A => gp.buttonSouth,
+			Button.B => gp.buttonEast,
+			Button.X => gp.buttonWest,
+			Button.Y => gp.buttonNorth,
+			Button.LB => gp.leftShoulder,
+			Button.RB => gp.rightShoulder,
+			Button.LT => gp.leftTrigger,
+			Button.RT => gp.rightTrigger,
+			Button.Start => gp.startButton,
+			_ => gp.selectButton,
+		};
+		// Device layouts name the button ("Cross", "L1", "Options"); the generic layout's
+		// names are long ("Button South", "Left Shoulder") and its short names are Xbox.
+		string name = c.displayName;
+		if (string.IsNullOrEmpty(name) || name.Contains(" ") || name.Length > 8)
+			name = string.IsNullOrEmpty(c.shortDisplayName) ? b.ToString() : c.shortDisplayName;
+		return name;
+#else
+		return b.ToString();
+#endif
 	}
 
 	const float TriggerPress = 0.6f;
@@ -52,7 +95,9 @@ public static class RaraInput
 	static int cachedFrame = -1;
 	static Pad cached;
 
-#if !ENABLE_INPUT_SYSTEM
+#if ENABLE_INPUT_SYSTEM
+	static bool usingPadInit, lastUsedPad;
+#else
 	static bool axesChecked, hasRT, hasLT, hasDpad;
 	static bool rtHeld, dpadHeld;
 #endif
@@ -70,7 +115,7 @@ public static class RaraInput
 		var p = new Pad { dpad = -1 };
 #if ENABLE_INPUT_SYSTEM
 		var gp = UnityEngine.InputSystem.Gamepad.current;
-		if (gp == null) return p;
+		if (gp == null) { usingPadInit = true; lastUsedPad = false; return p; }
 		p.connected = true;
 		p.stick = gp.leftStick.ReadValue();
 		p.pull = gp.rightTrigger.wasPressedThisFrame;
@@ -85,6 +130,19 @@ public static class RaraInput
 		p.strike = gp.buttonWest.wasPressedThisFrame;
 		p.restart = gp.startButton.wasPressedThisFrame;
 		p.secondary = gp.buttonNorth.wasPressedThisFrame;
+
+		// Day 215: who touched what last. Pad wins at start if one is plugged in.
+		bool padTouched = p.pull || p.moveLayer || p.dpad >= 0 || p.hide || p.interact || p.strike ||
+			p.restart || p.secondary || gp.buttonEast.wasPressedThisFrame ||
+			p.stick.sqrMagnitude > 0.25f || gp.rightStick.ReadValue().sqrMagnitude > 0.25f;
+		var kb = UnityEngine.InputSystem.Keyboard.current;
+		var mouse = UnityEngine.InputSystem.Mouse.current;
+		bool keysTouched = (kb != null && kb.anyKey.wasPressedThisFrame) ||
+			(mouse != null && (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame));
+		if (!usingPadInit) { usingPadInit = true; lastUsedPad = true; }
+		if (padTouched) lastUsedPad = true;
+		else if (keysTouched) lastUsedPad = false;
+		p.usingPad = lastUsedPad;
 #else
 		if (!axesChecked)
 		{
@@ -111,6 +169,7 @@ public static class RaraInput
 		p.hide = Input.GetKeyDown(KeyCode.JoystickButton4);        // LB
 		p.restart = Input.GetKeyDown(KeyCode.JoystickButton7);     // Start
 		p.secondary = Input.GetKeyDown(KeyCode.JoystickButton3);   // Y
+		p.usingPad = p.connected;
 #endif
 		return p;
 	}

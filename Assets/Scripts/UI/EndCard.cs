@@ -165,7 +165,7 @@ public class EndCard : MonoBehaviour
 		if (!IsShowing || Time.unscaledTime < armedAt) return;
 
 		var pad = RaraInput.Read();
-		if (pad.connected != padPrompts) RefreshPrompts(false);
+		if (pad.usingPad != padPrompts) RefreshPrompts(false);
 
 		if (pad.interact || Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Return))
 			OpenItch();
@@ -185,13 +185,13 @@ public class EndCard : MonoBehaviour
 
 	void RefreshPrompts(bool force)
 	{
-		bool pad = RaraInput.Read().connected;
+		bool pad = RaraInput.Read().usingPad;
 		if (!force && pad == padPrompts) return;
 		padPrompts = pad;
 
-		string itchKey = pad ? "A" : "E";
-		string chanKey = pad ? "Y" : "J";
-		string againKey = pad ? "Start" : "R";
+		string itchKey = pad ? RaraInput.Label(RaraInput.Button.A) : "E";
+		string chanKey = pad ? RaraInput.Label(RaraInput.Button.Y) : "J";
+		string againKey = pad ? RaraInput.Label(RaraInput.Button.Start) : "R";
 		string s = $"<b>{itchKey}</b>  itch page";
 		if (HasChannel) s += $"        <b>{chanKey}</b>  {channelLabel}";
 		s += $"        <b>{againKey}</b>  play again";

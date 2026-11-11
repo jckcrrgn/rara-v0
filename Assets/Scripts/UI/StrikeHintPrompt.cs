@@ -73,6 +73,11 @@ public class StrikeHintPrompt : MonoBehaviour
 		"(script on the TMP_Text GO).")]
 	[SerializeField] private TMP_Text label;
 
+	[Tooltip("Day 215: prompt text. {0} = the strike button on whatever the player last " +
+		"touched — pad (X / Square / Y on Switch) or keyboard (keyboardKey).")]
+	[SerializeField] private string labelFormat = "Strike ({0})";
+	[SerializeField] private string keyboardKey = "H";
+
 	[Header("Positioning")]
 	[Tooltip("Vertical offset above the guard's body origin, in world metres. " +
 		"Lifts the prompt above his head so it doesn't overlap his face. Tune " +
@@ -181,6 +186,7 @@ public class StrikeHintPrompt : MonoBehaviour
 		}
 
 		SetVisible(true);
+		RefreshLabel();
 
 		// Screen Space - Overlay: position is in screen pixels (z is ignored).
 		// Set the RectTransform's world position directly — Unity converts to
@@ -189,6 +195,18 @@ public class StrikeHintPrompt : MonoBehaviour
 			rt.position = new Vector3(screenPos.x, screenPos.y, 0f);
 		else
 			transform.position = new Vector3(screenPos.x, screenPos.y, 0f);
+	}
+
+	string lastLabel;
+
+	void RefreshLabel()
+	{
+		if (label == null) return;
+		string key = RaraInput.Read().usingPad ? RaraInput.Label(RaraInput.Button.X) : keyboardKey;
+		string text = string.Format(labelFormat, key);
+		if (text == lastLabel) return;
+		lastLabel = text;
+		label.text = text;
 	}
 
 	/// <summary>
