@@ -80,10 +80,13 @@ public class Pickupable : InteractableBase
 	{
 		if (homeCaptured) transform.SetPositionAndRotation(homePos, homeRot);
 		DropFromPlayer();
+		SetPassThrough(passThroughFor, false);   // Day 216: solid again once it's back in place
 	}
 
-	/// <summary>Day 214: stood upright on the floor at floorPoint (base on the floor).</summary>
-	public void PlaceAt(Vector3 floorPoint)
+	/// <summary>Day 214: stood upright on the floor at floorPoint (base on the floor).
+	/// Day 216: `setDownBy` set = it doesn't block her while it's down there. It has no
+	/// Rigidbody, so on the floor it was an immovable post her chair couldn't pass.</summary>
+	public void PlaceAt(Vector3 floorPoint, PlayerController setDownBy = null)
 	{
 		HideHeldVisual();
 		transform.SetPositionAndRotation(floorPoint, homeCaptured ? homeRot : transform.rotation);
@@ -91,6 +94,21 @@ public class Pickupable : InteractableBase
 		Renderer r = GetComponent<Renderer>();
 		if (r == null) r = GetComponentInChildren<Renderer>();
 		if (r != null) transform.position += Vector3.up * (floorPoint.y - r.bounds.min.y);
+		SetPassThrough(setDownBy, true);
+	}
+
+	PlayerController passThroughFor;
+
+	/// <summary>Day 216: turn collisions between this item and the player (her and the chair)
+	/// off or on. Only those pairs: it still shows up for pick-up and for everything else.
+	/// Called after SetActive(true), since both sides must be active for the call to take.</summary>
+	void SetPassThrough(PlayerController player, bool on)
+	{
+		if (player == null) return;
+		foreach (Collider mine in GetComponentsInChildren<Collider>())
+			foreach (Collider hers in player.GetComponentsInChildren<Collider>())
+				if (mine != hers) Physics.IgnoreCollision(mine, hers, on);
+		passThroughFor = on ? player : null;
 	}
 
 	public override bool AcceptsPickUp => true;

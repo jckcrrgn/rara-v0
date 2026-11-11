@@ -1084,7 +1084,7 @@ public class PlayerController : MonoBehaviour
 		}
 		else
 		{
-			item.PlaceAt(FloorPointBeside());
+			item.PlaceAt(FloorPointBeside(), this);   // Day 216: on the floor it doesn't block her
 			strayItem = item;
 		}
 		Debug.Log($"[PlayerController] Set down {item.ItemName} {(home ? "where she found it" : "on the floor")}.");
