@@ -173,9 +173,14 @@ public class BondStruggle : MonoBehaviour
 	[Tooltip("Plays on a good pull. Confirms the hit after the press; never cues the beat. " +
 		"Leave empty for timing runs that need no audio feedback.")]
 	public AudioClip hitClip;
-	[Tooltip("Plays on an off-beat pull. Must read as different from hitClip at a glance.")]
+	[Tooltip("Plays on an off-beat pull. Must read as different from hitClip at a glance. " +
+		"Day 215: the anchor miss — the one that reads for sure (frustrated grunt).")]
 	public AudioClip missClip;
-	[Tooltip("Plays on a spam pull. Empty = uses missClip.")]
+	[Tooltip("Day 215: other misses mixed in with missClip. Empty = missClip every time.")]
+	public AudioClip[] missVariants;
+	[Tooltip("Chance a miss plays missClip rather than a variant. Variants never repeat back-to-back.")]
+	[Range(0, 1)] public float missAnchorChance = 0.5f;
+	[Tooltip("Plays on a spam pull. Empty = uses the miss pick.")]
 	public AudioClip spamClip;
 	[Range(0, 1)] public float hitVolume = 0.8f;
 	[Range(0, 1)] public float missVolume = 0.7f;
@@ -408,7 +413,7 @@ public class BondStruggle : MonoBehaviour
 		if (spam)
 		{
 			AddNoise(noisePerSpam);
-			PlaySfx(spamClip != null ? spamClip : missClip, missVolume);
+			PlaySfx(spamClip != null ? spamClip : PickMiss(), missVolume);
 			LastResult = "SPAM";
 			OnPullResolved?.Invoke(PullKind.Spam, ToolEngaged(Selected));
 			return;
@@ -417,7 +422,7 @@ public class BondStruggle : MonoBehaviour
 		if (accuracy < goodWindow)
 		{
 			AddNoise(noisePerMiss);
-			PlaySfx(missClip, missVolume);
+			PlaySfx(PickMiss(), missVolume);
 			LastResult = $"off-beat {accuracy:P0}";
 			OnPullResolved?.Invoke(PullKind.Miss, ToolEngaged(Selected));
 			return;
@@ -541,6 +546,27 @@ public class BondStruggle : MonoBehaviour
 		Debug.Log($"[BondStruggle] TIMING n={n}  offset {offset * 1000f:+0;-0;0} ms  R {r:0.00}  " +
 			$"in window (±{window * 1000f:0} ms) {inWindow / (float)n:P0}  " +
 			$"near half-beat (≥{nearHalfLine * 1000f:0} ms) {nearHalf / (float)n:P0}");
+	}
+
+	AudioClip lastMiss;
+
+	/// <summary>Day 215: anchor (missClip) at missAnchorChance, else a random variant; no repeats in a row.</summary>
+	AudioClip PickMiss()
+	{
+		AudioClip pick = missClip;
+		int n = missVariants != null ? missVariants.Length : 0;
+		if (n > 0 && (missClip == null || Random.value >= missAnchorChance))
+		{
+			for (int tries = 0; tries < 4; tries++)
+			{
+				pick = missVariants[Random.Range(0, n)];
+				if (pick != null && pick != lastMiss) break;
+			}
+			if (pick == null) pick = missClip;
+		}
+		if (pick == lastMiss && missClip != null && pick != missClip) pick = missClip;
+		lastMiss = pick;
+		return pick;
 	}
 
 	void PlaySfx(AudioClip clip, float volume)

@@ -5357,7 +5357,7 @@ MonoBehaviour:
   offstageDuration: 20
   approachDuration: 5
   inspectionHoldDuration: 1.5
-  leanInDuration: 10
+  leanInDuration: 5
   leavingDuration: 3
   guardBody: {fileID: 1299264755}
   offstageAnchor: {fileID: 2006802563}
@@ -5434,7 +5434,7 @@ MonoBehaviour:
   - Nobody's coming.
   tauntCooldown: 4
   tauntLinger: 2
-  maxLingerPerVisit: 6
+  maxLingerPerVisit: 3
   caughtSeenGuardLine: Busy hands. Let's fix that.
   escalationCassieReaction: My ELBOWS? Really?
   takenGuardLine: Enough. You're coming with me.
@@ -6941,6 +6941,16 @@ MonoBehaviour:
   logTiming: 1
   hitClip: {fileID: 8300000, guid: d7e95b08ddc82b8469204d874282cce1, type: 3}
   missClip: {fileID: 8300000, guid: ea76216119c12154686919a900143d4c, type: 3}
+  missVariants:
+  - {fileID: 8300000, guid: a008ad123a3466b48b9224ff2ab6fcf7, type: 3}
+  - {fileID: 8300000, guid: ca19c88fe5e2f7d4384d40c407a1f849, type: 3}
+  - {fileID: 8300000, guid: 14829eab491caaf42883802551ed2bb6, type: 3}
+  - {fileID: 8300000, guid: 543e56d7e034ea346bf0c74468f51e95, type: 3}
+  - {fileID: 8300000, guid: bae83c06dbe2e664f90a48142d9e4307, type: 3}
+  - {fileID: 8300000, guid: 704eee0fb5a949c47b278ec6032cef6c, type: 3}
+  - {fileID: 8300000, guid: f602ac87038e6da40b383d4ddcc2a554, type: 3}
+  - {fileID: 8300000, guid: 440809d282279634396f57edf3b84786, type: 3}
+  missAnchorChance: 0.5
   spamClip: {fileID: 0}
   hitVolume: 0.8
   missVolume: 0.7
