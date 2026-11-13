@@ -445,6 +445,10 @@ public class GuardController : MonoBehaviour
 		"Falls back to caughtCassieReaction when empty or nothing was added.")]
 	[TextArea(2, 4)]
 	[SerializeField] private string escalationCassieReaction = "My ELBOWS? Really?";
+	[Tooltip("Day 218: added to his line on the catch before the last one, so the player hears " +
+		"the stakes from him (the HUD no longer shows 'caught 2 of 3'). Empty = no warning.")]
+	[TextArea(2, 4)]
+	[SerializeField] private string lastWarningGuardLine = "Once more and you're coming with me.";
 	[Tooltip("The last catch. Plays over black, then the scene reloads.")]
 	[TextArea(2, 4)]
 	[SerializeField] private string takenGuardLine = "Enough. You're coming with me.";
@@ -1197,6 +1201,11 @@ public class GuardController : MonoBehaviour
 				guardLine = caughtCheckGuardLine;
 			if (lastCatch.addedBond != null && !string.IsNullOrEmpty(escalationCassieReaction))
 				cassieLine = escalationCassieReaction;
+
+			// Day 218: the catch before the last. One line, not a second Play: the sequence
+			// waits on his first line only, and a second would play after he's snapped offstage.
+			if (lastCatch.catches == struggle.maxCatches - 1 && !string.IsNullOrEmpty(lastWarningGuardLine))
+				guardLine = string.IsNullOrEmpty(guardLine) ? lastWarningGuardLine : guardLine + " " + lastWarningGuardLine;
 		}
 
 		if (MutterSystem.Instance != null)

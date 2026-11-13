@@ -2418,7 +2418,7 @@ MonoBehaviour:
   uiScale: 2
   showControlsCard: 0
   showCardTag: 1
-  showPlayerReadout: 1
+  showPlayerReadout: 0
   showDebug: 0
   showKnotCue: 1
   handsDriver: {fileID: 0}

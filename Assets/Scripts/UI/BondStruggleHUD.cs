@@ -24,6 +24,14 @@
 // ("you can untie this"), full strength once they're out. Fixed screen size, so it reads
 // at over-the-shoulder distance and hands or knees never hide it. Interim for the demo:
 // post-demo it becomes a 3D bight on the real ankle rope (GDD Diegetic feedback, Knot).
+//
+// Day 218: BOND BAR — the bond list left the player's screen. Which bonds hold her is the
+// ropes on her, which one is selected is her lean, untie is the loop. The one thing only
+// the list had was how far along a bond is, so that moved onto her too: a short bar pinned
+// under the selected bond. The list (bonds, HANDS, caught n of m) now draws with the debug
+// readout (F1). The catch count is the guard's job: he warns her on the catch before the
+// last (GuardController.lastWarningGuardLine). Nothing player-facing draws under the end
+// card or during the caught sequence.
 
 using UnityEngine;
 
@@ -36,13 +44,32 @@ public class BondStruggleHUD : MonoBehaviour
 	[SerializeField] private bool showControlsCard = false;
 	[Tooltip("Day 218: small tag in the corner while the card is hidden, naming the key that shows it.")]
 	[SerializeField] private bool showCardTag = true;
-	[Tooltip("Player readout: bonds, selected bond, hands, catches. Shown in every build. " +
-		"Day 207: interim until bond choice is on Cassie's body. Day 212: the knot already is (knot cue).")]
-	[SerializeField] private bool showPlayerReadout = true;
+	[Tooltip("Bond list in the corner: bonds, selected bond, hands, catches. Day 218: off. " +
+		"Players read her and the bond bar instead; the list always draws with the debug " +
+		"readout (F1). Turn this on to show it to players again.")]
+	[SerializeField] private bool showPlayerReadout = false;
 	[Tooltip("Debug readout: pad status, noise, captor, last result, boost. Forced off in " +
 		"release player builds. F1 toggles it in the editor and in Development builds. " +
 		"Day 218: off at start; F1 brings it up.")]
 	[SerializeField] private bool showDebug = false;
+
+	[Header("Bond bar (Day 218)")]
+	[Tooltip("How far along the selected bond is, as a short bar pinned under that bond on her. " +
+		"Fills as it loosens; full = free. Uses the knot cue's rope and outline colours.")]
+	[SerializeField] private bool showBondBar = true;
+	[Tooltip("Bar width as a share of screen height. 0.09 = ~97 px at 1080p.")]
+	[Range(0.03f, 0.3f)] [SerializeField] private float bondBarWidth = 0.09f;
+	[Tooltip("Bar thickness as a share of screen height. 0.011 = ~12 px at 1080p.")]
+	[Range(0.004f, 0.04f)] [SerializeField] private float bondBarHeight = 0.011f;
+	[Tooltip("How far below the bond the bar sits, as a share of screen height. Negative = above. " +
+		"While the knot loop shows, the bar moves down further by itself to stay clear of it.")]
+	[Range(-0.2f, 0.2f)] [SerializeField] private float bondBarDrop = 0.045f;
+	[Tooltip("The empty part of the bar.")]
+	[SerializeField] private Color bondBarTrack = new Color(0.26f, 0.24f, 0.21f);
+	[Tooltip("The filled part flashes this colour when the bond gives.")]
+	[SerializeField] private Color bondBarFlash = Color.white;
+	[SerializeField] private float bondBarFlashTime = 0.18f;
+	[Range(0f, 1f)] [SerializeField] private float bondBarAlpha = 0.92f;
 
 	[Header("Knot cue (Day 212)")]
 	[Tooltip("The bight on the knot. Off = no untie cue at all (the KNOT line is debug only now).")]
@@ -77,6 +104,11 @@ public class BondStruggleHUD : MonoBehaviour
 	int _pullDir;          // direction of the loop that was just pulled
 	float _cinchT = 1f;    // 0..1 through a fumble cinch; 1 = idle
 	int _cueBond = -1;     // bond the last pull / cinch happened on
+
+	int _barBond = -1;     // bond the bar last showed
+	float _barProg;        // its progress last frame
+	float _barFlashT = 1f; // 0..1 through a flash; 1 = idle
+	float _barPush;        // extra drop, pixels, to clear the knot loop
 
 	// Texture geometry, pixels in a BightTex x BightTex texture. y up (row 0 = bottom).
 	const int BightTex = 64;
@@ -119,27 +151,54 @@ public class BondStruggleHUD : MonoBehaviour
 
 		if (_pullT < 1f) _pullT = Mathf.Min(1f, _pullT + Time.deltaTime / Mathf.Max(0.01f, knotPullTime));
 		if (_cinchT < 1f) _cinchT = Mathf.Min(1f, _cinchT + Time.deltaTime / Mathf.Max(0.01f, knotCinchTime));
+
+		// Bond bar: flash when the selected bond's progress goes up (a good pull, a good untie).
+		if (struggle != null)
+		{
+			int sel = struggle.Selected;
+			float prog = sel >= 0 && sel < struggle.bonds.Length ? struggle.bonds[sel].progress : 0f;
+			if (sel == _barBond && prog > _barProg + 0.0001f) _barFlashT = 0f;
+			_barBond = sel;
+			_barProg = prog;
+		}
+		if (_barFlashT < 1f) _barFlashT = Mathf.Min(1f, _barFlashT + Time.deltaTime / Mathf.Max(0.01f, bondBarFlashTime));
+	}
+
+	/// <summary>Day 218: the end card or the caught sequence has the screen. OnGUI draws over
+	/// every canvas, the black fade and the end card included, so the player-facing marks
+	/// (bond bar, knot cue, controls tag) stand down.</summary>
+	static bool ScreenTaken()
+	{
+		if (EndCard.Instance != null && EndCard.Instance.IsShowing) return true;
+		GuardController guard = GuardController.Instance;
+		return guard != null && guard.CurrentState == GuardController.GuardState.Caught;
 	}
 
 	void OnGUI()
 	{
 		if (struggle == null) return;
 
-		// Knot cue first, in raw screen pixels, under the readouts.
+		// On-her marks first, in raw screen pixels, under the readouts: bond bar, then knot cue.
 		GUI.matrix = Matrix4x4.identity;
-		if (showKnotCue && Event.current.type == EventType.Repaint) DrawKnotCue();
+		bool screenTaken = ScreenTaken();
+		if (Event.current.type == EventType.Repaint && !screenTaken)
+		{
+			if (showBondBar) DrawBondBar();
+			if (showKnotCue) DrawKnotCue();
+		}
 
 		GUI.matrix = Matrix4x4.Scale(new Vector3(uiScale, uiScale, 1f));
 		float sw = Screen.width / uiScale;
 
 		float y = 50f;
-		if (showPlayerReadout) y = DrawPlayer(y);
+		if (showPlayerReadout || showDebug) y = DrawPlayer(y);   // Day 218: the list is debug now
 		if (showDebug) DrawDebug(y);
 		if (showControlsCard) DrawControlsCard(sw);
-		else if (showCardTag) DrawCardTag(sw);
+		else if (showCardTag && !screenTaken) DrawCardTag(sw);
 	}
 
-	// Player-facing: stays in every build. Returns the y below the last line.
+	// The bond list. Day 218: draws with the debug readout (or showPlayerReadout). Returns the
+	// y below the last line.
 	float DrawPlayer(float y)
 	{
 		var prev = GUI.color;
@@ -175,6 +234,66 @@ public class BondStruggleHUD : MonoBehaviour
 		return y + 52f;
 	}
 
+	// ---- Bond bar (Day 218) ----------------------------------------------------------
+
+	/// <summary>
+	/// Progress of the selected bond, pinned under it on her body. Outline, empty track,
+	/// fill from the left. Only the selected bond gets one, so it doubles as "this one".
+	/// </summary>
+	void DrawBondBar()
+	{
+		int sel = struggle.Selected;
+		if (sel < 0 || sel >= struggle.bonds.Length) return;
+		var b = struggle.bonds[sel];
+		if (!b.Bound) return;
+		if (!struggle.TryAnchorWorld(sel, out Vector3 world)) return;
+		Camera cam = Camera.main;
+		if (cam == null) return;
+		Vector3 sp = cam.WorldToScreenPoint(world);
+		if (sp.z <= 0f) return;   // behind the camera
+
+		float H = Screen.height;
+		float w = H * bondBarWidth;
+		float h = Mathf.Max(3f, H * bondBarHeight);
+		float top = (H - sp.y) + H * bondBarDrop;   // GUI y is down
+
+		// While the knot loop shows on this bond, sit below its reach whichever way it
+		// points, so the bar doesn't hop around as the loop turns. Glide there.
+		float want = 0f;
+		if (showKnotCue && struggle.CanUntie(sel) && TryCueWorld(sel, out Vector3 kw))
+		{
+			Vector3 ks = cam.WorldToScreenPoint(kw);
+			if (ks.z > 0f) want = Mathf.Max(0f, (H - ks.y) + H * knotCueSize * 0.85f - top);
+		}
+		_barPush = Mathf.MoveTowards(_barPush, want, Time.deltaTime * H * 0.4f);
+		top += _barPush;
+
+		float o = Mathf.Max(1.5f, h * 0.22f);   // outline width
+		float x = sp.x - w * 0.5f;
+		float flash = 1f - Smooth(_barFlashT);
+		Color fill = Color.Lerp(knotRope, bondBarFlash, flash);
+
+		var prev = GUI.color;
+		FillRect(new Rect(x - o, top - o, w + o * 2f, h + o * 2f), knotOutline, bondBarAlpha);
+		FillRect(new Rect(x, top, w, h), bondBarTrack, bondBarAlpha);
+		float fw = w * Mathf.Clamp01(b.progress);
+		if (fw >= 1f) FillRect(new Rect(x, top, fw, h), fill, bondBarAlpha);
+		GUI.color = prev;
+	}
+
+	static void FillRect(Rect r, Color c, float alpha)
+	{
+		GUI.color = new Color(c.r, c.g, c.b, c.a * alpha);
+		GUI.DrawTexture(r, Texture2D.whiteTexture, ScaleMode.StretchToFill, true);
+	}
+
+	/// <summary>Where the knot cue sits for bond i: her hands' knot point, else the bond's anchor.</summary>
+	bool TryCueWorld(int i, out Vector3 world)
+	{
+		if (handsDriver != null && handsDriver.TryKnotWorld(i, out world)) return true;
+		return struggle.TryAnchorWorld(i, out world);
+	}
+
 	// ---- Knot cue (Day 212) ----------------------------------------------------------
 
 	void DrawKnotCue()
@@ -183,10 +302,7 @@ public class BondStruggleHUD : MonoBehaviour
 		int sel = struggle.Selected;
 		if (!struggle.CanUntie(sel)) return;
 
-		Vector3 world = Vector3.zero;
-		bool found = handsDriver != null && handsDriver.TryKnotWorld(sel, out world);
-		if (!found) found = struggle.TryAnchorWorld(sel, out world);
-		if (!found) return;
+		if (!TryCueWorld(sel, out Vector3 world)) return;
 		Camera cam = Camera.main;
 		if (cam == null) return;
 		Vector3 sp = cam.WorldToScreenPoint(world);
