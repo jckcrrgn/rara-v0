@@ -40,9 +40,9 @@ public class BondStruggleHUD : MonoBehaviour
 		"Day 207: interim until bond choice is on Cassie's body. Day 212: the knot already is (knot cue).")]
 	[SerializeField] private bool showPlayerReadout = true;
 	[Tooltip("Debug readout: pad status, noise, captor, last result, boost. Forced off in " +
-		"release player builds. F1 toggles it in the editor and in Development builds; turn it " +
-		"off for timing runs.")]
-	[SerializeField] private bool showDebug = true;
+		"release player builds. F1 toggles it in the editor and in Development builds. " +
+		"Day 218: off at start; F1 brings it up.")]
+	[SerializeField] private bool showDebug = false;
 
 	[Header("Knot cue (Day 212)")]
 	[Tooltip("The bight on the knot. Off = no untie cue at all (the KNOT line is debug only now).")]
@@ -395,15 +395,16 @@ public class BondStruggleHUD : MonoBehaviour
 		}
 	}
 
-	// Day 218: the card's way back. Top-right, where the card opens, dim. Key follows the
-	// last-touched device.
+	// Day 218: the card's way back. Bottom-right and dim: top-right is where "Holding:" sits.
+	// Key follows the last-touched device.
 	void DrawCardTag(float sw)
 	{
+		float sh = Screen.height / uiScale;
 		string key = RaraInput.Read().usingPad ? RaraInput.Label(RaraInput.Button.Select) : "Tab";
 		var prev = GUI.color;
 		GUI.color = new Color(1f, 1f, 1f, 0.55f);
-		var st = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.UpperRight, wordWrap = false };
-		GUI.Label(new Rect(sw - 220f, 20f, 200f, 22f), $"{key}: controls", st);
+		var st = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.LowerRight, wordWrap = false };
+		GUI.Label(new Rect(sw - 220f, sh - 36f, 200f, 22f), $"{key}: controls", st);
 		GUI.color = prev;
 	}
 

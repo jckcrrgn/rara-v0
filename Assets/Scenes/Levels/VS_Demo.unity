@@ -2419,7 +2419,7 @@ MonoBehaviour:
   showControlsCard: 0
   showCardTag: 1
   showPlayerReadout: 1
-  showDebug: 1
+  showDebug: 0
   showKnotCue: 1
   handsDriver: {fileID: 0}
   knotCueSize: 0.07
