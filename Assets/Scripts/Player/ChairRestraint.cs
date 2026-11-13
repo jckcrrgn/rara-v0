@@ -264,6 +264,9 @@ public class ChairRestraint : RestraintBase
 		"thud. Optional -- safe to leave empty until SFX wiring pass.")]
 	[SerializeField] private AudioClip turnHopClip;
 
+	[Tooltip("Plays on each forward hop (W). Optional -- safe to leave empty.")]
+	[SerializeField] private AudioClip forwardHopClip;
+
 
 	[Header("Vertical Slice")]
 	[Tooltip("VS_Demo: show Strike (H) in place of Kick (F) in the control hints.")]
@@ -645,6 +648,11 @@ public class ChairRestraint : RestraintBase
 		float mod = GetMovementModifier();
 		Vector3 hopDirection = player.transform.forward + Vector3.up;
 		player.Rb.AddForce(hopDirection * hopForce * mod, ForceMode.Impulse);
+
+		if (AudioManager.Instance != null && forwardHopClip != null)
+		{
+			AudioManager.Instance.PlaySFX(forwardHopClip, 1f, Random.Range(0.95f, 1.05f));
+		}
 	}
 
 	/// <summary>
