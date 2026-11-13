@@ -411,8 +411,13 @@ MonoBehaviour:
   shardSpawnImpulse: 1.5
   shardSpawnYOffset: -0.4
   shardScaleRange: {x: 0.6, y: 1.4}
-  turnHopClip: {fileID: 8300000, guid: 34f59954e2eb45a6860ce06ff7f6168c, type: 3}
-  forwardHopClip: {fileID: 8300000, guid: 34f59954e2eb45a6860ce06ff7f6168c, type: 3}
+  turnHopClip: {fileID: 0}
+  forwardHopClip: {fileID: 0}
+  hopLandClips:
+  - {fileID: 8300000, guid: 5007e2e5c80c4deebc554e1e544d66e1, type: 3}
+  - {fileID: 8300000, guid: d5962d72d66143a992ca8934cf60d597, type: 3}
+  - {fileID: 8300000, guid: 0c2e4c2bcf44477eb8807ff3a751482f, type: 3}
+  turnHopLandVolume: 0.75
 --- !u!114 &6255347650362523610
 MonoBehaviour:
   m_ObjectHideFlags: 0

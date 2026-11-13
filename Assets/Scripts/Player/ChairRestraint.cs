@@ -266,8 +266,17 @@ public class ChairRestraint : RestraintBase
 		"thud. Optional -- safe to leave empty until SFX wiring pass.")]
 	[SerializeField] private AudioClip turnHopClip;
 
-	[Tooltip("Plays on each forward hop (W). Optional -- safe to leave empty.")]
+	[Tooltip("Plays on each forward hop (W), at takeoff. Optional -- safe to leave empty.")]
 	[SerializeField] private AudioClip forwardHopClip;
+
+	[Tooltip("Plays when the chair touches down after a hop (turn or forward), one " +
+		"picked at random, never the same twice in a row. If a hop never leaves " +
+		"the floor it plays right away, so no hop is silent.")]
+	[SerializeField] private AudioClip[] hopLandClips;
+	[Tooltip("Landing volume for a turn hop (small hop). Forward hops land at 1.")]
+	[SerializeField] private float turnHopLandVolume = 0.75f;
+	private int lastHopLandClip = -1;
+	private Coroutine hopLandRoutine;
 
 
 	[Header("Vertical Slice")]
@@ -413,6 +422,8 @@ public class ChairRestraint : RestraintBase
 		{
 			AudioManager.Instance.PlaySFX(turnHopClip, 1f, Random.Range(0.95f, 1.05f));
 		}
+
+		StartHopLanding(player, turnHopLandVolume);
 	}
 
 	/// <summary>
@@ -655,6 +666,8 @@ public class ChairRestraint : RestraintBase
 		{
 			AudioManager.Instance.PlaySFX(forwardHopClip, 1f, Random.Range(0.95f, 1.05f));
 		}
+
+		StartHopLanding(player, 1f);
 	}
 
 	/// <summary>
@@ -731,14 +744,50 @@ public class ChairRestraint : RestraintBase
 	/// Random back-scoot clip, never the same one twice in a row. Null when the
 	/// array is empty.
 	/// </summary>
-	private AudioClip PickBackScootClip()
+	private AudioClip PickBackScootClip() => PickClip(backScootClips, ref lastBackScootClip);
+
+	/// <summary>Random clip from the array, never the same index twice in a row.</summary>
+	private static AudioClip PickClip(AudioClip[] clips, ref int last)
 	{
-		if (backScootClips == null || backScootClips.Length == 0) return null;
-		int i = Random.Range(0, backScootClips.Length);
-		if (backScootClips.Length > 1 && i == lastBackScootClip)
-			i = (i + Random.Range(1, backScootClips.Length)) % backScootClips.Length;
-		lastBackScootClip = i;
-		return backScootClips[i];
+		if (clips == null || clips.Length == 0) return null;
+		int i = Random.Range(0, clips.Length);
+		if (clips.Length > 1 && i == last)
+			i = (i + Random.Range(1, clips.Length)) % clips.Length;
+		last = i;
+		return clips[i];
+	}
+
+	/// <summary>
+	/// Day 217: the hop thud belongs on touchdown, not on the key press. Waits for
+	/// the chair to leave the floor, then plays a landing clip on the next floor
+	/// contact. A hop that never lifts plays its landing after the lift window; one
+	/// that never comes down (stuck on something) plays after a timeout.
+	/// </summary>
+	private void StartHopLanding(PlayerController player, float volume)
+	{
+		if (hopLandClips == null || hopLandClips.Length == 0) return;
+		if (hopLandRoutine != null) player.StopCoroutine(hopLandRoutine);
+		hopLandRoutine = player.StartCoroutine(HopLanding(player, volume));
+	}
+
+	private IEnumerator HopLanding(PlayerController player, float volume)
+	{
+		const float liftWindow = 0.15f;   // time allowed to leave the floor
+		const float airTimeout = 1.5f;    // give up waiting for touchdown
+
+		float t = 0f;
+		while (player.IsGrounded && t < liftWindow) { t += Time.deltaTime; yield return null; }
+
+		if (!player.IsGrounded)
+		{
+			t = 0f;
+			while (!player.IsGrounded && t < airTimeout) { t += Time.deltaTime; yield return null; }
+		}
+
+		AudioClip clip = PickClip(hopLandClips, ref lastHopLandClip);
+		if (AudioManager.Instance != null && clip != null)
+			AudioManager.Instance.PlaySFX(clip, volume, Random.Range(0.95f, 1.05f));
+		hopLandRoutine = null;
 	}
 
 	public override float GetKickModifier()
