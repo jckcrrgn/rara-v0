@@ -325,7 +325,12 @@ MonoBehaviour:
   kickCastLayers:
     serializedVersion: 2
     m_Bits: 4294967295
+  strikeRange: 1.2
+  elbowsStrikeLine: Not with my elbows tied.
+  elbowsLineCooldown: 4
   currentRestraint: {fileID: 7026241982387864388}
+  freeOnBondBreak: 1
+  setDownOffset: {x: 0.4, y: 0, z: 0.2}
 --- !u!54 &7730701606267843005
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -417,6 +422,8 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 5007e2e5c80c4deebc554e1e544d66e1, type: 3}
   - {fileID: 8300000, guid: 0c2e4c2bcf44477eb8807ff3a751482f, type: 3}
   turnHopLandVolume: 0.75
+  hopLandLead: 0.09
+  strikeReplacesKickHint: 0
 --- !u!114 &6255347650362523610
 MonoBehaviour:
   m_ObjectHideFlags: 0
