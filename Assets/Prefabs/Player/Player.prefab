@@ -389,7 +389,13 @@ MonoBehaviour:
   backScootLungeDuration: 0.25
   backScootSettleDuration: 0.35
   backScootInterCycleDelay: 0.08
-  backScootClip: {fileID: 0}
+  backScootClips:
+  - {fileID: 8300000, guid: 57b20700b91647a4921c2346f47f3ae0, type: 3}
+  - {fileID: 8300000, guid: c54cad5105c0410c91ee035dac934197, type: 3}
+  - {fileID: 8300000, guid: 548b3b09e0b240df8e96fe3d6c7ef0cd, type: 3}
+  - {fileID: 8300000, guid: f7a2f4425072494e86ba29c0bf661542, type: 3}
+  - {fileID: 8300000, guid: c57fae55e2aa4c11a39a03ee38c5a6ca, type: 3}
+  - {fileID: 8300000, guid: 34ff22c1795c4b1c811aa7d1ce889349, type: 3}
   turnVerticalImpulse: 2
   turnLateralImpulse: 0.5
   turnAngularImpulse: 0.2
@@ -405,7 +411,8 @@ MonoBehaviour:
   shardSpawnImpulse: 1.5
   shardSpawnYOffset: -0.4
   shardScaleRange: {x: 0.6, y: 1.4}
-  turnHopClip: {fileID: 0}
+  turnHopClip: {fileID: 8300000, guid: 34f59954e2eb45a6860ce06ff7f6168c, type: 3}
+  forwardHopClip: {fileID: 8300000, guid: 34f59954e2eb45a6860ce06ff7f6168c, type: 3}
 --- !u!114 &6255347650362523610
 MonoBehaviour:
   m_ObjectHideFlags: 0
