@@ -31,8 +31,11 @@ public class BondStruggleHUD : MonoBehaviour
 {
 	[SerializeField] private BondStruggle struggle;
 	[Range(1, 4)] [SerializeField] private float uiScale = 2f;
-	[Tooltip("Show the controls card on start (cold playtest).")]
-	[SerializeField] private bool showControlsCard = true;
+	[Tooltip("Show the controls card on start. Day 218: off. TutorialPrompts teaches the " +
+		"controls one at a time; the card is there on Back / Tab, and a corner tag says so.")]
+	[SerializeField] private bool showControlsCard = false;
+	[Tooltip("Day 218: small tag in the corner while the card is hidden, naming the key that shows it.")]
+	[SerializeField] private bool showCardTag = true;
 	[Tooltip("Player readout: bonds, selected bond, hands, catches. Shown in every build. " +
 		"Day 207: interim until bond choice is on Cassie's body. Day 212: the knot already is (knot cue).")]
 	[SerializeField] private bool showPlayerReadout = true;
@@ -133,6 +136,7 @@ public class BondStruggleHUD : MonoBehaviour
 		if (showPlayerReadout) y = DrawPlayer(y);
 		if (showDebug) DrawDebug(y);
 		if (showControlsCard) DrawControlsCard(sw);
+		else if (showCardTag) DrawCardTag(sw);
 	}
 
 	// Player-facing: stays in every build. Returns the y below the last line.
@@ -149,8 +153,8 @@ public class BondStruggleHUD : MonoBehaviour
 			string bar = new string('|', Mathf.RoundToInt(b.progress * 30));
 			string state = b.progress >= 1f ? "  FREE" : "";
 			string tight = b.tightness > 1f ? $"  {1f / b.tightness:P0} per pull" : "";
-			string untie = struggle.CanUntie(i) ? "  [untie]" : "";
-			GUI.Label(new Rect(20, y, 600, 22), $"{mark}{b.name,-8} {bar}{state}{tight}{untie}");
+			// Day 218: no [untie] tag. The loop on her rope says it (knot cue), and twice was noise.
+			GUI.Label(new Rect(20, y, 600, 22), $"{mark}{b.name,-8} {bar}{state}{tight}");
 			y += 22;
 		}
 
@@ -389,6 +393,18 @@ public class BondStruggleHUD : MonoBehaviour
 			GUI.Label(new Rect(340, barY + 54, 300, 22), $"BOOST  {struggle.LastBoost}");
 			GUI.color = prev;
 		}
+	}
+
+	// Day 218: the card's way back. Top-right, where the card opens, dim. Key follows the
+	// last-touched device.
+	void DrawCardTag(float sw)
+	{
+		string key = RaraInput.Read().usingPad ? RaraInput.Label(RaraInput.Button.Select) : "Tab";
+		var prev = GUI.color;
+		GUI.color = new Color(1f, 1f, 1f, 0.55f);
+		var st = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.UpperRight, wordWrap = false };
+		GUI.Label(new Rect(sw - 220f, 20f, 200f, 22f), $"{key}: controls", st);
+		GUI.color = prev;
 	}
 
 	// Player-facing, not debug: stays in every build.

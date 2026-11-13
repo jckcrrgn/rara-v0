@@ -2416,7 +2416,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   struggle: {fileID: 0}
   uiScale: 2
-  showControlsCard: 1
+  showControlsCard: 0
+  showCardTag: 1
   showPlayerReadout: 1
   showDebug: 1
   showKnotCue: 1
