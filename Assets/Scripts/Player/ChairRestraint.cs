@@ -275,8 +275,15 @@ public class ChairRestraint : RestraintBase
 	[SerializeField] private AudioClip[] hopLandClips;
 	[Tooltip("Landing volume for a turn hop (small hop). Forward hops land at 1.")]
 	[SerializeField] private float turnHopLandVolume = 0.75f;
+	[Tooltip("Seconds before touchdown that the landing sound starts. Covers the " +
+		"delay between asking for a sound and hearing it. Thud late: raise it. " +
+		"Thud early: lower it. Steps of 0.02. 0 = play on contact.")]
+	[SerializeField] private float hopLandLead = 0.05f;
 	private int lastHopLandClip = -1;
 	private Coroutine hopLandRoutine;
+	private bool hopAwaitingLanding;   // a hop is in the air and its thud has not played
+	private bool hopLeftFloor;         // ...and it has actually left the floor
+	private float hopLandVolume = 1f;
 
 
 	[Header("Vertical Slice")]
@@ -758,36 +765,94 @@ public class ChairRestraint : RestraintBase
 	}
 
 	/// <summary>
-	/// Day 217: the hop thud belongs on touchdown, not on the key press. Waits for
-	/// the chair to leave the floor, then plays a landing clip on the next floor
-	/// contact. A hop that never lifts plays its landing after the lift window; one
-	/// that never comes down (stuck on something) plays after a timeout.
+	/// Day 217: the hop thud belongs on touchdown, not on the key press. Each
+	/// physics step while the chair is in the air, works out how long until it is
+	/// back at the height it took off from and starts the landing clip hopLandLead
+	/// seconds ahead of that (sound takes a moment to come out of the speakers).
+	/// Fallbacks: a floor contact before the prediction fires (OnCollisionEnter), a
+	/// hop that never lifts (plays on the first step), a hop that never comes down
+	/// (timeout).
 	/// </summary>
 	private void StartHopLanding(PlayerController player, float volume)
 	{
 		if (hopLandClips == null || hopLandClips.Length == 0) return;
 		if (hopLandRoutine != null) player.StopCoroutine(hopLandRoutine);
-		hopLandRoutine = player.StartCoroutine(HopLanding(player, volume));
+		hopLandVolume = volume;
+		hopAwaitingLanding = true;
+		hopLeftFloor = false;
+		hopLandRoutine = player.StartCoroutine(HopLanding(player));
 	}
 
-	private IEnumerator HopLanding(PlayerController player, float volume)
+	private IEnumerator HopLanding(PlayerController player)
 	{
-		const float liftWindow = 0.15f;   // time allowed to leave the floor
 		const float airTimeout = 1.5f;    // give up waiting for touchdown
 
+		float takeoffY = player.Rb.position.y;
+		WaitForFixedUpdate step = new WaitForFixedUpdate();
 		float t = 0f;
-		while (player.IsGrounded && t < liftWindow) { t += Time.deltaTime; yield return null; }
+		bool lostFloor = false;
 
-		if (!player.IsGrounded)
+		while (hopAwaitingLanding && t < airTimeout)
 		{
-			t = 0f;
-			while (!player.IsGrounded && t < airTimeout) { t += Time.deltaTime; yield return null; }
+			// Resumes after the physics step, so the hop impulse is already in.
+			yield return step;
+			t += Time.fixedDeltaTime;
+			if (!hopAwaitingLanding) break;   // OnCollisionEnter got there first
+
+			float height = player.Rb.position.y - takeoffY;
+			if (height > 0.02f || !player.IsGrounded) hopLeftFloor = true;
+
+			if (TimeToHeight(height, player.Rb.linearVelocity.y) <= hopLandLead) break;
+
+			// Grounded again after losing the floor: landed on something higher.
+			if (!player.IsGrounded) lostFloor = true;
+			else if (lostFloor) break;
 		}
+
+		PlayHopLanding();
+		hopLandRoutine = null;
+	}
+
+	/// <summary>
+	/// Seconds until a body at this height above the target, moving at this vertical
+	/// speed, falls back to the target under gravity. 0 when it is already there.
+	/// </summary>
+	private static float TimeToHeight(float height, float verticalSpeed)
+	{
+		float g = Physics.gravity.y;
+		if (g >= 0f) return float.MaxValue;
+		if (height <= 0f && verticalSpeed <= 0f) return 0f;
+		float disc = verticalSpeed * verticalSpeed - 2f * g * height;
+		if (disc < 0f) return 0f;
+		return (-verticalSpeed - Mathf.Sqrt(disc)) / g;
+	}
+
+	private void PlayHopLanding()
+	{
+		if (!hopAwaitingLanding) return;
+		hopAwaitingLanding = false;
 
 		AudioClip clip = PickClip(hopLandClips, ref lastHopLandClip);
 		if (AudioManager.Instance != null && clip != null)
-			AudioManager.Instance.PlaySFX(clip, volume, Random.Range(0.95f, 1.05f));
-		hopLandRoutine = null;
+			AudioManager.Instance.PlaySFX(clip, hopLandVolume, Random.Range(0.95f, 1.05f));
+	}
+
+	/// <summary>
+	/// Touchdown the prediction missed (floor higher than takeoff, or hopLandLead
+	/// at 0): play on the contact itself. Only floor-like contacts count.
+	/// </summary>
+	private void OnCollisionEnter(Collision collision)
+	{
+		if (!hopAwaitingLanding || !hopLeftFloor) return;
+
+		for (int i = 0; i < collision.contactCount; i++)
+		{
+			if (collision.GetContact(i).normal.y > 0.5f)
+			{
+				PlayHopLanding();
+				return;
+			}
+		}
 	}
 
 	public override float GetKickModifier()
