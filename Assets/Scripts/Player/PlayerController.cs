@@ -1187,6 +1187,10 @@ public class PlayerController : MonoBehaviour
 		else ConfiscateHeldItem();
 	}
 
+	/// <summary>Day 218: A / E would act on something right now: nothing in hand and a
+	/// pick-up target in range. Same search TryPickUp makes. TutorialPrompts polls it.</summary>
+	public bool PickUpInReach => heldItem == null && FindNearestInteractable(i => i.AcceptsPickUp) != null;
+
 	InteractableBase FindNearestInteractable(System.Predicate<InteractableBase> accepts = null)
 	{
 		// Broadphase: gather everything within the global interaction sweep.
