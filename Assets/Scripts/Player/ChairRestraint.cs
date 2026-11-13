@@ -146,9 +146,11 @@ public class ChairRestraint : RestraintBase
 		"instead of shimmying.")]
 	[SerializeField] private float backScootInterCycleDelay = 0.08f;
 
-	[Tooltip("Plays on each back-scoot push. Wooden scuff, chair-legs against " +
+	[Tooltip("Plays on each back-scoot push, one picked at random (never the " +
+		"same one twice in a row). Wooden scuff/creak, chair legs against the " +
 		"floor. Optional — safe to leave empty.")]
-	[SerializeField] private AudioClip backScootClip;
+	[SerializeField] private AudioClip[] backScootClips;
+	private int lastBackScootClip = -1;
 
 	[Header("Turn-Hop (A / D)")]
 	[Tooltip("Vertical impulse component. Lifts the chair off the floor on " +
@@ -680,9 +682,10 @@ public class ChairRestraint : RestraintBase
 		float mod = GetMovementModifier();
 		float perCycleDistance = backScootDistance * mod;
 
-		if (AudioManager.Instance != null && backScootClip != null)
+		AudioClip scootClip = PickBackScootClip();
+		if (AudioManager.Instance != null && scootClip != null)
 		{
-			AudioManager.Instance.PlaySFX(backScootClip, 1f, Random.Range(0.95f, 1.05f));
+			AudioManager.Instance.PlaySFX(scootClip, 1f, Random.Range(0.95f, 1.05f));
 		}
 
 		// Day 202: each shimmy is a (quieter) noise event.
@@ -722,6 +725,20 @@ public class ChairRestraint : RestraintBase
 		{
 			player.StartCoroutine(BackScootCycle(player));
 		}
+	}
+
+	/// <summary>
+	/// Random back-scoot clip, never the same one twice in a row. Null when the
+	/// array is empty.
+	/// </summary>
+	private AudioClip PickBackScootClip()
+	{
+		if (backScootClips == null || backScootClips.Length == 0) return null;
+		int i = Random.Range(0, backScootClips.Length);
+		if (backScootClips.Length > 1 && i == lastBackScootClip)
+			i = (i + Random.Range(1, backScootClips.Length)) % backScootClips.Length;
+		lastBackScootClip = i;
+		return backScootClips[i];
 	}
 
 	public override float GetKickModifier()
