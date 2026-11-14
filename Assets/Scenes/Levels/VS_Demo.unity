@@ -5541,7 +5541,7 @@ MonoBehaviour:
   onLeanInEntered:
     m_PersistentCalls:
       m_Calls: []
-  offstageRange: {x: 8, y: 16}
+  offstageRange: {x: 6, y: 12}
   respawnAtStartPosition: 1
   glanceNoise: 0.3
   inspectNoise: 0.6
@@ -7062,7 +7062,7 @@ MonoBehaviour:
     knotPoint: {fileID: 0}
   beatInterval: 0.7
   goodWindow: 0.6
-  gainPerPull: 0.08
+  gainPerPull: 0.05
   spamGap: 0.25
   boutMode: 1
   boutTimeoutBeats: 2
