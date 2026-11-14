@@ -723,10 +723,13 @@ public class GuardController : MonoBehaviour
 		SayGuard(tauntLines);
 	}
 
+	// Day 218: his reactions (taunt, tell, notice, "still tight") are ambient. They used to
+	// queue as narrative lines, stack up behind each other, and hold up the caught / taken
+	// lines that came after.
 	private void SayGuard(string[] lines)
 	{
 		if (MutterSystem.Instance == null || lines == null || lines.Length == 0) return;
-		MutterSystem.Instance.Play(lines[Random.Range(0, lines.Length)], MutterSystem.Speaker.Guard);
+		MutterSystem.Instance.PlayAmbient(lines[Random.Range(0, lines.Length)], MutterSystem.Speaker.Guard);
 	}
 
 	// Taunts keep him watching. Waited on at the end of AtDoor and LeanIn.
@@ -877,7 +880,7 @@ public class GuardController : MonoBehaviour
 
 		if (MutterSystem.Instance != null && !string.IsNullOrEmpty(takenGuardLine))
 		{
-			MutterSystem.Instance.Play(takenGuardLine, MutterSystem.Speaker.Guard);
+			MutterSystem.Instance.PlayNow(takenGuardLine, MutterSystem.Speaker.Guard);   // Day 218: cuts in
 			yield return null;
 			yield return new WaitWhile(() => MutterSystem.Instance != null && MutterSystem.Instance.IsActive);
 		}
@@ -1098,8 +1101,10 @@ public class GuardController : MonoBehaviour
 		// striking (H dismisses the mutter and swings — handled in PlayerController).
 		if (MutterSystem.Instance != null)
 		{
+			// Day 218: he's in her face, he talks now. The gloat cuts in over anything still
+			// showing; her reaction queues behind it.
 			if (routineGloatLines.Length > 0)
-				MutterSystem.Instance.Play(routineGloatLines[idx], MutterSystem.Speaker.Guard);
+				MutterSystem.Instance.PlayNow(routineGloatLines[idx], MutterSystem.Speaker.Guard);
 			if (routineReactionLines.Length > idx)
 				MutterSystem.Instance.Play(routineReactionLines[idx], MutterSystem.Speaker.Cassie);
 		}
@@ -1210,8 +1215,13 @@ public class GuardController : MonoBehaviour
 
 		if (MutterSystem.Instance != null)
 		{
+			// Day 218: his line cuts in (PlayNow). Step 6 waits on the next dismiss: with an
+			// older line still showing, that was the older line's, and the fade came early.
+			// With no guard line there's nothing to cut in with: clear the way for hers.
 			if (!string.IsNullOrEmpty(guardLine))
-				MutterSystem.Instance.Play(guardLine, MutterSystem.Speaker.Guard);
+				MutterSystem.Instance.PlayNow(guardLine, MutterSystem.Speaker.Guard);
+			else
+				MutterSystem.Instance.ForceDismissAndClear();
 			if (!string.IsNullOrEmpty(cassieLine))
 				MutterSystem.Instance.Play(cassieLine, MutterSystem.Speaker.Cassie);
 		}

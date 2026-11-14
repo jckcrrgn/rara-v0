@@ -934,7 +934,7 @@ public class BondStruggle : MonoBehaviour
 
 		if (MutterSystem.Instance != null && !string.IsNullOrEmpty(slippedOutLine))
 		{
-			MutterSystem.Instance.Play(slippedOutLine, MutterSystem.Speaker.Cassie);
+			MutterSystem.Instance.PlayNow(slippedOutLine, MutterSystem.Speaker.Cassie);   // Day 218: cuts in
 			yield return null;
 			yield return new WaitWhile(() => MutterSystem.Instance != null && MutterSystem.Instance.IsActive);
 		}

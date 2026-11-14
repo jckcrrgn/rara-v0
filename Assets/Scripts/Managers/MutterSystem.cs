@@ -646,6 +646,47 @@ public class MutterSystem : MonoBehaviour
 	public void PlayAsGuardBackground(string content) => Play(content, Speaker.Guard, MutterMode.Background);
 
 	/// <summary>
+	/// Day 218: a line that can't wait. Whatever is showing or queued (narrative or
+	/// ambient, any speaker) is cancelled, and this plays now. For the beats a sequence is
+	/// timed around: caught, taken, slipped out, the lean-in, the win line. A plain Play()
+	/// straight after it queues behind it as usual, so guard-then-Cassie pairs still work.
+	///
+	/// Why: Play() queues, and the sequences wait on the queue (IsActive) or on the next
+	/// dismiss (WasJustDismissed). A line stuck behind older chatter played late, and the
+	/// caught sequence could take an older line's dismiss for its own and fade in early.
+	///
+	/// The cancel pulses WasJustDismissed for this frame, same as ForceDismissAndClear.
+	/// Callers that then wait on the pulse already skip a frame first.
+	/// </summary>
+	public bool PlayNow(string content, Speaker speaker = Speaker.Cassie)
+	{
+		ForceDismissAndClear();
+		return Play(content, speaker, MutterMode.Blocking);
+	}
+
+	/// <summary>
+	/// Day 218: a reaction line (taunt, suspicion tell). Never waits in the queue: a
+	/// reaction that plays late is wrong. Newest wins: it replaces an ambient line that's
+	/// still showing. A narrative line on the same speaker's panel wins over it: then this
+	/// drops (returns false). Doesn't count toward IsActive, so sequences don't wait on it.
+	/// </summary>
+	public bool PlayAmbient(string content, Speaker speaker = Speaker.Cassie)
+	{
+		if ((isRevealing || isWaitingForDismiss) && activeRoot != null
+			&& ResolvePanelRoot(GetSpeakerConfig(speaker)) == activeRoot)
+		{
+			Debug.Log($"MutterSystem: panel busy with a narrative line, dropping ambient mutter \"{content}\".");
+			return false;
+		}
+		if (isBackgroundActive)
+		{
+			if (backgroundCoroutine != null) StopCoroutine(backgroundCoroutine);
+			TearDownBackground();
+		}
+		return Play(content, speaker, MutterMode.Background);
+	}
+
+	/// <summary>
 	/// Immediately close any active mutter and drain the queue. Used by
 	/// systems that need to interrupt the mutter flow with their own
 	/// sequence — e.g. FailureLoopController on timer expiry, where the

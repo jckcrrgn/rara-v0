@@ -112,7 +112,7 @@ public class SliceCoordinator : MonoBehaviour
         // Victory mutter.
         if (MutterSystem.Instance != null && !string.IsNullOrEmpty(victoryMutterLine))
         {
-            MutterSystem.Instance.Play(victoryMutterLine, MutterSystem.Speaker.Cassie);
+            MutterSystem.Instance.PlayNow(victoryMutterLine, MutterSystem.Speaker.Cassie);   // Day 218: cuts in
 
             // Wait for the mutter to finish before firing the level-complete event.
             yield return new WaitWhile(() =>
