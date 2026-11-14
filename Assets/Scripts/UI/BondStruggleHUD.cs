@@ -73,6 +73,9 @@ public class BondStruggleHUD : MonoBehaviour
 	[SerializeField] private Color bondBarFlash = Color.white;
 	[Tooltip("How strong that flash is.")]
 	[Range(0f, 1f)] [SerializeField] private float bondBarFlashStrength = 0.6f;
+	[Tooltip("Most rows of rope the bar will stack. Each time he ties a bond tighter it gains a " +
+		"full row (one per BondStruggle.tightenPerCatch of tightness).")]
+	[Range(1, 6)] [SerializeField] private int bondBarMaxRows = 4;
 	[SerializeField] private float bondBarFlashTime = 0.18f;
 	[Range(0f, 1f)] [SerializeField] private float bondBarAlpha = 0.92f;
 
@@ -248,6 +251,11 @@ public class BondStruggleHUD : MonoBehaviour
 	/// What's left of the selected bond, pinned under it on her body: a length of rope on a
 	/// dark track, wearing away from the right as the bond gives. Full = tight, gone = free.
 	/// Only the selected bond gets one, so it doubles as "this one".
+	///
+	/// Rows: a bond he has tied tighter is more rope. One full row to start, one more full
+	/// row each time it's tightened, stacked like coils. The whole stack is the bond: the
+	/// top row wears away first, the bottom row last. The stack hangs down from where the
+	/// single bar sits, so extra rows never climb over the bond itself.
 	/// </summary>
 	void DrawBondBar()
 	{
@@ -281,13 +289,23 @@ public class BondStruggleHUD : MonoBehaviour
 		float x = sp.x - w * 0.5f;
 		float flash = 1f - Smooth(_barFlashT);
 
+		// One row, plus one per tightening.
+		int rows = 1;
+		if (struggle.tightenPerCatch > 0.001f)
+			rows += Mathf.RoundToInt(Mathf.Max(0f, b.tightness - 1f) / struggle.tightenPerCatch);
+		rows = Mathf.Clamp(rows, 1, bondBarMaxRows);
+		float pitch = h + o;                                      // rows share the outline between them
+		float ropeLeft = (1f - Mathf.Clamp01(b.progress)) * rows; // rope still holding, in rows
+
 		var prev = GUI.color;
-		FillRect(new Rect(x - o, top - o, w + o * 2f, h + o * 2f), knotOutline, bondBarAlpha);
-		FillRect(new Rect(x, top, w, h), bondBarTrack, bondBarAlpha);
-		float left = w * (1f - Mathf.Clamp01(b.progress));   // rope still holding
-		if (left >= 1f)
+		FillRect(new Rect(x - o, top - o, w + o * 2f, rows * pitch + o), knotOutline, bondBarAlpha);
+		for (int i = 0; i < rows; i++)   // i = 0 is the top row: last on, first to go
 		{
-			var r = new Rect(x, top, left, h);
+			float rowTop = top + i * pitch;
+			FillRect(new Rect(x, rowTop, w, h), bondBarTrack, bondBarAlpha);
+			float left = w * Mathf.Clamp01(ropeLeft - (rows - 1 - i));
+			if (left < 1f) continue;
+			var r = new Rect(x, rowTop, left, h);
 			if (_rope != null)
 			{
 				// The twist keeps its size on screen: the texture repeats along the rope
