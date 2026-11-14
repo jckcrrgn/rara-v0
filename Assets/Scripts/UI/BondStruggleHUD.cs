@@ -27,8 +27,9 @@
 //
 // Day 218: BOND BAR — the bond list left the player's screen. Which bonds hold her is the
 // ropes on her, which one is selected is her lean, untie is the loop. The one thing only
-// the list had was how far along a bond is, so that moved onto her too: a short bar pinned
-// under the selected bond. The list (bonds, HANDS, caught n of m) now draws with the debug
+// the list had was how far along a bond is, so that moved onto her too: a short length of
+// rope pinned under the selected bond, which wears away as the bond gives (full = tight,
+// gone = free). The list (bonds, HANDS, caught n of m) now draws with the debug
 // readout (F1). The catch count is the guard's job: he warns her on the catch before the
 // last (GuardController.lastWarningGuardLine). Nothing player-facing draws under the end
 // card or during the caught sequence.
@@ -54,20 +55,24 @@ public class BondStruggleHUD : MonoBehaviour
 	[SerializeField] private bool showDebug = false;
 
 	[Header("Bond bar (Day 218)")]
-	[Tooltip("How far along the selected bond is, as a short bar pinned under that bond on her. " +
-		"Fills as it loosens; full = free. Uses the knot cue's rope and outline colours.")]
+	[Tooltip("How much of the selected bond is left, as a short length of rope pinned under that " +
+		"bond on her. Wears away from the right as it loosens; gone = free. Uses the knot cue's " +
+		"rope and outline colours.")]
 	[SerializeField] private bool showBondBar = true;
 	[Tooltip("Bar width as a share of screen height. 0.09 = ~97 px at 1080p.")]
 	[Range(0.03f, 0.3f)] [SerializeField] private float bondBarWidth = 0.09f;
-	[Tooltip("Bar thickness as a share of screen height. 0.011 = ~12 px at 1080p.")]
-	[Range(0.004f, 0.04f)] [SerializeField] private float bondBarHeight = 0.011f;
+	[Tooltip("Bar thickness as a share of screen height. 0.014 = ~15 px at 1080p. Thinner than " +
+		"about 0.011 and the rope twist stops reading.")]
+	[Range(0.004f, 0.04f)] [SerializeField] private float bondBarHeight = 0.014f;
 	[Tooltip("How far below the bond the bar sits, as a share of screen height. Negative = above. " +
 		"While the knot loop shows, the bar moves down further by itself to stay clear of it.")]
 	[Range(-0.2f, 0.2f)] [SerializeField] private float bondBarDrop = 0.045f;
-	[Tooltip("The empty part of the bar.")]
+	[Tooltip("Where the rope has worn away.")]
 	[SerializeField] private Color bondBarTrack = new Color(0.26f, 0.24f, 0.21f);
-	[Tooltip("The filled part flashes this colour when the bond gives.")]
+	[Tooltip("The rope that's left flashes toward this colour when the bond gives.")]
 	[SerializeField] private Color bondBarFlash = Color.white;
+	[Tooltip("How strong that flash is.")]
+	[Range(0f, 1f)] [SerializeField] private float bondBarFlashStrength = 0.6f;
 	[SerializeField] private float bondBarFlashTime = 0.18f;
 	[Range(0f, 1f)] [SerializeField] private float bondBarAlpha = 0.92f;
 
@@ -100,6 +105,7 @@ public class BondStruggleHUD : MonoBehaviour
 	static bool DebugAllowed => Application.isEditor || Debug.isDebugBuild;
 
 	Texture2D _bight;
+	Texture2D _rope;       // Day 218: one twist of rope, tiles sideways (bond bar)
 	float _pullT = 1f;     // 0..1 through a pull-through; 1 = idle
 	int _pullDir;          // direction of the loop that was just pulled
 	float _cinchT = 1f;    // 0..1 through a fumble cinch; 1 = idle
@@ -121,6 +127,7 @@ public class BondStruggleHUD : MonoBehaviour
 		if (handsDriver == null) handsDriver = FindFirstObjectByType<CassieHandsDriver>();
 		if (!DebugAllowed) showDebug = false;
 		_bight = BuildBight();
+		_rope = BuildRope();
 		if (struggle != null) struggle.OnUntieInput += OnUntie;
 	}
 
@@ -128,6 +135,7 @@ public class BondStruggleHUD : MonoBehaviour
 	{
 		if (struggle != null) struggle.OnUntieInput -= OnUntie;
 		if (_bight != null) Destroy(_bight);
+		if (_rope != null) Destroy(_rope);
 	}
 
 	void OnUntie(int dir, bool correct)
@@ -237,8 +245,9 @@ public class BondStruggleHUD : MonoBehaviour
 	// ---- Bond bar (Day 218) ----------------------------------------------------------
 
 	/// <summary>
-	/// Progress of the selected bond, pinned under it on her body. Outline, empty track,
-	/// fill from the left. Only the selected bond gets one, so it doubles as "this one".
+	/// What's left of the selected bond, pinned under it on her body: a length of rope on a
+	/// dark track, wearing away from the right as the bond gives. Full = tight, gone = free.
+	/// Only the selected bond gets one, so it doubles as "this one".
 	/// </summary>
 	void DrawBondBar()
 	{
@@ -271,14 +280,66 @@ public class BondStruggleHUD : MonoBehaviour
 		float o = Mathf.Max(1.5f, h * 0.22f);   // outline width
 		float x = sp.x - w * 0.5f;
 		float flash = 1f - Smooth(_barFlashT);
-		Color fill = Color.Lerp(knotRope, bondBarFlash, flash);
 
 		var prev = GUI.color;
 		FillRect(new Rect(x - o, top - o, w + o * 2f, h + o * 2f), knotOutline, bondBarAlpha);
 		FillRect(new Rect(x, top, w, h), bondBarTrack, bondBarAlpha);
-		float fw = w * Mathf.Clamp01(b.progress);
-		if (fw >= 1f) FillRect(new Rect(x, top, fw, h), fill, bondBarAlpha);
+		float left = w * (1f - Mathf.Clamp01(b.progress));   // rope still holding
+		if (left >= 1f)
+		{
+			var r = new Rect(x, top, left, h);
+			if (_rope != null)
+			{
+				// The twist keeps its size on screen: the texture repeats along the rope
+				// that's left, it doesn't stretch.
+				float tile = h * RopeTexW / RopeTexH;
+				GUI.color = new Color(1f, 1f, 1f, bondBarAlpha);
+				GUI.DrawTextureWithTexCoords(r, _rope, new Rect(0f, 0f, left / tile, 1f), true);
+			}
+			else FillRect(r, knotRope, bondBarAlpha);
+			if (flash > 0.01f) FillRect(r, bondBarFlash, flash * bondBarFlashStrength);
+		}
 		GUI.color = prev;
+	}
+
+	const int RopeTexW = 24, RopeTexH = 16;
+
+	/// <summary>
+	/// One repeat of twisted rope: two slanted strands, lit along their middles, dark in the
+	/// grooves between them, rounded top to bottom. Tiles sideways. Same cream as the knot cue.
+	/// </summary>
+	Texture2D BuildRope()
+	{
+		const int W = RopeTexW, H = RopeTexH;
+		const float strand = W / 2f;   // two strands per repeat
+		var tex = new Texture2D(W, H, TextureFormat.RGBA32, false)
+		{
+			filterMode = FilterMode.Bilinear,
+			wrapModeU = TextureWrapMode.Repeat,
+			wrapModeV = TextureWrapMode.Clamp,
+			hideFlags = HideFlags.DontSave,
+			name = "BondRope",
+		};
+		Color groove = knotRope * 0.42f;
+		var px = new Color[W * H];
+		for (int y = 0; y < H; y++)
+		for (int x = 0; x < W; x++)
+		{
+			float v = (y + 0.5f) / H;
+			// Each strand leans one strand-width over the rope's thickness.
+			float t = (x + 0.5f + v * strand) / strand;
+			float sPos = t - Mathf.Floor(t);                      // 0..1 across one strand
+			float edge = Mathf.Min(sPos, 1f - sPos);              // 0 at a groove, 0.5 mid-strand
+			float lit = 0.74f + 0.26f * Mathf.Sin(Mathf.PI * sPos);
+			float round = 0.80f + 0.20f * Mathf.Sin(Mathf.PI * v);
+			Color c = knotRope * (lit * round);
+			c = Color.Lerp(groove, c, Edge(0.03f, 0.16f, edge));
+			c.a = 1f;
+			px[y * W + x] = c;
+		}
+		tex.SetPixels(px);
+		tex.Apply(false, true);
+		return tex;
 	}
 
 	static void FillRect(Rect r, Color c, float alpha)
