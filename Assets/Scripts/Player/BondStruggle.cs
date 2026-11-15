@@ -101,7 +101,7 @@ public class BondStruggle : MonoBehaviour
 		new StruggleBond { name = "Elbows",  dir = Vector2.up,    limb = BoundLimbs.Elbows,
 			startsBound = false, addedOnCatch = 1, untieable = false },
 		new StruggleBond { name = "Wrists",  dir = Vector2.down,  limb = BoundLimbs.Wrists,
-			untieable = false, envToolsReach = true },
+			untieable = false, envToolsReach = true, barehandGain = 0.4f },
 		// Day 208: her ankles are tied TOGETHER — one rope, one bond. Separate L/R ankle bonds
 		// come back when a level ties each ankle to its own chair leg (set their anchors).
 		new StruggleBond { name = "Ankles",  dir = new Vector2(0f, -2f), limb = BoundLimbs.Ankles },
@@ -148,6 +148,11 @@ public class BondStruggle : MonoBehaviour
 	public float handsBackTime = 0.4f;
 
 	[Header("Tools (multipliers on a good pull)")]
+	[Tooltip("Day 220: the table edge (any EnvironmentalTool) on the wrists. Its own number so " +
+		"tuning the room doesn't move held blades. 1.75 with wrist barehandGain 0.4 and gainPerPull " +
+		"0.05 = ~10 s on the edge vs ~44 s barehand at a typical 0.8 accuracy. Barehand costs time; " +
+		"the edge costs noisy hops. See GDD, Table edge (Day 220).")]
+	public float envToolMult = 1.75f;
 	public float bladeMult = 2.5f;
 	public float pointMult = 1.6f;
 	public float keyMult = 4f;
@@ -480,7 +485,7 @@ public class BondStruggle : MonoBehaviour
 			EnvironmentalTool env = player.FindUsableEnvTool();
 			if (env != null)
 			{
-				float m = MultFor(env.ToolType);
+				float m = MultFor(env.ToolType) > 0f ? envToolMult : 0f;
 				if (m > best) { best = m; toolName = env.name; }
 				env.OnStruggle(player);
 			}

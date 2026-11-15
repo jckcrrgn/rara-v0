@@ -7045,7 +7045,7 @@ MonoBehaviour:
     addedOnCatch: 0
     untieable: 0
     envToolsReach: 1
-    barehandGain: 1
+    barehandGain: 0.4
     ropes: []
     knotPoint: {fileID: 0}
   - name: Ankles
