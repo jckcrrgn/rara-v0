@@ -7013,6 +7013,21 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 2795448765098500059, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
   m_PrefabInstance: {fileID: 8205259987904620297}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1652804371
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1652804365}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd712de69580480ba9846cc9ccc9dd7e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  barehandLine: Could do this all night. Rather not.
+  barehandHits: 8
+  edgeLine: That edge'll do.
 --- !u!114 &1652804368
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9146,6 +9161,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2795448765098500059, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
       insertIndex: 6
       addedObject: {fileID: 1652804368}
+    - targetCorrespondingSourceObject: {fileID: 2795448765098500059, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1652804371}
   m_SourcePrefab: {fileID: 100100000, guid: 29101703464096c42a7240abc7ef60ec, type: 3}
 --- !u!4 &8205259987904620298 stripped
 Transform:
