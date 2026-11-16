@@ -178,6 +178,11 @@ public class BondStruggle : MonoBehaviour
 	[Tooltip("Plays on a good pull. Confirms the hit after the press; never cues the beat. " +
 		"Leave empty for timing runs that need no audio feedback.")]
 	public AudioClip hitClip;
+	[Tooltip("Day 220: plays instead of hitClip on a good pull at the table edge. Its own sound " +
+		"(rasp / saw, not the barehand creak) so the edge reads as better on the first hit. " +
+		"Empty = hitClip.")]
+	public AudioClip edgeHitClip;
+	[Range(0, 1)] public float edgeHitVolume = 0.8f;
 	[Tooltip("Plays on an off-beat pull. Must read as different from hitClip at a glance. " +
 		"Day 215: the anchor miss — the one that reads for sure (frustrated grunt).")]
 	public AudioClip missClip;
@@ -440,8 +445,9 @@ public class BondStruggle : MonoBehaviour
 		float gain = gainPerPull * mult * accuracy / b.tightness;
 		AddNoise(noisePerPull);
 		// On the beat = hit, even when the bond won't give (cuffs). The sound grades the
-		// timing; "needs a tool" is the mutter's job.
-		PlaySfx(hitClip, hitVolume);
+		// timing; "needs a tool" is the mutter's job. Day 220: the edge has its own hit.
+		if (envToolWon && edgeHitClip != null) PlaySfx(edgeHitClip, edgeHitVolume);
+		else PlaySfx(hitClip, hitVolume);
 
 		if (gain <= 0f)
 		{
@@ -471,12 +477,16 @@ public class BondStruggle : MonoBehaviour
 	// Day 211: 0..1 within the beat, measured from the bout's beat 0.
 	float BeatPhase(float t) => Mathf.Repeat(t - beatOrigin, beatInterval) / beatInterval;
 
+	// Day 220: true when the last ToolMultFor picked an EnvironmentalTool (the table edge).
+	bool envToolWon;
+
 	// Barehand gain x best available tool. Env tools reach only envToolsReach bonds (wrists,
 	// hands behind her back). A held tool works the wrists while bound, and anything she
 	// can untie once her hands are free. Never the elbows.
 	float ToolMultFor(int i, out string toolName)
 	{
 		toolName = null;
+		envToolWon = false;
 		var b = bonds[i];
 		float best = 0f;
 
@@ -486,7 +496,7 @@ public class BondStruggle : MonoBehaviour
 			if (env != null)
 			{
 				float m = MultFor(env.ToolType) > 0f ? envToolMult : 0f;
-				if (m > best) { best = m; toolName = env.name; }
+				if (m > best) { best = m; toolName = env.name; envToolWon = true; }
 				env.OnStruggle(player);
 			}
 		}
@@ -496,7 +506,7 @@ public class BondStruggle : MonoBehaviour
 		if (held != null && heldReaches)
 		{
 			float m = MultFor(held.ToolType);
-			if (m > best) { best = m; toolName = held.ItemName; }
+			if (m > best) { best = m; toolName = held.ItemName; envToolWon = false; }
 		}
 
 		if (best > 0f) return Mathf.Max(best, b.barehandGain);

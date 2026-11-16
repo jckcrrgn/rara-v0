@@ -7088,6 +7088,8 @@ MonoBehaviour:
   slippedOutLine: Rookie knots.
   logTiming: 1
   hitClip: {fileID: 8300000, guid: d7e95b08ddc82b8469204d874282cce1, type: 3}
+  edgeHitClip: {fileID: 8300000, guid: 8301f7d4fc036eb4f86b3321d0e27c48, type: 3}
+  edgeHitVolume: 0.8
   missClip: {fileID: 8300000, guid: ea76216119c12154686919a900143d4c, type: 3}
   missVariants:
   - {fileID: 8300000, guid: a008ad123a3466b48b9224ff2ab6fcf7, type: 3}
