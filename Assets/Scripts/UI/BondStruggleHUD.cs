@@ -340,7 +340,8 @@ public class BondStruggleHUD : MonoBehaviour
 		if (_chunkT < 1f && _chunkBond == sel && _rope != null)
 		{
 			float fade = 1f - Smooth(_chunkT);
-			float fall = h * bondBarChunkFall * _chunkT * _chunkT;   // accelerates, like it fell
+			// Leaves at once (the pull knocked it loose), then speeds up as it falls.
+			float fall = h * bondBarChunkFall * _chunkT * (0.6f + 0.4f * _chunkT);
 			float tile = h * RopeTexW / RopeTexH;
 			float leftOfFrom = (1f - Mathf.Clamp01(_chunkFrom)) * rows;
 			float leftOfTo = (1f - Mathf.Clamp01(_chunkTo)) * rows;
