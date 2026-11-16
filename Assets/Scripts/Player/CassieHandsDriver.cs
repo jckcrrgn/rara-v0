@@ -240,18 +240,15 @@ public class CassieHandsDriver : CassieRigLayer
 		_workT = 0f;
 	}
 
-	// Day 220: cutting at the knot (scissors in hand). A good cut tugs the hands sideways,
-	// alternating, like snipping across the rope; a miss is a fumble back.
-	bool _cutLeft;
+	// Day 220: a snip at the knot (scissors in hand). One short dip into the rope, the
+	// same tug the untie uses, no back-and-forth.
 	void OnPull(BondStruggle.PullKind kind, bool toolEngaged)
 	{
+		if (kind != BondStruggle.PullKind.Hit) return;
 		if (struggle == null || !struggle.CanCut(struggle.Selected)) return;
-		if (kind != BondStruggle.PullKind.Hit && kind != BondStruggle.PullKind.Miss) return;
 		Camera cam = Camera.main;
 		if (cam == null) return;
-		_cutLeft = !_cutLeft;
-		Vector3 d = _cutLeft ? -cam.transform.right : cam.transform.right;
-		_workDir = kind == BondStruggle.PullKind.Hit ? d : -cam.transform.up * fumbleShare;
+		_workDir = -cam.transform.up;
 		_workT = 0f;
 	}
 

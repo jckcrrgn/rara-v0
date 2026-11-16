@@ -157,6 +157,18 @@ public class BondStruggle : MonoBehaviour
 	public float pointMult = 1.6f;
 	public float keyMult = 4f;
 
+	[Header("Snip (Day 220): free hands + scissors on a bond she could untie")]
+	[Tooltip("Seconds between snips. Presses faster than this do nothing (no spam noise). " +
+		"Snipping has no beat: rhythm is the struggle verb, scissors are a tool.")]
+	public float snipInterval = 0.5f;
+	[Tooltip("Progress per snip at tightness 1. 0.2 = 5 snips; a tighter bond takes more.")]
+	public float snipGain = 0.2f;
+	[Tooltip("Same as a clean pull. Her hands are out while she cuts — that's the real cost.")]
+	public float noisePerSnip = 0.05f;
+	[Tooltip("Empty = edgeHitClip, then hitClip.")]
+	public AudioClip snipClip;
+	[Range(0, 1)] public float snipVolume = 0.8f;
+
 	[Header("Caught")]
 	public float setback = 0.3f;
 	public float tightenPerCatch = 0.3f;
@@ -404,10 +416,11 @@ public class BondStruggle : MonoBehaviour
 
 		if (Selected < 0 || !bonds[Selected].Bound) return;
 
+		// Day 220: scissors in free hands on a bond she could untie. Not a struggle: no beat.
+		if (CanCut(Selected)) { Snip(now); return; }
+
 		// Presentation: she commits to a struggle, pass or fail.
 		player.NotifyStruggleAttempt();
-		// Day 220: cutting is done in plain sight, hands at the knot, like untying.
-		if (CanCut(Selected)) BringHandsOut();
 
 		// Day 211: struggle on demand. A press while she's still starts a bout: it IS
 		// beat 0, so it isn't scored and makes no progress. Every press, hit or not,
@@ -695,6 +708,24 @@ public class BondStruggle : MonoBehaviour
 
 	/// <summary>The guard reacted to this sound. It's spent — what catches her is the NEXT one.</summary>
 	public void SpendNoise() => Noise = 0f;
+
+	float nextSnipAt;
+
+	// Day 220: one snip. Hands out at the knot (CassieHandsDriver reaches it via CanCut),
+	// a fixed chunk off the bond, no timing grade.
+	void Snip(float now)
+	{
+		if (now < nextSnipAt) return;
+		nextSnipAt = now + snipInterval;
+		var b = bonds[Selected];
+		BringHandsOut();
+		AddNoise(noisePerSnip);
+		PlaySfx(snipClip != null ? snipClip : edgeHitClip != null ? edgeHitClip : hitClip, snipVolume);
+		b.progress = Mathf.Clamp01(b.progress + snipGain / b.tightness);
+		LastResult = "snip";
+		OnPullResolved?.Invoke(PullKind.Hit, true);
+		if (b.progress >= 1f) Freed(b);
+	}
 
 	void Freed(StruggleBond b)
 	{
