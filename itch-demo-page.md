@@ -5,12 +5,22 @@ Rules: "early prototype" framing. Lead with competence, not peril. Never "one ho
 
 ---
 
-## Page copy (replaces the mid-October demo promise)
+## Page copy (LIVE Day 221; replaced "devlogs twice weekly" + "demo mid-October")
 
-**Free demo — early prototype. One room. Tell me what breaks.**
+Title: **Cassie Conroy: Sub Rosa**. Opener kept from the Sep 19 page.
 
-Detective Cassie Conroy got too close. Now she's tied to a chair in a back room, and the
-man who tied her is right outside the door. Listening.
+Cassie Conroy is a snooping detective in a tight spot. She's got a case of incurable
+curiosity, and it keeps getting her caught.
+
+But Cassie is an escape artiste. She's got a knack for getting free.
+
+Third person. Cel-shaded. Noir-coded.
+
+**Free demo: Saturday, November 21.** Early prototype. One room. Tell me what breaks.
+*(Sat Nov 21: change to "Free demo — out now.")*
+
+She's tied to a chair in a back room, and the man who tied her is right outside the
+door. Listening.
 
 She's been in worse. Probably.
 
@@ -18,7 +28,8 @@ Struggle with her rhythm, not against it. Work the knots while he isn't looking;
 your hands when he is. Find something with an edge. Then slip out the door, or pick up
 the bottle and settle it.
 
-Get caught and he ties you back up. Tighter. Three strikes and you're done.
+Get caught and he ties you back up. Tighter. Third time, the case is closed.
+*(Not "three strikes": Strike is a control.)*
 
 **In the demo**
 - One room, one chair, one very patient guard
@@ -48,20 +59,27 @@ That's the most useful thing you can do for this game right now.
 
 → **Discord:** https://discord.gg/WVkAGH2a3v
 
-*Cassie Conroy is a low-poly noir escape game in development: a captured detective,
-grounded rooms, escalating stakes. Donations go straight into development.*
+Cassie Conroy: Sub Rosa is twelve levels, three acts, in development. Donations go
+straight into it.
 
 ---
 
 ## Page settings checklist
 
-- [ ] Discord invite set to **never expire** (Server → Invites). A default invite dies
-      after 7 days, and the end card and page both point to it.
-- [ ] Old "demo mid-October" text removed.
+- [x] Discord invite never expires (checked Day 221).
+- [x] Old "demo mid-October" / "devlogs twice weekly" text removed (Day 221).
+- [ ] Reply to bmo-dar ("Where is the demo?"): "Saturday, November 21, free. Sorry for
+      the wait: the October version wasn't fun, so I rebuilt it. Come tell me what breaks:"
+      + Discord link.
+- [ ] AI generation disclosure (unset). Code, some mutter lines and this copy came
+      through an LLM; itch counts that "even if hand-edited." Jack's call.
+- [ ] Cover: keep the Sep 19 slat-light frame.
 - [ ] Upload `Builds/Rara_Demo_v1` as a zip, tagged Windows, **hidden or draft until Sat**.
 - [ ] Cover image 630×500.
 - [ ] 3–5 screenshots (shot list below).
-- [ ] Genre / tags: Puzzle, Rhythm, Noir, Low-poly, Escape, Detective.
+- [ ] Genre: Adventure (keep). Tags at max 10: swap `unity` → `rhythm`,
+      `story-rich` → `cel-shaded`. Keep atmospheric, detective, escape-game, low-poly,
+      noir, puzzle, singleplayer, third-person.
 
 **Screenshot shot list** (clean frames, readout off)
 1. Hero: Cassie in the chair, guard framed in the doorway. Competence, not peril:
