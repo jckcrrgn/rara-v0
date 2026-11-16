@@ -65,8 +65,8 @@ public class BondStruggle : MonoBehaviour
 		[Tooltip("Can be untied once her hands are free. Off for elbows (can't reach) and " +
 			"wrists (they ARE the hands).")]
 		public bool untieable = true;
-		[Tooltip("Environmental tools (table edge, nail) reach this bond. Wrists only — " +
-			"her hands are behind her back.")]
+		[Tooltip("Environmental tools (table edge, nail) reach this bond. Wrists and elbows " +
+			"(Day 220): both are behind her back, so backing up to the edge saws either.")]
 		public bool envToolsReach;
 		[Tooltip("Barehand pull effectiveness. 1 = rope. 0 = needs a tool or key (cuffs).")]
 		public float barehandGain = 1f;
@@ -99,7 +99,7 @@ public class BondStruggle : MonoBehaviour
 	public StruggleBond[] bonds =
 	{
 		new StruggleBond { name = "Elbows",  dir = Vector2.up,    limb = BoundLimbs.Elbows,
-			startsBound = false, addedOnCatch = 1, untieable = false },
+			startsBound = false, addedOnCatch = 1, untieable = false, envToolsReach = true },
 		new StruggleBond { name = "Wrists",  dir = Vector2.down,  limb = BoundLimbs.Wrists,
 			untieable = false, envToolsReach = true, barehandGain = 0.4f },
 		// Day 208: her ankles are tied TOGETHER — one rope, one bond. Separate L/R ankle bonds

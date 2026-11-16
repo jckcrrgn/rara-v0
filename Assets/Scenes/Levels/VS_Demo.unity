@@ -7033,7 +7033,7 @@ MonoBehaviour:
     startsBound: 0
     addedOnCatch: 1
     untieable: 0
-    envToolsReach: 0
+    envToolsReach: 1
     barehandGain: 1
     ropes: []
     knotPoint: {fileID: 0}
