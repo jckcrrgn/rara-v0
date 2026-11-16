@@ -238,6 +238,11 @@ public class BondStruggle : MonoBehaviour
 	/// and the knot cue comes back. Struggle still works.</summary>
 	public bool HandsFull => player != null && player.GetHeldItem() != null;
 	public bool CanUntie(int i) => HandsFree && !ElbowsBound && !HandsFull && i >= 0 && i < bonds.Length && bonds[i].untieable && bonds[i].Bound;
+	/// <summary>Day 220: free hands holding something that cuts (the scissors). A pull on a
+	/// bond she could otherwise untie is her cutting it, at the knot. CassieHandsDriver
+	/// reaches there, same as untying.</summary>
+	public bool CanCut(int i) => HandsFree && !ElbowsBound && HandsFull && i >= 0 && i < bonds.Length
+		&& bonds[i].untieable && bonds[i].Bound && MultFor(player.GetHeldItem().ToolType) > 0f;
 	/// <summary>0..1, 1 exactly on the beat.</summary>
 	public float Pulse01 { get { float bp = BeatPhase(Time.time); return 1f - Mathf.Min(bp, 1f - bp) * 2f; } }
 	/// <summary>Beats elapsed since the bout started (Day 211; Time.time when boutMode is off).
@@ -401,6 +406,8 @@ public class BondStruggle : MonoBehaviour
 
 		// Presentation: she commits to a struggle, pass or fail.
 		player.NotifyStruggleAttempt();
+		// Day 220: cutting is done in plain sight, hands at the knot, like untying.
+		if (CanCut(Selected)) BringHandsOut();
 
 		// Day 211: struggle on demand. A press while she's still starts a bout: it IS
 		// beat 0, so it isn't scored and makes no progress. Every press, hit or not,

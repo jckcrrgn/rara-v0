@@ -193,12 +193,14 @@ public class CassieHandsDriver : CassieRigLayer
 	{
 		base.OnEnable();
 		if (struggle != null) struggle.OnUntieInput += OnUntie;
+		if (struggle != null) struggle.OnPullResolved += OnPull;
 	}
 
 	protected override void OnDisable()
 	{
 		base.OnDisable();
 		if (struggle != null) struggle.OnUntieInput -= OnUntie;
+		if (struggle != null) struggle.OnPullResolved -= OnPull;
 	}
 
 	// ---- state ------------------------------------------------------------------------
@@ -225,7 +227,8 @@ public class CassieHandsDriver : CassieRigLayer
 
 	bool WantOut => DebugKnot || RealOut;
 
-	bool AtKnot => DebugKnot || (struggle != null && struggle.CanUntie(struggle.Selected));
+	bool AtKnot => DebugKnot || (struggle != null
+		&& (struggle.CanUntie(struggle.Selected) || struggle.CanCut(struggle.Selected)));
 
 	void OnUntie(int dir, bool correct)
 	{
@@ -234,6 +237,21 @@ public class CassieHandsDriver : CassieRigLayer
 		Vector3 up = cam.transform.up, right = cam.transform.right;
 		Vector3 d = dir == 0 ? up : dir == 1 ? right : dir == 2 ? -up : -right;
 		_workDir = correct ? d : -d * fumbleShare;
+		_workT = 0f;
+	}
+
+	// Day 220: cutting at the knot (scissors in hand). A good cut tugs the hands sideways,
+	// alternating, like snipping across the rope; a miss is a fumble back.
+	bool _cutLeft;
+	void OnPull(BondStruggle.PullKind kind, bool toolEngaged)
+	{
+		if (struggle == null || !struggle.CanCut(struggle.Selected)) return;
+		if (kind != BondStruggle.PullKind.Hit && kind != BondStruggle.PullKind.Miss) return;
+		Camera cam = Camera.main;
+		if (cam == null) return;
+		_cutLeft = !_cutLeft;
+		Vector3 d = _cutLeft ? -cam.transform.right : cam.transform.right;
+		_workDir = kind == BondStruggle.PullKind.Hit ? d : -cam.transform.up * fumbleShare;
 		_workT = 0f;
 	}
 
