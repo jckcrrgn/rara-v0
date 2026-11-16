@@ -77,6 +77,12 @@ public class BondStruggleHUD : MonoBehaviour
 		"full row (one per BondStruggle.tightenPerCatch of tightness).")]
 	[Range(1, 6)] [SerializeField] private int bondBarMaxRows = 4;
 	[SerializeField] private float bondBarFlashTime = 0.18f;
+	[Tooltip("Day 220: the rope a pull wore away hangs on for this long, dropping and fading. " +
+		"Same for every pull: barehand slivers are too thin to see, table-edge pulls shed a " +
+		"chunk you can see. 0 = off.")]
+	[SerializeField] private float bondBarChunkTime = 0.35f;
+	[Tooltip("How far the worn-away chunk drops, in bar heights.")]
+	[SerializeField] private float bondBarChunkFall = 2.5f;
 	[Range(0f, 1f)] [SerializeField] private float bondBarAlpha = 0.92f;
 
 	[Header("Knot cue (Day 212)")]
@@ -117,6 +123,9 @@ public class BondStruggleHUD : MonoBehaviour
 	int _barBond = -1;     // bond the bar last showed
 	float _barProg;        // its progress last frame
 	float _barFlashT = 1f; // 0..1 through a flash; 1 = idle
+	float _chunkT = 1f;    // Day 220: 0..1 through a falling chunk; 1 = idle
+	float _chunkFrom, _chunkTo; // progress before / after the pull that shed it
+	int _chunkBond = -1;
 	float _barPush;        // extra drop, pixels, to clear the knot loop
 
 	// Texture geometry, pixels in a BightTex x BightTex texture. y up (row 0 = bottom).
@@ -168,11 +177,19 @@ public class BondStruggleHUD : MonoBehaviour
 		{
 			int sel = struggle.Selected;
 			float prog = sel >= 0 && sel < struggle.bonds.Length ? struggle.bonds[sel].progress : 0f;
-			if (sel == _barBond && prog > _barProg + 0.0001f) _barFlashT = 0f;
+			if (sel == _barBond && prog > _barProg + 0.0001f)
+			{
+				_barFlashT = 0f;
+				if (bondBarChunkTime > 0f)
+				{
+					_chunkFrom = _barProg; _chunkTo = prog; _chunkBond = sel; _chunkT = 0f;
+				}
+			}
 			_barBond = sel;
 			_barProg = prog;
 		}
 		if (_barFlashT < 1f) _barFlashT = Mathf.Min(1f, _barFlashT + Time.deltaTime / Mathf.Max(0.01f, bondBarFlashTime));
+		if (_chunkT < 1f) _chunkT = Mathf.Min(1f, _chunkT + Time.deltaTime / Mathf.Max(0.01f, bondBarChunkTime));
 	}
 
 	/// <summary>Day 218: the end card or the caught sequence has the screen. OnGUI draws over
@@ -316,6 +333,28 @@ public class BondStruggleHUD : MonoBehaviour
 			}
 			else FillRect(r, knotRope, bondBarAlpha);
 			if (flash > 0.01f) FillRect(r, bondBarFlash, flash * bondBarFlashStrength);
+		}
+
+		// Day 220: the rope that pull wore away drops off the end and fades. Same row math
+		// as above, once for the progress before the pull and once after; the gap is the chunk.
+		if (_chunkT < 1f && _chunkBond == sel && _rope != null)
+		{
+			float fade = 1f - Smooth(_chunkT);
+			float fall = h * bondBarChunkFall * _chunkT * _chunkT;   // accelerates, like it fell
+			float tile = h * RopeTexW / RopeTexH;
+			float leftOfFrom = (1f - Mathf.Clamp01(_chunkFrom)) * rows;
+			float leftOfTo = (1f - Mathf.Clamp01(_chunkTo)) * rows;
+			for (int i = 0; i < rows; i++)
+			{
+				float a0 = w * Mathf.Clamp01(leftOfTo - (rows - 1 - i));
+				float a1 = w * Mathf.Clamp01(leftOfFrom - (rows - 1 - i));
+				if (a1 - a0 < 0.5f) continue;
+				var r = new Rect(x + a0, top + i * pitch + fall, a1 - a0, h);
+				FillRect(new Rect(r.x - o, r.y - o, r.width + o * 2f, r.height + o * 2f), knotOutline,
+					bondBarAlpha * fade);
+				GUI.color = new Color(1f, 1f, 1f, bondBarAlpha * fade);
+				GUI.DrawTextureWithTexCoords(r, _rope, new Rect(a0 / tile, 0f, (a1 - a0) / tile, 1f), true);
+			}
 		}
 		GUI.color = prev;
 	}
