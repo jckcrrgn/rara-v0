@@ -56,54 +56,54 @@ Rules from the page copy: lead with competence, not peril. She's been in worse.
 **Routine gloat** — leaning in on a routine check-in (`routineGloatLines`)
 - Comfortable? Good. Don't go anywhere.
 - Still with us? Wonderful.
-- →
+- → How's our snooping detective? / If you need anything, just 'mmph'. / Comfy? Good. Don't go anywhere.
 
 **Call-out** — offstage, noise reaches him (`calloutLines`)
 - Hm?
 - You say something?
 - Quiet in there.
-- →
+- → What was that? / Huh? / Keep it down! / How are you STILL so noisy? / Don't make me come in there.
 
 **Taunt** — she's mashing in front of him (`tauntLines`)
 - Putting on a show? Nobody can hear you.
 - Go on. Wear yourself out.
 - Nobody's coming.
-- →
+- → Putting on a show, eh? / Go ahead. Wear yourself out. / Hey hey hey! Why so worked up, princess?
 
 **Suspicion tell** — the warning before he checks (`suspicionTellLines`)
 - ...Hm.
 - What are you doing back there?
-- →
+- → What the hell is she doing? / Hey, what's going on in there? / What the hell...?
 
 **Stray bottle** — he notices the bottle on the floor (`strayNoticeLines`)
 - ...Was that bottle on the floor before?
 - Where'd that come from?
-- →
+- → How'd that bottle get there? / Did you put that there?
 
 **Check, clear** — he checks, finds nothing, cinches a bond (`checkClearLines`)
 - Still tight.
 - Not going anywhere.
-- →
+- → keep
 
 **Caught (default)** (`caughtGuardLine`)
 - I knew it. Let's try that again — tighter this time.
-- →
+- → keep (fallback; no demo path plays it)
 
 **Caught on a check** (`caughtCheckGuardLine`)
 - Thought so. Let's tighten these.
-- →
+- → I knew it. Let's just tighten these.
 
 **Caught, saw her hands** (`caughtSeenGuardLine`)
 - Busy hands. Let's fix that.
-- →
+- → keep
 
 **Last warning** — added to his caught line on the catch before the last (`lastWarningGuardLine`, code default)
 - Once more and you're coming with me.
-- →
+- → Sit tight. We'll be leaving soon.
 
 **Taken** — third catch, over black (`takenGuardLine`)
 - Enough. You're coming with me.
-- →
+- → That's it. You're coming with me.
 
 ---
 
@@ -111,19 +111,19 @@ Rules from the page copy: lead with competence, not peril. She's been in worse.
 
 **Slipped out** (`slippedOutLine`)
 - Gone before he thought to look.
-- →
+- → The escape artiste can't be tied down!
 
 **Bottle** (`strikeLine`)
 - He was watching the wrong thing.
-- →
+- → He should really cut back.
 
 **Taken** (`takenLine`)
 - He's moving her somewhere worse.
-- →
+- → How bad could a second location be?
 
 **Thanks** (`thanksLine`)
 - Thanks for playing the demo.
-- →
+- → keep
 
 ---
 
