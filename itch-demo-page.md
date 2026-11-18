@@ -68,16 +68,16 @@ straight into it.
 
 - [x] Discord invite never expires (checked Day 221).
 - [x] Old "demo mid-October" / "devlogs twice weekly" text removed (Day 221).
-- [ ] Reply to bmo-dar ("Where is the demo?"): "Saturday, November 21, free. Sorry for
+- [x] Reply to bmo-dar ("Where is the demo?") (done Day 221): "Saturday, November 21, free. Sorry for
       the wait: the October version wasn't fun, so I rebuilt it. Come tell me what breaks:"
       + Discord link.
 - [ ] AI generation disclosure (unset). Code, some mutter lines and this copy came
       through an LLM; itch counts that "even if hand-edited." Jack's call.
-- [ ] Cover: keep the Sep 19 slat-light frame.
+- [x] Cover: kept the Sep 19 slat-light frame (Day 221).
 - [ ] Upload `Builds/Rara_Demo_v1` as a zip, tagged Windows, **hidden or draft until Sat**.
 - [ ] Cover image 630×500.
 - [ ] 3–5 screenshots (shot list below).
-- [ ] Genre: Adventure (keep). Tags at max 10: swap `unity` → `rhythm`,
+- [x] Genre: Adventure (kept). Tags at max 10 (done Day 221): swap `unity` → `rhythm`,
       `story-rich` → `cel-shaded`. Keep atmospheric, detective, escape-game, low-poly,
       noir, puzzle, singleplayer, third-person.
 
