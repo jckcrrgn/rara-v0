@@ -14,40 +14,40 @@ Rules from the page copy: lead with competence, not peril. She's been in worse.
 
 **Opening line** — as the scene starts (`LevelManager.entryMutter`)
 - Chair. Rope. Mid-range hotel room. Cute...
-- →
+- → Tied to a chair in a sketchy back room. Real smooth, Cassie.
 
 **Close reaction** — after each routine gloat from him, under her breath (`GuardController.routineReactionLines`)
 - Keep walking.
 - That's it. Trust the knots.
-- →
+- → Hmph. / Ooo, a tough guy. / Grrrr. / Oh please.
 
 **Hint, barehand** — after 8 good barehand pulls on the wrists (`EdgeHintMutters.barehandLine`)
 - Could do this all night. Rather not.
-- →
+- → This could take a while...
 
 **Hint, edge** — inside the table edge's reach, wrists bound (`EdgeHintMutters.edgeLine`)
 - That edge'll do.
-- →
+- → The table edge...
 
 **Caught** — after he catches her and re-ties (`GuardController.caughtCassieReaction`)
 - Back to square one. Think, Cassie.
-- →
+- → Pretty sharp for a henchman. Ow, this is even tighter.
 
 **Elbows tied on** — first catch, when he adds the elbows (`GuardController.escalationCassieReaction`)
 - My ELBOWS? Really?
-- →
+- → keep
 
 **Strike blocked** — tries to strike with elbows bound (`PlayerController.elbowsStrikeLine`, code default)
 - Not with my elbows tied.
-- →
+- → Gotta free my elbows first.
 
 **Slipped out** — every bond free (`BondStruggle.slippedOutLine`)
 - Rookie knots.
-- →
+- → Pathetic ropework. Not exactly a Boy Scout, is he?
 
 **Bottle win** — after the strike lands (`SliceCoordinator.victoryMutterLine`)
 - I've had worse. He hasn't.
-- →
+- → keep
 
 ---
 
