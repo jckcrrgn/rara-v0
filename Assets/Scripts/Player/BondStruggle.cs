@@ -238,7 +238,8 @@ public class BondStruggle : MonoBehaviour
 	public int WristsIndex { get; private set; } = -1;
 	public bool HandsFree => WristsIndex >= 0 && !bonds[WristsIndex].Bound;
 	/// <summary>Free hands visibly out — what the guard can see. True while still hiding.</summary>
-	public bool HandsOut => HandsFree && handsOut;
+	// Day 223: never while her elbows are tied. They keep her arms behind her back.
+	public bool HandsOut => HandsFree && handsOut && !ElbowsBound;
 	public bool IsHidingHands => hidingUntil > 0f;
 	/// <summary>Day 208: elbows tied behind her = her hands can't reach the knots in front.</summary>
 	public bool ElbowsBound
@@ -660,7 +661,9 @@ public class BondStruggle : MonoBehaviour
 	/// </summary>
 	public void BringHandsOut()
 	{
-		if (!HandsFree) { player.SetFeignState(false); return; }
+		// Day 223: elbows tied = arms stay behind her, wrists free or not. Picking up the
+		// bottle (or setting it down, or ending a feign) doesn't bring them out front.
+		if (!HandsFree || ElbowsBound) { player.SetFeignState(false); return; }
 		handsOut = true;
 		hidingUntil = 0f;
 		player.SetFeignState(false);
