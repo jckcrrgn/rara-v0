@@ -1,0 +1,148 @@
+# Rara demo: line sheet (Day 222)
+
+Every line a player can see or hear in VS_Demo. Jack rewrites them all by hand before
+the demo ships, so it ships with his own words. Write your line under each one, or put
+"keep" if a line is already yours. Claude wires them in on one branch (scene values, plus the
+code default where the scene doesn't override it). Where a slot holds several lines, it picks
+one at random, so you can write more or fewer.
+
+Rules from the page copy: lead with competence, not peril. She's been in worse.
+
+---
+
+## Cassie
+
+**Opening line** — as the scene starts (`LevelManager.entryMutter`)
+- Chair. Rope. Mid-range hotel room. Cute...
+- →
+
+**Close reaction** — after each routine gloat from him, under her breath (`GuardController.routineReactionLines`)
+- Keep walking.
+- That's it. Trust the knots.
+- →
+
+**Hint, barehand** — after 8 good barehand pulls on the wrists (`EdgeHintMutters.barehandLine`)
+- Could do this all night. Rather not.
+- →
+
+**Hint, edge** — inside the table edge's reach, wrists bound (`EdgeHintMutters.edgeLine`)
+- That edge'll do.
+- →
+
+**Caught** — after he catches her and re-ties (`GuardController.caughtCassieReaction`)
+- Back to square one. Think, Cassie.
+- →
+
+**Elbows tied on** — first catch, when he adds the elbows (`GuardController.escalationCassieReaction`)
+- My ELBOWS? Really?
+- →
+
+**Strike blocked** — tries to strike with elbows bound (`PlayerController.elbowsStrikeLine`, code default)
+- Not with my elbows tied.
+- →
+
+**Slipped out** — every bond free (`BondStruggle.slippedOutLine`)
+- Rookie knots.
+- →
+
+**Bottle win** — after the strike lands (`SliceCoordinator.victoryMutterLine`)
+- I've had worse. He hasn't.
+- →
+
+---
+
+## The guard
+
+**Routine gloat** — leaning in on a routine check-in (`routineGloatLines`)
+- Comfortable? Good. Don't go anywhere.
+- Still with us? Wonderful.
+- →
+
+**Call-out** — offstage, noise reaches him (`calloutLines`)
+- Hm?
+- You say something?
+- Quiet in there.
+- →
+
+**Taunt** — she's mashing in front of him (`tauntLines`)
+- Putting on a show? Nobody can hear you.
+- Go on. Wear yourself out.
+- Nobody's coming.
+- →
+
+**Suspicion tell** — the warning before he checks (`suspicionTellLines`)
+- ...Hm.
+- What are you doing back there?
+- →
+
+**Stray bottle** — he notices the bottle on the floor (`strayNoticeLines`)
+- ...Was that bottle on the floor before?
+- Where'd that come from?
+- →
+
+**Check, clear** — he checks, finds nothing, cinches a bond (`checkClearLines`)
+- Still tight.
+- Not going anywhere.
+- →
+
+**Caught (default)** (`caughtGuardLine`)
+- I knew it. Let's try that again — tighter this time.
+- →
+
+**Caught on a check** (`caughtCheckGuardLine`)
+- Thought so. Let's tighten these.
+- →
+
+**Caught, saw her hands** (`caughtSeenGuardLine`)
+- Busy hands. Let's fix that.
+- →
+
+**Last warning** — added to his caught line on the catch before the last (`lastWarningGuardLine`, code default)
+- Once more and you're coming with me.
+- →
+
+**Taken** — third catch, over black (`takenGuardLine`)
+- Enough. You're coming with me.
+- →
+
+---
+
+## End card (`EndCard`)
+
+**Slipped out** (`slippedOutLine`)
+- Gone before he thought to look.
+- →
+
+**Bottle** (`strikeLine`)
+- He was watching the wrong thing.
+- →
+
+**Taken** (`takenLine`)
+- He's moving her somewhere worse.
+- →
+
+**Thanks** (`thanksLine`)
+- Thanks for playing the demo.
+- →
+
+---
+
+## Optional: tutorial prompts (`TutorialPrompts`)
+
+These are instructions, not dialogue. `{0}` is the button, filled in for pad or keyboard.
+Rewrite them if you want every word to be yours.
+
+- {0}: struggle. Follow her rhythm. →
+- {0}: choose a bond →
+- Hold {0}: move the chair →
+- {0}: untie. Follow the loop. →
+- {0}: hide your hands →
+- {0}: pick up →
+
+---
+
+## Also on the itch page
+
+The demo section of the description (from "She's tied to a chair in a back room..."
+down to the Discord line) started as a Claude draft. The Sep 19 opener is yours.
+To uncheck "Text" in the AI disclosure, rewrite that section too, or leave "Text" checked.
