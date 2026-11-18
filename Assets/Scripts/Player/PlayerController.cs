@@ -91,7 +91,7 @@ public class PlayerController : MonoBehaviour
 
 	[Tooltip("Day 213: Cassie's line when X is pressed with the bottle but her elbows are tied. " +
 		"Background bubble: never blocks, drops if her panel is busy.")]
-	[SerializeField] private string elbowsStrikeLine = "Not with my elbows tied.";
+	[SerializeField] private string elbowsStrikeLine = "Gotta free my elbows first.";
 	[Tooltip("Seconds before the elbows line can play again. Stops a mashed X from spamming it.")]
 	[SerializeField] private float elbowsLineCooldown = 4f;
 	private float nextElbowsLine;

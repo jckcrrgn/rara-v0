@@ -326,7 +326,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   strikeRange: 1.2
-  elbowsStrikeLine: Not with my elbows tied.
+  elbowsStrikeLine: Gotta free my elbows first.
   elbowsLineCooldown: 4
   currentRestraint: {fileID: 7026241982387864388}
   freeOnBondBreak: 1

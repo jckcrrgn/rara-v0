@@ -448,7 +448,7 @@ public class GuardController : MonoBehaviour
 	[Tooltip("Day 218: added to his line on the catch before the last one, so the player hears " +
 		"the stakes from him (the HUD no longer shows 'caught 2 of 3'). Empty = no warning.")]
 	[TextArea(2, 4)]
-	[SerializeField] private string lastWarningGuardLine = "Once more and you're coming with me.";
+	[SerializeField] private string lastWarningGuardLine = "Sit tight. We'll be leaving soon.";
 	[Tooltip("The last catch. Plays over black, then the scene reloads.")]
 	[TextArea(2, 4)]
 	[SerializeField] private string takenGuardLine = "Enough. You're coming with me.";

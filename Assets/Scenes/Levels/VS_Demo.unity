@@ -3663,7 +3663,7 @@ MonoBehaviour:
   gameCompleteUI: {fileID: 0}
   autoAdvance: 0
   autoAdvanceDelay: 1.75
-  entryMutter: 'Chair. Rope. Mid-range hotel room. Cute... '
+  entryMutter: Tied to a chair in a sketchy back room. Real smooth, Cassie.
 --- !u!4 &1007953697
 Transform:
   m_ObjectHideFlags: 0
@@ -4957,11 +4957,11 @@ MonoBehaviour:
   channelUrl: https://discord.gg/WVkAGH2a3v
   channelLabel: Discord
   slippedOutTitle: SLIPPED OUT
-  slippedOutLine: Gone before he thought to look.
+  slippedOutLine: The escape artiste can't be tied down!
   strikeTitle: LIGHTS OUT
-  strikeLine: He was watching the wrong thing.
+  strikeLine: He should really cut back.
   takenTitle: TAKEN
-  takenLine: He's moving her somewhere worse.
+  takenLine: How bad could a second location be?
   thanksLine: Thanks for playing the demo.
   linksHeader: FOLLOW THE BUILD
   font: {fileID: 0}
@@ -5522,13 +5522,16 @@ MonoBehaviour:
   leaveFootstepsClip: {fileID: 0}
   footstepsVolume: 0.85
   routineGloatLines:
-  - Comfortable? Good. Don't go anywhere.
-  - Still with us? Wonderful.
+  - How's our snooping detective?
+  - If you need anything, just 'mmph'.
+  - Comfy? Good. Don't go anywhere.
   routineReactionLines:
-  - Keep walking.
-  - That's it. Trust the knots.
+  - Hmph.
+  - Ooo, a tough guy.
+  - Grrrr.
+  - Oh please.
   caughtGuardLine: "I knew it. Let's try that again \u2014 tighter this time."
-  caughtCassieReaction: Back to square one. Think, Cassie.
+  caughtCassieReaction: Pretty sharp for a henchman. Ow, this is even tighter.
   fadeOverlay: {fileID: 655064292}
   caughtFadeDuration: 0.5
   caughtRebindSfx: []
@@ -5553,39 +5556,42 @@ MonoBehaviour:
   seenAttention: 0.75
   calloutClip: {fileID: 0}
   calloutLines:
-  - Hm?
-  - You say something?
-  - Quiet in there.
+  - What was that?
+  - Huh?
+  - Keep it down!
+  - How are you STILL so noisy?
+  - Don't make me come in there.
   suspicionPerMiss: 0.35
   suspicionPerToolMiss: 0.7
   missNoticeRange: 2.5
   suspicionTellAt: 0.5
   suspicionTellLines:
-  - ...Hm.
-  - What are you doing back there?
+  - What the hell is she doing?
+  - Hey, what's going on in there?
+  - What the hell...?
   strayNoticeChance: 0.4
   strayNoticeRange: 2
   suspicionPerStray: 0.65
   strayNoticeLines:
-  - ...Was that bottle on the floor before?
-  - Where'd that come from?
+  - How'd that bottle get there?
+  - Did you put that there?
   checkEvidence: 0.5
   checkDuration: 1.2
   cinchSetback: 0.15
   checkClearLines:
   - Still tight.
   - Not going anywhere.
-  caughtCheckGuardLine: Thought so. Let's tighten these.
+  caughtCheckGuardLine: I knew it. Let's just tighten these.
   tauntLines:
-  - Putting on a show? Nobody can hear you.
-  - Go on. Wear yourself out.
-  - Nobody's coming.
+  - Putting on a show, eh?
+  - Go ahead. Wear yourself out.
+  - Hey hey hey! Why so worked up, princess?
   tauntCooldown: 4
   tauntLinger: 2
   maxLingerPerVisit: 3
   caughtSeenGuardLine: Busy hands. Let's fix that.
   escalationCassieReaction: My ELBOWS? Really?
-  takenGuardLine: Enough. You're coming with me.
+  takenGuardLine: That's it. You're coming with me.
   takenHoldTime: 1.5
   verboseLogging: 1
 --- !u!4 &1343825749
@@ -7025,9 +7031,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bd712de69580480ba9846cc9ccc9dd7e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  barehandLine: Could do this all night. Rather not.
+  barehandLine: This could take a while...
   barehandHits: 8
-  edgeLine: That edge'll do.
+  edgeLine: The table edge...
 --- !u!114 &1652804368
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7100,7 +7106,7 @@ MonoBehaviour:
   tightenPerCatch: 0.3
   freeHandsExtraTighten: 0.3
   maxCatches: 3
-  slippedOutLine: Rookie knots.
+  slippedOutLine: Pathetic ropework. Not exactly a Boy Scout, is he?
   logTiming: 1
   hitClip: {fileID: 8300000, guid: d7e95b08ddc82b8469204d874282cce1, type: 3}
   edgeHitClip: {fileID: 8300000, guid: 8301f7d4fc036eb4f86b3321d0e27c48, type: 3}
