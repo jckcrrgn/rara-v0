@@ -286,8 +286,9 @@ LB tucks it behind her back (`heldItemShowsOut`; before, it always sat behind he
 the guard counted her hands as out). Not a one-handed untie: that needs a new hands pose
 four days before freeze, and it removes the choice.
 
-**Tools are multipliers:** blade ×2.5, point ×1.6, key ×4. The TableEdge reaches the
-wrists only. A held tool works the wrists while she's bound, then the untieable bonds
+**Tools are multipliers:** blade ×2.5, point ×1.6, key ×4. The TableEdge is its own
+×1.75 (`envToolMult`, Day 220) and reaches the wrists and elbows (elbows added Day 220).
+See **The table edge is the shortcut**. A held tool works the wrists while she's bound, then the untieable bonds
 once her hands are free. A bond with `barehandGain` 0 (cuffs) needs one.
 
 **Catches:** the proto rules, applied under the fade. Respawn, disarm and the caught
@@ -299,16 +300,17 @@ up / set down / dismiss mutter · X strike · Start restart (Day 214). Keyboard:
 Space · IJKL · G · Shift · E · H · R.
 
 **Open (Day 202):**
-- [ ] First play in VS_Demo. Start `offstageRange` at 8–16 s. With 10–22 s, a clean
-      player can slip out before the first check-in (wrists ~11 s barehand, ~4–5 s on
-      the TableEdge, ankles ~5 s to untie).
+- [x] ~~First play in VS_Demo. Start `offstageRange` at 8–16 s.~~ Played. Now 6–12 s
+      (Day 219). The ~11 s / ~4–5 s wrist times here went stale at `gainPerPull` 0.05;
+      current numbers in **The table edge is the shortcut**.
 - [x] ~~The approach footsteps are a free-noise window.~~ Moot: noise no longer catches.
 - [ ] "He likes it": should struggling in front of him keep him watching longer? That
       would make noise cost untie time while he's in the room as well.
 - [ ] The beat now lives in Cassie (CassieStruggleDriver sways on the pulse, idle 0.4).
       The HUD pulse bar is gone. Next: bias the sway toward the selected bond.
-- [ ] TableEdge ×2.5 on the wrists. It used to be silently blocked when the bottle was
-      the nearest interactable. Fixed: environmental tools are now searched directly.
+- [x] TableEdge on the wrists (×1.75 since Day 220). It used to be silently blocked when
+      the bottle was the nearest interactable. Fixed: environmental tools are now searched
+      directly.
 - [ ] L6 rocking has no binding on the move layer (Shift is taken). Rebind before L6
       opts in.
 - [ ] Kick has no pad binding (suppressed in the chair anyway).
@@ -588,6 +590,55 @@ Free hands seen while he's watching are still the instant, heavy catch.
       that it doesn't feel like a free action in front of him.
 - [ ] Hands hidden + wrists already free = evidence 100% on a check. Intended: feign only
       holds until he looks closely.
+
+### The table edge is the shortcut (Rara Day 219–220)
+
+**Day 219: cold playtests with M.** Run 1: out in ~1 min. He read the beat at once, and
+the guard never mattered, because on-beat pulls never alert him; a good-rhythm run was
+just pulling time. Tuned (values only): `gainPerPull` 0.08 → 0.05 (~20 good pulls per
+bond, ~1.6× the work), `offstageRange` 8–16 → 6–12 s. Target: ~2 min for a player that
+good, with at least 2 visits. Run 2: ~1:50, froze on every visit, 0 catches.
+
+**Day 220 (Nov 14 design): make the edge matter.** At those values the wrists took
+~17.5 s barehand vs ~7 s on the edge. Now barehand costs time and the edge is the
+shortcut.
+
+| Field | Value | Reads as |
+|---|---|---|
+| wrist `barehandGain` | 1 → **0.4** | barehand wrists are slow |
+| `envToolMult` (new) | **1.75** | the table edge; held blades keep `bladeMult` 2.5 |
+| result, 0.8 accuracy | ~44 s barehand vs ~10 s on the edge | was ~17.5 s vs ~7 s |
+| elbows `envToolsReach` | on | the edge saws the elbows too, at 1.75 |
+| elbows `barehandGain` | 1 (unchanged) | |
+
+Same in VS_Demo and the code defaults.
+
+**Making the edge readable.**
+- **Sound.** `edgeHitClip` plays instead of the leather creak on a good pull at the edge.
+  Placeholder: ripBedsheet.wav (0.4 s tear) until a real rasp.
+- **Bond bar.** Each pull's worn piece hangs 0.35 s, drops and fades, moving from the
+  pull's frame. Barehand slivers (~1.5 px) vanish; edge pulls (~7 px) shed a visible chunk.
+- **Cassie hints** (`EdgeHintMutters`). After 8 good barehand wrist pulls: "Could do this
+  all night. Rather not." Inside the edge's reach with wrists bound: "That edge'll do."
+  Background mutters, once each; both stand down once she uses the edge.
+- **The cost.** A missed saw in his sight is `suspicionPerToolMiss` 0.7 (Day 211): the
+  edge is fast, and loud with him watching.
+
+**Scissors on the ankles: a snip, not a beat.** Free hands holding a cutting tool on an
+untieable bond = a cut. Her hands come out to the knot like untying (`CanCut`). Each press
+is one snip, at most one per 0.5 s, 20% of the bond (tightness divides it). No bout, no
+sway, no timing grade; small noise. Each good cut tugs her hands sideways, alternating.
+`snipClip` falls back to the edge hit. Wrists while bound keep the rhythm path.
+
+**Demo pass test:** a cold player uses the table edge without being told.
+
+**Open:**
+- [ ] Cold tester: do they use the edge unprompted? Do the hint mutters land? Does the
+      snip read?
+- [ ] Real rasp and snip clips (`edgeHitClip` / `snipClip` slots, no code).
+- [ ] Clean day: feel check of edge timing, barehand vs edge.
+- [ ] Post-demo: elbows barehand (1) is now faster than wrists barehand (0.4).
+- [ ] Post-demo: perfect-pull feedback (accuracy > ~0.9 gets its own flash and sound).
 
 ---
 
