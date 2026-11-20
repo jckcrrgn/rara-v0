@@ -623,6 +623,9 @@ public class BondStruggle : MonoBehaviour
 	{
 		if (!HandsFree) { LastResult = "hands are bound — struggle"; return; }
 		if (ElbowsBound) { LastResult = "elbows tied — can't reach. Struggle them free"; return; }
+		// Day 225: scissors in hand = the untie input cuts, same as a pull. Before this it was
+		// a dead end ("hands full"): wrists cut free, scissors still held, nothing worked.
+		if (CanCut(Selected)) { Snip(Time.time); return; }
 		if (HandsFull) { LastResult = "hands full — A to set it down"; return; }
 		if (!CanUntie(Selected)) { LastResult = "can't reach that one — struggle"; return; }
 		if (hidingUntil > 0f) return;   // busy hiding

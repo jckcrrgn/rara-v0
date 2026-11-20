@@ -8,7 +8,8 @@
 //   Struggle      start, after her entry mutter               hitsToLearn on-beat pulls
 //   Choose        struggle learned, 2+ bonds holding her      she picks another bond
 //   Move          choose learned (or shown)                   first hop / turn / scoot input
-//   Untie         the selected knot is in reach               first correct untie
+//   Untie         the selected knot is in reach (Day 225: or   first correct untie or snip
+//                 cuttable, scissors in hand: "cut")
 //   Hide          hands out, and untie is learned or he's     she starts hiding them
 //                 on his way in
 //   Pick up       struggle learned, something in reach        she's holding it
@@ -55,6 +56,8 @@ public class TutorialPrompts : MonoBehaviour
 	public string chooseLine = "{0}: choose a bond";
 	public string moveLine = "Hold {0}: move the chair";
 	public string untieLine = "{0}: untie. Follow the loop.";
+	[Tooltip("Day 225: the untie line when she's holding something that cuts (the scissors).")]
+	public string cutLine = "{0}: cut";
 	public string hideLine = "{0}: hide your hands";
 	public string pickUpLine = "{0}: pick up";
 
@@ -167,6 +170,13 @@ public class TutorialPrompts : MonoBehaviour
 
 	void OnPull(BondStruggle.PullKind kind, bool tool)
 	{
+		// Day 225: a tool hit with free, full hands is a snip (held tools never reach the
+		// elbows). Cutting a knot counts as learning that line.
+		if (kind == BondStruggle.PullKind.Hit && tool && struggle.HandsFree && struggle.HandsFull && !struggle.ElbowsBound)
+		{
+			done[(int)Step.Untie] = true;
+			return;
+		}
 		if (kind == BondStruggle.PullKind.Hit && ++hits >= hitsToLearn) done[(int)Step.Struggle] = true;
 	}
 
@@ -252,7 +262,7 @@ public class TutorialPrompts : MonoBehaviour
 			case Step.Struggle: return struggle.AnyBound;
 			case Step.Choose:   return done[(int)Step.Struggle] && BoundCount() >= 2;
 			case Step.Move:     return done[(int)Step.Struggle] && (Resolved(Step.Choose) || BoundCount() < 2);
-			case Step.Untie:    return struggle.CanUntie(struggle.Selected);
+			case Step.Untie:    return struggle.CanUntie(struggle.Selected) || struggle.CanCut(struggle.Selected);
 			// Hands out. Wait for the untie lesson unless he's on his way: then it can't wait.
 			case Step.Hide:     return struggle.HandsOut && !struggle.IsHidingHands && (Resolved(Step.Untie) || GuardComing());
 			case Step.PickUp:   return done[(int)Step.Struggle] && pickUpInReach && player.GetHeldItem() == null;
@@ -408,7 +418,7 @@ public class TutorialPrompts : MonoBehaviour
 		Step.Struggle => struggleLine,
 		Step.Choose => chooseLine,
 		Step.Move => moveLine,
-		Step.Untie => untieLine,
+		Step.Untie => struggle.CanCut(struggle.Selected) ? cutLine : untieLine,
 		Step.Hide => hideLine,
 		Step.PickUp => pickUpLine,
 		_ => "",
