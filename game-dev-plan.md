@@ -1,8 +1,8 @@
 # Rara — Plan
-**Status Rara Day 205 / 2026-10-31:** itch page live since Sep 19 (donations, no Patreon).
-**Active milestone: free playable demo on itch, Sat Nov 21, 2026 — bound loop only.**
-*Rewritten Day 205 weekly review. Replaces the Day 117 Slice 1 Launch Plan; the launch
-record is collapsed below.*
+**Status Rara Day 228 / 2026-11-23:** free demo live on itch since Sat Nov 21 (donations).
+**Active milestone: post-demo plan, decided at the Sat Nov 28 review.** Deload week
+Nov 22–28: light dev, no new pillars.
+*Refreshed Day 228. The Day 205 demo plan is collapsed to a record below.*
 
 ---
 
@@ -31,71 +31,26 @@ rest. Revenue is a lagging indicator; an audience with expectations is the thing
 
 ---
 
-## Demo — bound loop (Nov 21)
+## Next — post-demo (decide Nov 28)
 
-**Date: Sat Nov 21, 2026.** Public, free, on itch. The demo is the discovery asset.
+**Launch read (Day 227):** views flat at 3–4/day, 3 downloads (mostly retests),
+2 Discord joins. Nobody has been pointed at the page yet. Jack's own read: not fun
+yet, near-graybox. The struggle-out is the least fun part (monotonous); the fun was
+baiting the guard into tying her tighter. Notes: `Design/day227-where-the-fun-is.md`.
 
-The itch page promised a mid-October demo. The Oct 17 date moved to Oct 24, and on
-Oct 20 it was pulled ("not fun" — the old TableEdge → bottle loop). The rhythm struggle
-loop that replaced it tested fun (Oct 21) and is merged in VS_Demo (Day 202).
+**Candidate next slice:** A (perfect pulls + streak; calibrate the beat offset first)
++ B (cinch duel: she tenses on his tugs, baits him in, comes out looser; she's conning
+him) in the L6 room, one branch each, then a cold tester. Tests "is the guard the fun"
+before any new pillar. C (catch re-tie duel, surrender, readable guard) comes later.
 
-### Scope
+**Nov 28 decides:**
+1. The next slice (A + B above, vs the knit-level pivot / the L6 call).
+2. The monetization move: membership off the demo audience, vs a store page +
+   wishlists for the next slice.
+3. A date for that slice's first public build.
 
-**In:** the Day 202 BondStruggle loop in `VS_Demo.unity`. Struggle on the beat (body
-cue = Cassie's YankOnBeat sway) → free the wrists → untie with hands hidden from him →
-slip out, *or* take the bottle and strike. Caught with free hands → reset to start,
-elbows tied on, tighter. Third catch = taken.
-
-**Out (post-demo):** free walk-around state, patrol, chase, drag-back, the escalation
-ladder, L1–L5 design pass, L7+, menus beyond an end card.
-
-### Dates
-
-| Date | Gate |
-|---|---|
-| This week | itch devlog posting the new date. itch tax interview done. |
-| **Fri Nov 13** | **Feature freeze.** Nothing new after this; only fixes. |
-| **Sat Nov 14** | **Cold playtest** — someone who has never seen it. |
-| **Sat Nov 21** | **Ship on itch.** |
-
-### Budget (~10–13 sessions, Nov 1–20 holds ~20)
-
-| Work | Sessions |
-|---|---|
-| Tune the revised rules (`offstageRange`, catch/reset feel) | 2–3 |
-| Beat cue: `beatShape` 3 runs, judge offset only if still ~−100 ms; sway bias toward selected bond | 2 |
-| Fix list below | 3–4 |
-| Cold-test fixes | 2–3 |
-| Build + page update | 1 |
-
-### Fix list (re-triaged Day 205)
-- [x] Hit / miss SFX clips assigned (`chairCreak1` = hit, `slide-thump` = miss); `noisePerMiss`
-      0.15 → 0.08. **Day 206.** Feel check pending a clean day — GDD *Noise thresholds*.
-- [x] HUD split. **Day 206–207.** Debug readout (noise, captor, last result) is F1,
-      editor / Development only. **Player readout** (bonds + selected, hands, knot, catches)
-      shows in every build — interim until bond choice + knot live on her body. Controls
-      card stays. ⚠ The HUD *component* was disabled in VS_Demo since Day 204 (timing-run
-      setup) — re-enabled Day 207. Hide for timing runs with F1, never the checkbox.
-- [x] Guard facing + lean — done **Day 167** (`ad6863b`); verified wired in VS_Demo Day 207.
-      Items were stale carry-overs.
-- [ ] **Diegetic feedback** (GDD, Day 207). Head-look + sway bias (which bond), rope
-      gives (progress). Knot cue open. Then kill the player readout.
-- [ ] Camera framing under the shoot lighting — judge from the Game view.
-- [ ] End card — itch link + owned channel.
-- [ ] Owned channel (Discord / email) — the end card needs it.
-- [ ] Web vs Windows — WebGL cel-shader test if Web.
-- [ ] Cold playtest (Nov 14).
-
-**Scene:** `VS_Demo.unity`. **Build profile:** `Demo – Windows`, scene list = VS_Demo only.
-
-### Kill rule
-If the Nov 14 cold test says "not fun", fix the loop. **Do not add pillars.** Free
-state, patrol and chase are each multi-week; a demo that waits on them has no date.
-
-### Lesson (Day 166)
-Shoot scenes switch off gameplay to get clean frames. VS_ShaderCheck had
-GuardController, Bottle, TableEdge, Canvas, and the guard's pivot all inactive.
-**Diff active states against the last playable scene before building from a shoot scene.**
+**This week (deload):** re-measure the beat offset (clean day only; gates A's
+±25 ms perfect window), line up 1–2 trusted async testers, crash fixes only.
 
 ---
 
@@ -110,24 +65,23 @@ GuardController, Bottle, TableEdge, Canvas, and the guard's pivot all inactive.
 
 - [x] SubscribeStar handle claimed.
 - [x] itch page live (Day 125 / Sep 19).
-- [ ] **itch tax interview** — blocks payouts. Donations can't reach you until it's done.
-- [ ] **Owned channel: Discord and/or email list.** The real insurance. The audience
-      relationship lives somewhere no platform can revoke. Every post points to it.
-- [ ] Export the follower/member list monthly once one exists.
+- [x] itch tax interview. Payouts unblocked.
+- [x] Owned channel: Discord, linked from the end card.
+- [x] Free demo live (Nov 21).
+- [ ] Export the Discord member list monthly.
 
 ---
 
 ## Audience
 
-**The single largest risk is launching to an empty room.**
+**Launched to an empty room (Nov 21), on purpose for now.** Wide attention waits until
+it's fun (Day 227). Until then: 1–2 trusted async testers (screen-record while thinking
+out loud; never mention the table edge), not a crowd.
 
-**Rule:** two posts a week, ~15 minutes each, outside the dev hour. If it eats dev
-time, it's being done wrong.
-
-**Status Day 205:** lapsed after ~2 Reddit posts. **Restart:** the new-date devlog this
-week is post #1. Backlog to post from without writing fresh material: the wrist-drift
-story, the bone-roll invariant, blockout → refine, cel shader tests, the act structure,
-why she never gets rescued, and now — the half-beat lock (players pull on her fastest
+**Rule, once there's something to show:** two posts a week, ~15 minutes each, outside
+the dev hour. If it eats dev time, it's being done wrong. Backlog to post from: the
+wrist-drift story, the bone-roll invariant, blockout → refine, cel shader tests, the act
+structure, why she never gets rescued, the half-beat lock (players pull on her fastest
 motion, not her pose).
 
 Public copy never says "one hour a day."
@@ -160,18 +114,34 @@ Public copy never says "one hour a day."
 
 ## Known risks
 
-**The demo waits on pillars.** Most likely failure now. The kill rule and the Nov 13
-freeze are the mitigation.
+**Not fun yet.** The demo is a working loop, not a fun one (Jack, Day 227). Fix the
+loop before adding pillars: free state, patrol and chase are each multi-week.
 
-**Silence reads as abandoned.** The page promised October. The new-date devlog fixes it;
-skipping it makes the Nov 21 ship land on nobody.
+**Empty room.** The page has had no push. Fine while the loop isn't fun; not fine
+forever. The Nov 28 monetization call has to include how people find it.
 
 **Right wrist / forearm strain.** Typed field values over gizmo drags, left-hand
 mouse, hotkeys, 30-minute movement breaks. Red flags (numbness, tingling, weakness,
 grip failing) mean stop and get it looked at.
 
-**A bad week.** Assume one. The budget has ~7 sessions of slack; spend it on the cold
-test, not on scope.
+**A bad week.** Assume one.
+
+---
+
+## Record — Free demo (Day 205 → Nov 21)
+
+Promised mid-October; the Oct 17 date slipped to Oct 24, then was pulled Oct 20 ("not
+fun", the old TableEdge → bottle loop). The rhythm-struggle loop replaced it (tested
+fun Oct 21, merged Day 202). **Shipped Sat Nov 21** as a free Windows build in
+`VS_Demo.unity`: RT-start beat, guard watch states (suspicion → bond check → light
+catch or cinch; seen free hands = heavy), table edge as the shortcut (~44 s barehand
+vs ~10 s), scissors snip, Discord end card. The Nov 13 freeze was bent on purpose for
+the table-edge fix; no pillars crept in. Cold test: Molli ×2 on Nov 14, both before
+the edge fix; no stranger yet. Full dates, budget and fix list are in git history
+(this file before Day 228).
+
+**Lesson (Day 166):** shoot scenes switch off gameplay to get clean frames.
+**Diff active states against the last playable scene before building from a shoot scene.**
 
 ---
 
