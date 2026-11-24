@@ -90,7 +90,8 @@ Public copy never says "one hour a day."
 
 ## Habit rules (carried forward — these worked)
 
-- Same hour daily, 1:30 PM. Close everything else. One focused hour is the target.
+- One focused hour daily. The clock time floats (it drifts with the day); the daily
+  session is the habit. Close everything else.
 - **Minimum viable session = 20 minutes.** Rough day, do 20 and stop. Don't skip.
 - No coding energy → do design work. The habit is showing up.
 - End every session with the devlog row. 30 seconds now saves 10 minutes tomorrow.
